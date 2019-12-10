@@ -7,18 +7,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"tuber/pkg/util"
 )
 
 type registryToken struct {
 	Token string `json:"token"`
 }
 
-func getToken(image util.ImageInfo) (*registryToken, error) {
+func (r Retriever) getToken() (*registryToken, error) {
 	requestURL := fmt.Sprintf(
 		"%s/v2/token?scope=repository:%s:pull",
 		os.Getenv("AUTH_BASE"),
-		image.Name,
+		r.Image.Name,
 	)
 
 	client := &http.Client{}

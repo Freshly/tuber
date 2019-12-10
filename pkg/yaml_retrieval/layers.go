@@ -30,18 +30,18 @@ type layer struct {
 
 func (e *notTuberLayerError) Error() string { return e.message }
 
-func getLayers(image util.ImageInfo, authResponse *registryToken) ([]layer, error) {
+func (r Retriever) getLayers() ([]layer, error) {
 	requestURL := fmt.Sprintf(
 		"%s/v2/%s/manifests/%s",
 		os.Getenv("REGISTRY_BASE"),
-		image.Name,
-		image.Tag,
+		r.Image.Name,
+		r.Image.Tag,
 	)
 
 	client := &http.Client{}
 
 	req, _ := http.NewRequest("GET", requestURL, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authResponse.Token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.AuthResponse.Token))
 	req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 	res, err := client.Do(req)
 
@@ -66,20 +66,19 @@ func getLayers(image util.ImageInfo, authResponse *registryToken) ([]layer, erro
 	return obj.Layers, nil
 }
 
-func downloadLayer(image util.ImageInfo, authResponse *registryToken, layerObj *layer) ([]util.Yaml, error) {
-	token := authResponse.Token
+func (r Retriever) downloadLayer(layerObj *layer) ([]util.Yaml, error) {
 	layer := layerObj.Digest
 
 	requestURL := fmt.Sprintf(
 		"%s/v2/%s/blobs/%s",
 		os.Getenv("REGISTRY_BASE"),
-		image.Name,
+		r.Image.Name,
 		layer,
 	)
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", requestURL, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.AuthResponse.Token))
 
 	res, err := client.Do(req)
 
