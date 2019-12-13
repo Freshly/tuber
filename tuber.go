@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"tuber/pkg/apply"
-	"tuber/pkg/util"
 	"tuber/pkg/yaml_retrieval"
 
 	"github.com/joho/godotenv"
@@ -19,9 +18,10 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	image := util.ImageInfo{ Name: os.Getenv("IMAGE_NAME"), Tag: os.Getenv("IMAGE_TAG") }
+	name := os.Getenv("IMAGE_NAME")
+	tag := os.Getenv("IMAGE_TAG")
 
-	yamls, err := yaml_retrieval.RetrieveAll(image)
+	yamls, err := yaml_retrieval.RetrieveAll(name, tag)
 
 	if err != nil {
 		log.Fatal(err)
