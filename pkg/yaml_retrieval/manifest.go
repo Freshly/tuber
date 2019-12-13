@@ -2,7 +2,6 @@ package yaml_retrieval
 
 import (
 	"fmt"
-	"log"
 	"tuber/pkg/util"
 )
 
@@ -16,8 +15,7 @@ type manifest struct {
 
 func (m manifest) downloadYamls() (yamls []util.Yaml, err error) {
 	for _, layer := range m.Layers {
-		if layer.size > maxSize {
-			log.Println("Layer too large, skipping...")
+		if layer.Size > maxSize {
 			continue
 		}
 

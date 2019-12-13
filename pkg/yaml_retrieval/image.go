@@ -3,7 +3,6 @@ package yaml_retrieval
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -54,8 +53,6 @@ func (i authorizedImage) getManifest() (m manifest, err error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", i.token))
 	req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 	res, err := client.Do(req)
-	fmt.Println("------response:")
-	fmt.Println(res)
 
 	if err != nil {
 		return
@@ -69,15 +66,12 @@ func (i authorizedImage) getManifest() (m manifest, err error) {
 
 	manifest := &manifest { image: i }
 
-	fmt.Println("------body:")
-	fmt.Println(body)
 	err = json.Unmarshal(body, manifest)
 
 	if err != nil {
 		return
 	}
 
-	spew.Dump(manifest)
 	return *manifest, nil
 }
 
@@ -109,7 +103,7 @@ func (i image) authorize() (image authorizedImage, err error) {
 		return
 	}
 
-	tokenResponse := new(registryToken)
+	tokenResponse := &registryToken{}
 	err = json.Unmarshal(body, &tokenResponse)
 
 	if err != nil {
@@ -120,8 +114,6 @@ func (i image) authorize() (image authorizedImage, err error) {
 		err = fmt.Errorf("no token")
 		return
 	}
-
-	spew.Dump(tokenResponse.Token)
 
 	image = authorizedImage { image: i, token: tokenResponse.Token }
 	return

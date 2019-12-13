@@ -6,12 +6,11 @@ import (
 	"tuber/pkg/util"
 )
 
-func Apply(yamls []util.Yaml) ([]byte, error) {
+func Apply(yamls []util.Yaml) (out []byte, err error) {
 	cmd := exec.Command("kubectl", "apply", "-f", "-")
-	// cmd := exec.Command("cat")
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	go func() {
@@ -25,10 +24,10 @@ func Apply(yamls []util.Yaml) ([]byte, error) {
 		}
 	}()
 
-	out, err := cmd.CombinedOutput()
+	out, err = cmd.CombinedOutput()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return out, nil
+	return
 }

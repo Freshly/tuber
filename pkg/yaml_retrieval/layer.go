@@ -17,20 +17,18 @@ type notTuberLayerError struct {
 }
 
 type layer struct {
-	digest string `json:"digest"`
-	size   int32  `json:"size"`
+	Digest string `json:"digest"`
+	Size   int32  `json:"size"`
 }
 
 func (e *notTuberLayerError) Error() string { return e.message }
 
 func (l layer) download(image authorizedImage) (yamls []util.Yaml, err error) {
-	fmt.Println("afdfsdafdsadfsadfsadfsdsafdsafds")
-	fmt.Println(l)
 	requestURL := fmt.Sprintf(
 		"%s/v2/%s/blobs/%s",
 		os.Getenv("REGISTRY_BASE"),
 		image.name,
-		l.digest,
+		l.Digest,
 	)
 
 	client := &http.Client{}
