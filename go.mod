@@ -5,8 +5,8 @@ go 1.13
 require (
 	cloud.google.com/go/pubsub v1.1.0
 	github.com/davecgh/go-spew v1.1.1
+	github.com/getsentry/sentry-go v0.3.1
 	github.com/joho/godotenv v1.3.0
-	github.com/pkg/errors v0.8.0 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.3.2
 	go.uber.org/atomic v1.4.0 // indirect

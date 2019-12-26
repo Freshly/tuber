@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"context"
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 	"tuber/pkg/events"
 	"tuber/pkg/gcloud"
 	"tuber/pkg/listener"
@@ -20,7 +22,7 @@ func init() {
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start tuber",
-	Run:   start,
+	RunE:   start,
 }
 
 // Attaches interrupt and terminate signals to a cancel function
@@ -43,13 +45,26 @@ func createErrorChannel(logger *zap.Logger) chan<- error {
 		logger.Info("error listener: started")
 		for err := range errorChan {
 			logger.Warn("error while processing", zap.Error(err))
+			sentry.CaptureException(err)
+			sentry.Flush(time.Second * 5)
 		}
 		logger.Info("error listener: shutdown")
 	}()
 	return errorChan
 }
 
-func start(cmd *cobra.Command, args []string) {
+func start(cmd *cobra.Command, args []string) (err error) {
+	err = sentry.Init(sentry.ClientOptions{
+		Dsn: "https://65c8006e38eb4b95b0423a4d24a7a66b@sentry.io/1866948",
+		AttachStacktrace: true,
+	})
+
+	if err != nil {
+		return
+	}
+
+	defer sentry.Recover()
+
 	// Create a logger and defer an final sync (os.flush())
 	logger := createLogger()
 	defer logger.Sync()
@@ -74,9 +89,16 @@ func start(cmd *cobra.Command, args []string) {
 
 	var l = listener.NewListener(logger, options...)
 
+	defer func() {
+		if err != nil {
+			sentry.CaptureException(err)
+			sentry.Flush(time.Second * 5)
+		}
+	}()
+
 	unprocessedEvents, processedEvents, err := l.Listen(ctx)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	// Create error channel
@@ -85,7 +107,7 @@ func start(cmd *cobra.Command, args []string) {
 	token, err := gcloud.GetAccessToken()
 
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	// Create a new streamer
@@ -98,4 +120,5 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Wait for queues to drain
 	l.Wait()
+	return
 }
