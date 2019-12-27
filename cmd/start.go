@@ -38,32 +38,48 @@ func bindShutdown(logger *zap.Logger, cancel func()) {
 	}()
 }
 
+type errorHandler func(error)
+
+func alertSentry (err error) {
+	sentry.CaptureException(err)
+	sentry.Flush(time.Second * 5)
+}
+
 // Creates a channel that logs errors
-func createErrorChannel(logger *zap.Logger) chan<- error {
+func createErrorChannel(logger *zap.Logger, errorHandlers ...errorHandler) chan<- error {
 	var errorChan = make(chan error, 1)
 	go func() {
-		logger.Info("error listener: started")
 		for err := range errorChan {
 			logger.Warn("error while processing", zap.Error(err))
-			sentry.CaptureException(err)
-			sentry.Flush(time.Second * 5)
+			for _, ef := range errorHandlers {
+				ef(err)
+			}
 		}
-		logger.Info("error listener: shutdown")
 	}()
 	return errorChan
 }
 
 func start(cmd *cobra.Command, args []string) (err error) {
-	err = sentry.Init(sentry.ClientOptions{
-		Dsn: "https://65c8006e38eb4b95b0423a4d24a7a66b@sentry.io/1866948",
-		AttachStacktrace: true,
-	})
+	sentryEnabled := viper.GetBool("sentry-enabled")
 
-	if err != nil {
-		return
+	if sentryEnabled {
+		err = sentry.Init(
+			sentry.ClientOptions{
+				Dsn: viper.GetString("sentry-dsn"),
+				AttachStacktrace: true,
+			},
+		)
+		if err != nil {
+			return
+		}
+
+		defer sentry.Recover()
+		defer func() {
+			if err != nil {
+				alertSentry(err)
+			}
+		}()
 	}
-
-	defer sentry.Recover()
 
 	// Create a logger and defer an final sync (os.flush())
 	logger := createLogger()
@@ -89,25 +105,23 @@ func start(cmd *cobra.Command, args []string) (err error) {
 
 	var l = listener.NewListener(logger, options...)
 
-	defer func() {
-		if err != nil {
-			sentry.CaptureException(err)
-			sentry.Flush(time.Second * 5)
-		}
-	}()
-
 	unprocessedEvents, processedEvents, err := l.Listen(ctx)
 	if err != nil {
 		return
 	}
 
-	// Create error channel
-	var errorChan = createErrorChannel(logger)
-
 	token, err := gcloud.GetAccessToken()
 
 	if err != nil {
 		return
+	}
+
+	// Create error channel
+	var errorChan chan<- error
+	if sentryEnabled {
+		errorChan = createErrorChannel(logger, alertSentry)
+	} else {
+		errorChan = createErrorChannel(logger)
 	}
 
 	// Create a new streamer
