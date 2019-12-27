@@ -22,7 +22,7 @@ func init() {
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start tuber",
-	RunE:   start,
+	RunE:  start,
 }
 
 // Attaches interrupt and terminate signals to a cancel function
@@ -40,7 +40,7 @@ func bindShutdown(logger *zap.Logger, cancel func()) {
 
 type errorHandler func(error)
 
-func alertSentry (err error) {
+func alertSentry(err error) {
 	sentry.CaptureException(err)
 	sentry.Flush(time.Second * 5)
 }
@@ -51,8 +51,8 @@ func createErrorChannel(logger *zap.Logger, errorHandlers ...errorHandler) chan<
 	go func() {
 		for err := range errorChan {
 			logger.Warn("error while processing", zap.Error(err))
-			for _, ef := range errorHandlers {
-				ef(err)
+			for _, h := range errorHandlers {
+				h(err)
 			}
 		}
 	}()
@@ -65,7 +65,7 @@ func start(cmd *cobra.Command, args []string) (err error) {
 	if sentryEnabled {
 		err = sentry.Init(
 			sentry.ClientOptions{
-				Dsn: viper.GetString("sentry-dsn"),
+				Dsn:              viper.GetString("sentry-dsn"),
 				AttachStacktrace: true,
 			},
 		)
