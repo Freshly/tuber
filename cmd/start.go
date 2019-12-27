@@ -2,10 +2,6 @@ package cmd
 
 import (
 	"context"
-	"github.com/getsentry/sentry-go"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +9,11 @@ import (
 	"tuber/pkg/events"
 	"tuber/pkg/gcloud"
 	"tuber/pkg/listener"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 func init() {
