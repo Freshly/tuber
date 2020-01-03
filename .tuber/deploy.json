@@ -1,0 +1,103 @@
+{
+  "apiVersion": "extensions/v1beta1",
+  "kind": "Deployment",
+  "metadata": {
+    "annotations": {
+      "deployment.kubernetes.io/revision": "114",
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"tuber\"},\"name\":\"tuber\",\"namespace\":\"tuber\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"tuber\"}},\"template\":{\"metadata\":{\"labels\":{\"app\":\"tuber\"}},\"spec\":{\"containers\":[{\"image\":\"gcr.io/freshly-docker/tuber@master\",\"name\":\"tuber\",\"volumeMounts\":[{\"mountPath\":\"/etc/tuber-credentials\",\"name\":\"tuber-credentials\",\"readOnly\":true}]}],\"volumes\":[{\"name\":\"tuber-credentials\",\"secret\":{\"secretName\":\"tuber-credentials.json\"}}]}}}}\n"
+    },
+    "creationTimestamp": "2020-01-02T19:00:21Z",
+    "generation": 129,
+    "labels": {
+      "app": "tuber"
+    },
+    "name": "tuber",
+    "namespace": "tuber",
+    "resourceVersion": "28374301",
+    "selfLink": "/apis/extensions/v1beta1/namespaces/tuber/deployments/tuber",
+    "uid": "204d62de-2d92-11ea-946e-42010a960094"
+  },
+  "spec": {
+    "progressDeadlineSeconds": 600,
+    "replicas": 1,
+    "revisionHistoryLimit": 10,
+    "selector": {
+      "matchLabels": {
+        "app": "tuber"
+      }
+    },
+    "strategy": {
+      "rollingUpdate": {
+        "maxSurge": "25%",
+        "maxUnavailable": "25%"
+      },
+      "type": "RollingUpdate"
+    },
+    "template": {
+      "metadata": {
+        "creationTimestamp": null,
+        "labels": {
+          "app": "tuber"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "gcr.io/freshly-docker/tuber@sha256:72dbf634af1fad3e764f9172e070d5f6b15e58289a6414d11b7013dac2a0d8d5",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "tuber",
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "volumeMounts": [
+              {
+                "mountPath": "/etc/tuber-credentials",
+                "name": "tuber-credentials",
+                "readOnly": true
+              }
+            ]
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "terminationGracePeriodSeconds": 30,
+        "volumes": [
+          {
+            "name": "tuber-credentials",
+            "secret": {
+              "defaultMode": 420,
+              "secretName": "tuber-credentials.json"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "status": {
+    "availableReplicas": 1,
+    "conditions": [
+      {
+        "lastTransitionTime": "2020-01-03T18:54:19Z",
+        "lastUpdateTime": "2020-01-03T18:54:19Z",
+        "message": "Deployment has minimum availability.",
+        "reason": "MinimumReplicasAvailable",
+        "status": "True",
+        "type": "Available"
+      },
+      {
+        "lastTransitionTime": "2020-01-02T22:16:29Z",
+        "lastUpdateTime": "2020-01-03T19:14:45Z",
+        "message": "ReplicaSet \"tuber-6cd5dd95cf\" has successfully progressed.",
+        "reason": "NewReplicaSetAvailable",
+        "status": "True",
+        "type": "Progressing"
+      }
+    ],
+    "observedGeneration": 129,
+    "readyReplicas": 1,
+    "replicas": 1,
+    "updatedReplicas": 1
+  }
+}
