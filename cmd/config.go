@@ -12,9 +12,9 @@ var configCmd = &cobra.Command{
 	Use: "config [patch || remove]",
 }
 
-var configPatchCmd = &cobra.Command{
-	Use:  "patch [appName] [key] [value]",
-	Run:  configPatch,
+var configAddCmd = &cobra.Command{
+	Use:  "add [appName] [key] [value]",
+	Run:  configAdd,
 	Args: cobra.ExactArgs(3),
 }
 
@@ -24,7 +24,7 @@ var configRemoveCmd = &cobra.Command{
 	Args: cobra.ExactArgs(2),
 }
 
-func configPatch(cmd *cobra.Command, args []string) {
+func configAdd(cmd *cobra.Command, args []string) {
 	appName := args[0]
 	key := args[1]
 	value := args[2]
@@ -47,6 +47,6 @@ func configRemove(cmd *cobra.Command, args []string) {
 
 func init() {
 	rootCmd.AddCommand(configCmd)
-	configCmd.AddCommand(configPatchCmd)
+	configCmd.AddCommand(configAddCmd)
 	configCmd.AddCommand(configRemoveCmd)
 }
