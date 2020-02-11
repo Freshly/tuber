@@ -61,7 +61,7 @@ func (s *streamer) Stream(unprocessed <-chan *listener.RegistryEvent, processed 
 			start := time.Now()
 			releaseLog.Info("release: starting", zap.String("event", "begin"))
 
-			err = publish(pendingRelease, event.Digest, s.creds, s.clusterData)
+			err = publish(*releaseLog, pendingRelease, event.Digest, s.creds, s.clusterData)
 
 			if err != nil {
 				releaseLog.Warn(
