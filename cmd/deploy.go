@@ -12,10 +12,9 @@ import (
 
 var deployCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "deploy [appName]",
+	Use:          "deploy",
 	Short:        "Deploys an app",
 	RunE:         deploy,
-	Args:         cobra.ExactArgs(1),
 }
 
 type emptyAckable struct{}
@@ -42,7 +41,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	app, err := apps.FindApp(args[0])
+	app, err := apps.FindApp(AppName)
 	if err != nil {
 		return err
 	}
