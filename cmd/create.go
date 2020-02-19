@@ -16,7 +16,7 @@ var createCmd = &cobra.Command{
 		repo := args[1]
 		tag := args[2]
 
-		return core.CreateTuberApp(AppName, repo, tag)
+		return core.CreateTuberApp(appName, repo, tag)
 	},
 }
 
