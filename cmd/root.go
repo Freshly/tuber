@@ -14,6 +14,9 @@ var (
 		Use:   "tuber",
 		Short: "",
 	}
+
+	// App is the global persistent flag for app name and namespace
+	App string
 )
 
 func init() {
@@ -26,6 +29,8 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolP("debug", "d", false, "debug")
 	_ = viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+
+	rootCmd.PersistentFlags().StringVarP(&App, "app", "a", "", "the app name to run a command against")
 }
 
 func createLogger() (logger *zap.Logger, err error) {
