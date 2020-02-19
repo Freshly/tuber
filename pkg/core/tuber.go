@@ -110,3 +110,8 @@ func AddAppConfig(appName string, repo string, tag string) (err error) {
 
 	return k8s.PatchConfigMap(tuberConfig, "tuber", key, value)
 }
+
+// RemoveAppConfig removes a configuration from Tuber's config map
+func RemoveAppConfig(appName string) (err error) {
+	return k8s.RemoveConfigMapEntry(tuberConfig, "tuber", appName)
+}
