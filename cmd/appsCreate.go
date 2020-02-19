@@ -6,11 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// createCmd represents the create command
-var createCmd = &cobra.Command{
+// appsCreateCmd represents the appsCreate command
+var appsCreateCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "create [app name] [docker repo] [deploy tag]",
-	Short:        "create new app in current cluster",
+	Short:        "create a new app in the current cluster",
 	Args:         cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
@@ -22,5 +22,5 @@ var createCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(createCmd)
+	appsCmd.AddCommand(appsCreateCmd)
 }
