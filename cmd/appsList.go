@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listCmd = &cobra.Command{
+var appsListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list",
 	Short:        "List tuberapps",
@@ -35,5 +35,5 @@ func list(*cobra.Command, []string) (err error) {
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
+	appsCmd.AddCommand(appsListCmd)
 }
