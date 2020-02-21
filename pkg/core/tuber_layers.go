@@ -21,7 +21,7 @@ type ClusterData struct {
 }
 
 func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[string]string, error) {
-	generalData := map[string]string{
+	universalData := map[string]string{
 		"tuberImage":            digest,
 		"clusterDefaultGateway": clusterData.DefaultGateway,
 		"clusterDefaultHost":    clusterData.DefaultHost,
@@ -32,13 +32,13 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 		return nil, err
 	}
 	if valuesMapExists {
-		return joinInterpolatables(generalData, app.Name)
+		return withAppSpecificData(universalData, app.Name)
 	} else {
-		return generalData, nil
+		return universalData, nil
 	}
 }
 
-func joinInterpolatables(data map[string]string, name string) (map[string]string, error) {
+func withAppSpecificData(data map[string]string, name string) (map[string]string, error) {
 	config, err := k8s.GetConfig(name+"-values", name, "ConfigMap")
 	if err != nil {
 		return nil, err
