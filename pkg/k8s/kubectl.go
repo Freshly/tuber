@@ -86,7 +86,7 @@ func Restart(resource string, namespace string, args ...string) (err error) {
 	return
 }
 
-// Get `kubectl get` a resource. Specify output or any other flags as args
+// Exists tells you if a given resource already exists. Errors if a get call fails for any reason other than Not Found
 func Exists(kind string, name string, namespace string, args ...string) (bool, error) {
 	get := []string{"get", kind, name, "-n", namespace}
 	_, err := kubectl(append(get, args...)...)
