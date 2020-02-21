@@ -41,7 +41,7 @@ func newAppSetup(appName string, namespaceData map[string]string) error {
 	if err != nil {
 		deleteErr := k8s.Delete("namespace", appName, appName)
 		if deleteErr != nil {
-			return fmt.Errorf(err.Error() + "failed delete:" + deleteErr.Error())
+			return fmt.Errorf(err.Error() + " failed delete: " + deleteErr.Error())
 		}
 		return err
 	}
