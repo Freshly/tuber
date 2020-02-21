@@ -23,12 +23,17 @@ type Metadata struct {
 // that have access to the new code being released.
 func RunPrerelease(tubers []string, app *TuberApp, digest string, clusterData *ClusterData) error {
 	for _, tuber := range tubers {
-		interpolatedTuber, err := interpolate(tuber, tuberData(digest, app, clusterData))
+		data, err := tuberData(digest, app, clusterData)
+		if err != nil {
+			return err
+		}
+
+		interpolatedTuber, err := interpolate(tuber, data)
 		if err != nil {
 			return err
 		}
 		prereleaser := prerelease{}
-		err = yaml.Unmarshal([]byte(interpolatedTuber), &prereleaser)
+		err = yaml.Unmarshal(interpolatedTuber, &prereleaser)
 		if err != nil {
 			return err
 		}
