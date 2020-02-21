@@ -39,7 +39,7 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 }
 
 func joinInterpolatables(data map[string]string, name string) (map[string]string, error) {
-	config, err := k8s.GetConfig(name+"-values", name, "configmap")
+	config, err := k8s.GetConfig(name+"-values", name, "ConfigMap")
 	if err != nil {
 		return nil, err
 	}
