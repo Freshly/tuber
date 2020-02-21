@@ -85,3 +85,17 @@ func Restart(resource string, namespace string, args ...string) (err error) {
 	_, err = kubectl(append(restart, args...)...)
 	return
 }
+
+// Get `kubectl get` a resource. Specify output or any other flags as args
+func Exists(kind string, name string, namespace string, args ...string) (bool, error) {
+	get := []string{"get", kind, name, "-n", namespace}
+	_, err := kubectl(append(get, args...)...)
+	if err, ok := err.(NotFoundError); ok {
+		if ok {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
