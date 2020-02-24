@@ -9,10 +9,11 @@ import (
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "create [docker repo] [deploy tag]",
+	Use:          "create [appName] [docker repo] [deploy tag]",
 	Short:        "create new app in current cluster",
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		appName := args[0]
 		repo := args[1]
 		tag := args[2]
 
