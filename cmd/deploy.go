@@ -84,5 +84,8 @@ func deploy(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	deployCmd.Flags().StringVarP(&appName, "app", "a", "", "app name (required)")
+	deployCmd.MarkFlagRequired("app")
+
 	rootCmd.AddCommand(deployCmd)
 }

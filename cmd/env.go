@@ -108,6 +108,9 @@ func envGet(cmd *cobra.Command, args []string) (err error) {
 }
 
 func init() {
+	envCmd.PersistentFlags().StringVarP(&appName, "app", "a", "", "app name (required)")
+	envCmd.MarkPersistentFlagRequired("app")
+
 	rootCmd.AddCommand(envCmd)
 	envCmd.AddCommand(envSetCmd)
 	envCmd.AddCommand(envUnsetCmd)

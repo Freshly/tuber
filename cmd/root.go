@@ -14,6 +14,9 @@ var (
 		Use:   "tuber",
 		Short: "",
 	}
+
+	// The appName flag binds to this variable
+	appName string
 )
 
 func init() {
