@@ -23,7 +23,7 @@ type Metadata struct {
 // that have access to the new code being released.
 func RunPrerelease(tubers []string, app *TuberApp, digest string, clusterData *ClusterData) error {
 	for _, tuber := range tubers {
-		interpolatedTuber, err := interpolate(tuber, tuberData(digest, clusterData))
+		interpolatedTuber, err := interpolate(tuber, tuberData(digest, app, clusterData))
 		if err != nil {
 			return err
 		}

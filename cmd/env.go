@@ -31,6 +31,7 @@ var fileCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "file [app] [local filepath]",
 	Short:        "batch env set",
+	Args:         cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := k8s.CreateEnvFromFile(args[0], args[1])
 		if err != nil {
