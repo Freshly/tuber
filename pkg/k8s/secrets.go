@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/goccy/go-yaml"
 )
 
 // CreateTuberCredentials creates a secret based on the contents of a file
@@ -55,18 +57,18 @@ func CreateEnvFromFile(name string, path string) (err error) {
 	if err != nil {
 		return
 	}
-
-	var data map[string]string
-	err = json.Unmarshal(out, &data)
+	var data map[string]interface{}
+	err = yaml.Unmarshal(out, &data)
 	if err != nil {
 		return
 	}
 
+	var stringifiedData = make(map[string]string)
 	for k, v := range data {
-		data[k] = base64.StdEncoding.EncodeToString([]byte(v))
+		stringifiedData[k] = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v", v)))
 	}
 
-	config.Data = data
+	config.Data = stringifiedData
 	return config.Save(name)
 }
 
