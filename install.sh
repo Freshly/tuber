@@ -3,7 +3,7 @@
 tmpfile=$(mktemp)
 installfile=/usr/local/bin/tubectl
 
-curl -o $tmpfile https://github.com/Freshly/tuber/releases/download/v1.0/tuber_macos
+curl -Lo $tmpfile https://github.com/Freshly/tuber/releases/download/v1.0/tuber_macos
 
 mv $tmpfile $installfile
 chmod +x $installfile
