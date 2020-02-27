@@ -15,16 +15,16 @@ var envCmd = &cobra.Command{
 
 var envSetCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "set [appName] [key] [value]",
+	Use:          "set [key] [value]",
 	RunE:         envSet,
-	Args:         cobra.ExactArgs(3),
+	Args:         cobra.ExactArgs(2),
 }
 
 var envUnsetCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "unset [appName] [key]",
+	Use:          "unset [key]",
 	RunE:         envUnset,
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.ExactArgs(1),
 }
 
 var fileCmd = &cobra.Command{
@@ -43,15 +43,13 @@ var fileCmd = &cobra.Command{
 
 var envGetCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "get [appName]",
+	Use:          "get",
 	RunE:         envGet,
-	Args:         cobra.ExactArgs(1),
 }
 
 func envSet(cmd *cobra.Command, args []string) error {
-	appName := args[0]
-	key := args[1]
-	value := args[2]
+	key := args[0]
+	value := args[1]
 	mapName := fmt.Sprintf("%s-env", appName)
 
 	logger, err := createLogger()
@@ -73,8 +71,7 @@ func envSet(cmd *cobra.Command, args []string) error {
 }
 
 func envUnset(cmd *cobra.Command, args []string) error {
-	appName := args[0]
-	key := args[1]
+	key := args[0]
 	mapName := fmt.Sprintf("%s-env", appName)
 
 	logger, err := createLogger()
@@ -96,7 +93,6 @@ func envUnset(cmd *cobra.Command, args []string) error {
 }
 
 func envGet(cmd *cobra.Command, args []string) (err error) {
-	appName := args[0]
 	mapName := fmt.Sprintf("%s-env", appName)
 	config, err := k8s.GetConfig(mapName, appName, "Secret")
 	if err != nil {
@@ -113,6 +109,9 @@ func envGet(cmd *cobra.Command, args []string) (err error) {
 }
 
 func init() {
+	envCmd.PersistentFlags().StringVarP(&appName, "app", "a", "", "app name (required)")
+	envCmd.MarkPersistentFlagRequired("app")
+
 	rootCmd.AddCommand(envCmd)
 	envCmd.AddCommand(envSetCmd)
 	envCmd.AddCommand(envUnsetCmd)

@@ -1,0 +1,67 @@
+name: publish
+on:
+  push:
+    tags:
+    - 'v*'
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.7'
+      - name: Build MacOS
+        run: go build -o tuber_macos
+        env:
+          GOOS: darwin
+          GOARCH: amd64
+      - name: Build Linux
+        run: go build -o tuber_linux
+        env:
+          GOOS: linux
+          GOARCH: amd64
+      - name: Build Windows
+        run: go build -o tuber_windows
+        env:
+          GOOS: windows
+          GOARCH: amd64
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Upload release asset MacOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tuber_macos
+          asset_name: tuber_macos
+          asset_content_type: application/bin
+      - name: Upload release asset Linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tuber_linux
+          asset_name: tuber_linux
+          asset_content_type: application/bin
+      - name: Upload release asset Windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./tuber_windows
+          asset_name: tuber_windows
+          asset_content_type: exe
