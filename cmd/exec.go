@@ -10,7 +10,7 @@ import (
 
 var execCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "exec [appName]",
+	Use:          "exec -a [appName] [commands]",
 	Short:        "execs a command on an app",
 	RunE:         exec,
 }
