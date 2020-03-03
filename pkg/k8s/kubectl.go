@@ -77,7 +77,7 @@ func Get(kind string, name string, namespace string, args ...string) ([]byte, er
 	return kubectl(append(get, args...)...)
 }
 
-// GetCollection jordan sucks
+// GetCollection gets for plural resource types break if given even an empty name
 func GetCollection(kind string, namespace string, args ...string) ([]byte, error) {
 	get := []string{"get", kind, "-n", namespace}
 	return kubectl(append(get, args...)...)
@@ -120,7 +120,7 @@ func Exists(kind string, name string, namespace string, args ...string) (bool, e
 	return true, nil
 }
 
-// Exec is exec
+// Exec interactive exec into a pod with a series of args to run
 func Exec(name string, namespace string, args ...string) error {
 	execArgs := []string{"-n", namespace, "exec", "-it", name}
 	execArgs = append(execArgs, args...)
