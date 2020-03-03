@@ -1,16 +1,23 @@
 package k8s
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 func runKubectl(cmd *exec.Cmd) ([]byte, error) {
-	fmt.Println(cmd.Args)
+	if viper.GetBool("debug") {
+		logger, zapErr := zap.NewDevelopment()
+		if zapErr != nil {
+			return nil, zapErr
+		}
+		logger.Debug(strings.Join(cmd.Args, " "))
+	}
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
