@@ -29,15 +29,15 @@ var envUnsetCmd = &cobra.Command{
 
 var fileCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "file [app] [local filepath]",
+	Use:          "file [local filepath]",
 	Short:        "batch env set",
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := k8s.CreateEnvFromFile(args[0], args[1])
+		err := k8s.CreateEnvFromFile(appName, args[1])
 		if err != nil {
 			return err
 		}
-		return k8s.Restart("deployments", args[0])
+		return k8s.Restart("deployments", appName)
 	},
 }
 
