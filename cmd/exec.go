@@ -10,31 +10,31 @@ import (
 
 var execCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "exec -a [appName] [commands]",
+	Use:          "exec -a [appName] -w [specific workload] -c [specific container] [commands]",
 	Short:        "execs a command on an app",
 	RunE:         exec,
 }
 
-var deployment string
+var workload string
 var container string
 
 func exec(cmd *cobra.Command, args []string) error {
-	var deploymentName string
-	if deployment != "" {
-		deploymentName = deployment
+	var workloadName string
+	if workload != "" {
+		workloadName = workload
 	} else {
-		deploymentName = appName
+		workloadName = appName
 	}
 
 	var containerName string
 	if container != "" {
 		containerName = container
 	} else {
-		containerName = deploymentName
+		containerName = workloadName
 	}
 
 	template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
-	l, err := k8s.Get("deployment", deploymentName, appName, "-o", "go-template", "--template", template)
+	l, err := k8s.Get("deployment", workloadName, appName, "-o", "go-template", "--template", template)
 	if err != nil {
 		return err
 	}
@@ -56,9 +56,9 @@ func exec(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	execCmd.Flags().StringVarP(&deployment, "workload", "w", "", "specify a deployment name if it does not match your app's name")
+	execCmd.Flags().StringVarP(&workload, "workload", "w", "", "specify a deployment name if it does not match your app's name")
 	execCmd.Flags().StringVarP(&container, "container", "c", "", "specify a container (selects by the deployment name by default)")
-	execCmd.PersistentFlags().StringVarP(&appName, "app", "a", "", "app name (required)")
+	execCmd.Flags().StringVarP(&appName, "app", "a", "", "app name (required)")
 	execCmd.MarkFlagRequired("app")
 	rootCmd.AddCommand(execCmd)
 }
