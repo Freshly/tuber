@@ -16,6 +16,7 @@ const tuberConfig = "tuber-apps"
 type TuberApp struct {
 	Tag      string
 	ImageTag string
+	Repo     string
 	RepoPath string
 	RepoHost string
 	Name     string
@@ -47,6 +48,8 @@ func refreshAppsCache(apps []TuberApp) {
 	cache = &appsCache{apps: apps, expiry: expiry}
 }
 
+// getTuberApps retrieves data to be stored in cache.
+// always use TuberApps function, never this one directly
 func getTuberApps() (apps []TuberApp, err error) {
 	config, err := k8s.GetConfig(tuberConfig, "tuber", "ConfigMap")
 
@@ -62,6 +65,7 @@ func getTuberApps() (apps []TuberApp, err error) {
 			Name:     name,
 			ImageTag: imageTag,
 			Tag:      split[1],
+			Repo:     split[0],
 			RepoPath: repoSplit[1],
 			RepoHost: repoSplit[0],
 		})
@@ -72,6 +76,10 @@ func getTuberApps() (apps []TuberApp, err error) {
 
 // AppList is a slice of TuberApp structs
 type AppList []TuberApp
+
+func (p AppList) Len() int           { return len(p) }
+func (p AppList) Less(i, j int) bool { return p[i].ImageTag < p[j].ImageTag }
+func (p AppList) Swap(i, j int)      { p[i].ImageTag, p[j].ImageTag = p[j].ImageTag, p[i].ImageTag }
 
 // FindApp locates a Tuber app within an app-list
 func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
@@ -84,6 +92,16 @@ func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
 
 	err = fmt.Errorf("app '%s' not found", name)
 	return
+}
+
+func FindApp(name string) (foundApp *TuberApp, err error) {
+	apps, err := TuberApps()
+
+	if err != nil {
+		return
+	}
+
+	return apps.FindApp(name)
 }
 
 // TuberApps returns a list of Tuber apps

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"sort"
 	"tuber/pkg/core"
 
 	"github.com/olekukonko/tablewriter"
@@ -27,6 +28,44 @@ var appsInstallCmd = &cobra.Command{
 	},
 }
 
+var appsSetTagCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "set-tag [app name] [deploy tag]",
+	Short:        "set the tag to deploy from for the app",
+	Args:         cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		appName := args[0]
+		tag := args[1]
+
+		app, err := core.FindApp(appName)
+
+		if err != nil {
+			return err
+		}
+
+		return core.AddAppConfig(appName, app.Repo, tag)
+	},
+}
+
+var appsSetRepoCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "[app name] [docker repo]",
+	Short:        "set the docker repo to listen to for changes",
+	Args:         cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		appName := args[0]
+		repo := args[1]
+
+		app, err := core.FindApp(appName)
+
+		if err != nil {
+			return err
+		}
+
+		return core.CreateTuberApp(appName, repo, app.Tag)
+	},
+}
 var appsRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "remove [app name]",
@@ -66,6 +105,8 @@ var appsListCmd = &cobra.Command{
 		table.SetHeader([]string{"Name", "Image"})
 		table.SetBorder(false)
 
+		sort.Sort(apps)
+
 		for _, app := range apps {
 			table.Append([]string{app.Name, app.ImageTag})
 		}
@@ -81,4 +122,6 @@ func init() {
 	appsCmd.AddCommand(appsRemoveCmd)
 	appsCmd.AddCommand(appsDestroyCmd)
 	appsCmd.AddCommand(appsListCmd)
+	appsCmd.AddCommand(appsSetTagCmd)
+	appsCmd.AddCommand(appsSetRepoCmd)
 }
