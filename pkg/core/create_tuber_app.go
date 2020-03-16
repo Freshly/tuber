@@ -20,13 +20,13 @@ func CreateTuberApp(appName string, repo string, tag string) error {
 
 	if existsAlready {
 		return AddAppConfig(appName, repo, tag)
-	} else {
-		err := newAppSetup(appName, namespaceData)
-		if err != nil {
-			return err
-		}
-		return AddAppConfig(appName, repo, tag)
 	}
+
+	err = newAppSetup(appName, namespaceData)
+	if err != nil {
+		return err
+	}
+	return AddAppConfig(appName, repo, tag)
 }
 
 func newAppSetup(appName string, namespaceData map[string]string) error {
