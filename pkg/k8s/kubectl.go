@@ -19,7 +19,9 @@ func runKubectl(cmd *exec.Cmd) ([]byte, error) {
 	}
 
 	out, err := cmd.CombinedOutput()
-	if err != nil {
+
+	if err != nil || cmd.ProcessState.ExitCode() != 0 {
+		err = newK8sError(out, err)
 		return nil, err
 	}
 
@@ -31,10 +33,6 @@ func runKubectl(cmd *exec.Cmd) ([]byte, error) {
 		logger.Debug(string(out))
 	}
 
-	if err != nil || cmd.ProcessState.ExitCode() != 0 {
-		err = newK8sError(out, err)
-		return nil, err
-	}
 	return out, nil
 }
 
