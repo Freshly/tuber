@@ -27,6 +27,13 @@ var envUnsetCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 }
 
+var envGetCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "get [key]",
+	Args:         cobra.ExactArgs(1),
+	RunE:         envGet,
+}
+
 var fileCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "file [app] [local filepath]",
@@ -41,10 +48,10 @@ var fileCmd = &cobra.Command{
 	},
 }
 
-var envGetCmd = &cobra.Command{
+var envListCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "get",
-	RunE:         envGet,
+	Use:          "list",
+	RunE:         envList,
 }
 
 func envSet(cmd *cobra.Command, args []string) error {
@@ -89,10 +96,31 @@ func envUnset(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	return k8s.Restart("deployments", appName)
 }
 
 func envGet(cmd *cobra.Command, args []string) (err error) {
+	mapName := fmt.Sprintf("%s-env", appName)
+	key := args[0]
+	config, err := k8s.GetConfig(mapName, appName, "Secret")
+
+	if err != nil {
+		return
+	}
+
+	v := config.Data[key]
+	decoded, err := base64.StdEncoding.DecodeString(v)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Println(string(decoded))
+	return
+}
+
+func envList(cmd *cobra.Command, _ []string) (err error) {
 	mapName := fmt.Sprintf("%s-env", appName)
 	config, err := k8s.GetConfig(mapName, appName, "Secret")
 	if err != nil {
@@ -117,4 +145,5 @@ func init() {
 	envCmd.AddCommand(envUnsetCmd)
 	envCmd.AddCommand(fileCmd)
 	envCmd.AddCommand(envGetCmd)
+	envCmd.AddCommand(envListCmd)
 }
