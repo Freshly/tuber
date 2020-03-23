@@ -7,7 +7,7 @@ Download the binary file from the latest release: https://github.com/Freshly/tub
 
 ## What is Tuber?
 
-Tuber is primarily a command line tool used provide an ergonomic way to manage a cluster running in Google Kubernetes Engine. It provides commands for common operations such as running commands and getting/setting environment variables.
+Tuber is primarily a command line tool used to provide an ergonomic interface to manage a cluster running in Google Kubernetes Engine. It provides commands for common operations such as running commands and getting/setting environment variables.
 
 Tuber is also a continuous delivery service that automates the process of applying newly built container images to applications deployed in a cluster.
 
@@ -20,7 +20,7 @@ Set an environment variable
 
 ```bash
 USAGE
-  $ tuber env set -a <app_name>
+  $ tuber env set -a <app_name> <key> <value>
 
 OPTIONS
   -a, --app-name the name of the app (required)
@@ -31,7 +31,7 @@ Remove an environment variable
 
 ```bash
 USAGE
-  $ tuber env unset -a <app_name>
+  $ tuber env unset -a <app_name> <key> <value>
 
 OPTIONS
   -a, --app-name the name of the app (required)
