@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
+	"sort"
 	"tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -132,12 +133,19 @@ func envList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	var list []string
 	for k, v := range config.Data {
 		decoded, decodeErr := base64.StdEncoding.DecodeString(v)
 		if decodeErr != nil {
 			return decodeErr
 		}
-		fmt.Println(k+":", `"`+string(decoded)+`"`)
+		list = append(list, k+`: "`+string(decoded)+`"`)
+	}
+
+	sort.Strings(list)
+	for _, v := range list {
+		fmt.Println(v)
 	}
 	return nil
 }
