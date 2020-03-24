@@ -125,21 +125,21 @@ func envGet(cmd *cobra.Command, args []string) (err error) {
 	return
 }
 
-func envList(cmd *cobra.Command, args []string) (err error) {
+func envList(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	mapName := fmt.Sprintf("%s-env", appName)
 	config, err := k8s.GetConfig(mapName, appName, "Secret")
 	if err != nil {
-		return
+		return err
 	}
 	for k, v := range config.Data {
 		decoded, decodeErr := base64.StdEncoding.DecodeString(v)
 		if decodeErr != nil {
-			return
+			return decodeErr
 		}
-		fmt.Println(k+":", string(decoded))
+		fmt.Println(k+":", `"`+string(decoded)+`"`)
 	}
-	return
+	return nil
 }
 
 func init() {
