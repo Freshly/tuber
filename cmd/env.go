@@ -50,8 +50,10 @@ var fileCmd = &cobra.Command{
 
 var envListCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "list",
+	Use:          "list [app]",
+	Short:        "decode and display an app's env",
 	RunE:         envList,
+	Args:         cobra.ExactArgs(1),
 }
 
 func envSet(cmd *cobra.Command, args []string) error {
