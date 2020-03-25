@@ -34,7 +34,6 @@ var appsSetTagCmd = &cobra.Command{
 	Short:        "set the tag to deploy from for the app",
 	Args:         cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var err error
 		appName := args[0]
 		tag := args[1]
 
