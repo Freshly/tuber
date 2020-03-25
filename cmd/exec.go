@@ -14,6 +14,7 @@ var execCmd = &cobra.Command{
 	Short:        "execs a command on an app",
 	RunE:         exec,
 }
+var appName string
 
 var workload string
 var container string
