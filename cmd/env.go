@@ -10,7 +10,7 @@ import (
 )
 
 var envCmd = &cobra.Command{
-	Use: "env [set || unset || file]",
+	Use: "env [set || unset || get || list || file]",
 }
 
 var envSetCmd = &cobra.Command{
@@ -40,6 +40,7 @@ var fileCmd = &cobra.Command{
 	Short:        "batch env set",
 	Args:         cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		appName := args[0]
 		err := k8s.CreateEnvFromFile(appName, args[1])
 		if err != nil {
 			return err
