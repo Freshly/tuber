@@ -50,7 +50,7 @@ var appsSetTagCmd = &cobra.Command{
 
 var appsSetRepoCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "[app name] [docker repo]",
+	Use:          "set-repo [app name] [docker repo]",
 	Short:        "set the docker repo to listen to for changes",
 	Args:         cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
