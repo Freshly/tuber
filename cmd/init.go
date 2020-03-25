@@ -36,17 +36,16 @@ var istioServiceTypes = map[string]bool{
 func initialize(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	routePrefix := args[1]
-	serviceType := args[2]
 
 	if istioType == "false" {
-		return core.InitTuberApp(appName, routePrefix, false, serviceType)
+		return core.InitTuberApp(appName, routePrefix, false, istioType)
 	}
 
-	if istioServiceTypes[serviceType] {
+	if !istioServiceTypes[istioType] {
 		return fmt.Errorf("unsupported istio service type, see https://istio.io/docs/ops/configuration/traffic-management/protocol-selection/ for available options")
 	}
 
-	return core.InitTuberApp(appName, routePrefix, true, serviceType)
+	return core.InitTuberApp(appName, routePrefix, true, istioType)
 }
 
 func init() {
