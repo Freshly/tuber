@@ -18,7 +18,7 @@ var istioEnabled bool
 
 var appsInstallCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "install [app name] [docker repo] [deploy tag] [--no-istio (optional flag)]",
+	Use:          "install [app name] [docker repo] [deploy tag] [--istio=<true(default) || false>]",
 	Short:        "install a new app in the current cluster",
 	Args:         cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -92,7 +92,7 @@ var appsListCmd = &cobra.Command{
 }
 
 func init() {
-	appsInstallCmd.Flags().BoolVar(&istioEnabled, "istio", true, "enable (default) or disable istio for a new app")
+	appsInstallCmd.Flags().BoolVar(&istioEnabled, "istio", true, "enable (default) or disable istio sidecar injection for a new app")
 	rootCmd.AddCommand(appsCmd)
 	appsCmd.AddCommand(appsInstallCmd)
 	appsCmd.AddCommand(appsRemoveCmd)
