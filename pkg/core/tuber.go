@@ -78,8 +78,8 @@ func getTuberApps() (apps []TuberApp, err error) {
 type AppList []TuberApp
 
 func (p AppList) Len() int           { return len(p) }
-func (p AppList) Less(i, j int) bool { return p[i].ImageTag < p[j].ImageTag }
-func (p AppList) Swap(i, j int)      { p[i].ImageTag, p[j].ImageTag = p[j].ImageTag, p[i].ImageTag }
+func (p AppList) Less(i, j int) bool { return p[i].Name < p[j].Name }
+func (p AppList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // FindApp locates a Tuber app within an app-list
 func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
