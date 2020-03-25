@@ -23,6 +23,7 @@ func (emptyAckable) Ack()  {}
 func (emptyAckable) Nack() {}
 
 func deploy(cmd *cobra.Command, args []string) error {
+	appName := args[0]
 	logger, err := createLogger()
 	if err != nil {
 		return err
@@ -84,8 +85,5 @@ func deploy(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	deployCmd.Flags().StringVarP(&appName, "app", "a", "", "app name (required)")
-	deployCmd.MarkFlagRequired("app")
-
 	rootCmd.AddCommand(deployCmd)
 }
