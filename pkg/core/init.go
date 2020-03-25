@@ -20,13 +20,13 @@ func InitTuberApp(appName string, routePrefix string, withIstio bool, serviceTyp
 		return err
 	}
 
+	if !withIstio {
+		return nil
+	}
+
 	err = createServiceYAML(appName, serviceType)
 	if err != nil {
 		return err
-	}
-
-	if !withIstio {
-		return nil
 	}
 
 	return createVirtualServiceYAML(appName, routePrefix)
