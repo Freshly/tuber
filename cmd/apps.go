@@ -28,14 +28,14 @@ var appsInstallCmd = &cobra.Command{
 	},
 }
 
-var appsSetTagCmd = &cobra.Command{
+var appsSetBranchCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "set-tag [app name] [deploy tag]",
-	Short:        "set the tag to deploy from for the app",
+	Use:          "set-branch [app name] [branch name]",
+	Short:        "set the branch to deploy the app from",
 	Args:         cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
-		tag := args[1]
+		branch := args[1]
 
 		app, err := core.FindApp(appName)
 
@@ -43,7 +43,7 @@ var appsSetTagCmd = &cobra.Command{
 			return err
 		}
 
-		return core.AddAppConfig(appName, app.Repo, tag)
+		return core.AddAppConfig(appName, app.Repo, branch)
 	},
 }
 
@@ -121,6 +121,6 @@ func init() {
 	appsCmd.AddCommand(appsRemoveCmd)
 	appsCmd.AddCommand(appsDestroyCmd)
 	appsCmd.AddCommand(appsListCmd)
-	appsCmd.AddCommand(appsSetTagCmd)
+	appsCmd.AddCommand(appsSetBranchCmd)
 	appsCmd.AddCommand(appsSetRepoCmd)
 }
