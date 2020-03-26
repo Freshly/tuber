@@ -104,7 +104,7 @@ var appsListCmd = &cobra.Command{
 		table.SetHeader([]string{"Name", "Image"})
 		table.SetBorder(false)
 
-		sort.Sort(apps)
+		sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
 
 		for _, app := range apps {
 			table.Append([]string{app.Name, app.ImageTag})
