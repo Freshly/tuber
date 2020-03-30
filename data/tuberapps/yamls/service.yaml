@@ -5,6 +5,6 @@ metadata:
 spec:
   ports:
   - port: 3000
-    name: grpc
+    name: {{.serviceType}}
   selector:
     app: {{.appName}}

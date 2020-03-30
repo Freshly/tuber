@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"sort"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 
@@ -43,6 +44,43 @@ var appsInstallCmd = &cobra.Command{
 	},
 }
 
+var appsSetBranchCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "set-branch [app name] [branch name]",
+	Short:        "set the branch to deploy the app from",
+	Args:         cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		appName := args[0]
+		branch := args[1]
+
+		app, err := core.FindApp(appName)
+
+		if err != nil {
+			return err
+		}
+
+		return core.AddAppConfig(appName, app.Repo, branch)
+	},
+}
+
+var appsSetRepoCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "set-repo [app name] [docker repo]",
+	Short:        "set the docker repo to listen to for changes",
+	Args:         cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		appName := args[0]
+		repo := args[1]
+
+		app, err := core.FindApp(appName)
+
+		if err != nil {
+			return err
+		}
+
+		return core.CreateTuberApp(appName, repo, app.Tag)
+	},
+}
 var appsRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "remove [app name]",
@@ -82,6 +120,8 @@ var appsListCmd = &cobra.Command{
 		table.SetHeader([]string{"Name", "Image"})
 		table.SetBorder(false)
 
+		sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
 		for _, app := range apps {
 			table.Append([]string{app.Name, app.ImageTag})
 		}
@@ -98,4 +138,6 @@ func init() {
 	appsCmd.AddCommand(appsRemoveCmd)
 	appsCmd.AddCommand(appsDestroyCmd)
 	appsCmd.AddCommand(appsListCmd)
+	appsCmd.AddCommand(appsSetBranchCmd)
+	appsCmd.AddCommand(appsSetRepoCmd)
 }
