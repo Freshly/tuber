@@ -129,3 +129,9 @@ func Exec(name string, namespace string, args ...string) error {
 	err := cmd.Run()
 	return err
 }
+
+// UseCluster switch current configured kubectl cluster
+func UseCluster(cluster string) error {
+	_, err := kubectl([]string{"config", "use-context", cluster}...)
+	return err
+}
