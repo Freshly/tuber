@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
 	"tuber/pkg/events"
 	"tuber/pkg/listener"
 	"tuber/pkg/sentry"
@@ -76,9 +75,8 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	subscriptionName := viper.GetString("pubsub-subscription-name")
-	if len(subscriptionName) < 1 {
-		err = errors.New("pubsub subscription name is required")
-		panic(err)
+	if subscriptionName == "" {
+		panic(errors.New("pubsub subscription name is required"))
 	}
 
 	var l = listener.NewListener(logger, subscriptionName, options...)
@@ -93,8 +91,13 @@ func start(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
+	data, err := clusterData()
+	if err != nil {
+		panic(err)
+	}
+
 	// Create a new streamer
-	streamer := events.NewStreamer(creds, logger, clusterData())
+	streamer := events.NewStreamer(creds, logger, data)
 	go streamer.Stream(unprocessedEvents, processedEvents, failedEvents, errReports)
 
 	// Wait for cancel() of context

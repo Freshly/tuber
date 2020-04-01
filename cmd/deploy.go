@@ -56,7 +56,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	streamer := events.NewStreamer(creds, logger, clusterData())
+	data, err := clusterData()
+	if err != nil {
+		return err
+	}
+
+	streamer := events.NewStreamer(creds, logger, data)
 
 	errorChan := make(chan listener.FailedRelease, 1)
 	unprocessedEvents := make(chan *listener.RegistryEvent, 1)
