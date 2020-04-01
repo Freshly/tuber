@@ -135,3 +135,12 @@ func UseCluster(cluster string) error {
 	_, err := kubectl([]string{"config", "use-context", cluster}...)
 	return err
 }
+
+// CurrentCluster the current configured kubectl cluster
+func CurrentCluster() (string, error) {
+	out, err := kubectl([]string{"config", "current-context"}...)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
