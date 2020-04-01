@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
+  annotations:
     sidecar.istio.io/inject: "false"
   name: tuber
   namespace: tuber
