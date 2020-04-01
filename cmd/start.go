@@ -3,12 +3,9 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-	"tuber/pkg/k8s"
-
 	"tuber/pkg/events"
 	"tuber/pkg/listener"
 	"tuber/pkg/sentry"
@@ -56,17 +53,6 @@ func start(cmd *cobra.Command, args []string) {
 
 	defer close(errReports)
 
-	subscriptionName := viper.GetString("pubsub-subscription-name")
-
-	config, err := k8s.GetSecret("tuber", "tuber-env")
-	if err != nil {
-		panic(err)
-	}
-
-	if subscriptionName == config.Data["TUBER_PUBSUB_SUBSCRIPTION_NAME"] {
-		panic(fmt.Errorf("do not run start on your cluster's subscription"))
-	}
-
 	go sentry.Stream(sentryEnabled, sentryDsn, errReports, logger)
 
 	// calling cancel() will signal to the rest of the application
@@ -87,9 +73,9 @@ func start(cmd *cobra.Command, args []string) {
 		options = append(options, listener.WithMaxTimeout(viper.GetDuration("max-timeout")))
 	}
 
-	if len(subscriptionName) < 1 {
-		err = errors.New("pubsub subscription name is required")
-		panic(err)
+	subscriptionName := viper.GetString("pubsub-subscription-name")
+	if subscriptionName == "" {
+		panic(errors.New("pubsub subscription name is required"))
 	}
 
 	var l = listener.NewListener(logger, subscriptionName, options...)
