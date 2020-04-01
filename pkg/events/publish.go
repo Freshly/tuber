@@ -28,5 +28,11 @@ func publish(logger zap.Logger, app *core.TuberApp, digest string, creds []byte,
 		logger.Info("prerelease: done", zap.String("event", "complete"))
 	}
 
-	return core.ReleaseTubers(releaseYamls, app, digest, clusterData)
+	releaseIDs, err := core.ReleaseTubers(releaseYamls, app, digest, clusterData)
+	if err != nil {
+		return
+	}
+	fmt.Print(releaseIDs)
+
+	return nil
 }
