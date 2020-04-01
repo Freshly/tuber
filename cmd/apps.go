@@ -78,7 +78,7 @@ var appsSetRepoCmd = &cobra.Command{
 			return err
 		}
 
-		return core.CreateTuberApp(appName, repo, app.Tag)
+		return core.AddAppConfig(appName, repo, app.Tag)
 	},
 }
 var appsRemoveCmd = &cobra.Command{
