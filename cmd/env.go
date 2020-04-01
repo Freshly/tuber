@@ -130,18 +130,14 @@ func envGet(cmd *cobra.Command, args []string) (err error) {
 func envList(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	mapName := fmt.Sprintf("%s-env", appName)
-	config, err := k8s.GetConfig(mapName, appName, "Secret")
+	config, err := k8s.GetSecret(appName, mapName)
 	if err != nil {
 		return err
 	}
 
 	var list []string
 	for k, v := range config.Data {
-		decoded, decodeErr := base64.StdEncoding.DecodeString(v)
-		if decodeErr != nil {
-			return decodeErr
-		}
-		list = append(list, k+`: "`+string(decoded)+`"`)
+		list = append(list, k+`: "`+v+`"`)
 	}
 
 	sort.Strings(list)
