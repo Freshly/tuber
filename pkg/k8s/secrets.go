@@ -44,6 +44,23 @@ func CreateTuberCredentials(path string, namespace string) (err error) {
 	return Apply(jsondata, namespace)
 }
 
+func GetSecret(namespace string, secretName string) (*Config, error) {
+	config, err := GetConfig(secretName, namespace, "Secret")
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range config.Data {
+		decoded, decodeErr := base64.StdEncoding.DecodeString(v)
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		config.Data[k] = string(decoded)
+	}
+
+	return config, nil
+}
+
 // CreateEnvFromFile replaces an apps env with data in a local file
 func CreateEnvFromFile(name string, path string) (err error) {
 	config, err := GetConfig(name+"-env", name, "Secret")
