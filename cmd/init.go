@@ -15,6 +15,7 @@ var initCmd = &cobra.Command{
 	SilenceUsage: true,
 	Args:         cobra.ExactArgs(2),
 	RunE:         initialize,
+	PreRunE:      promptCurrentContext,
 }
 
 var istioType string

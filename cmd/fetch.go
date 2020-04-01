@@ -18,6 +18,7 @@ var fetchCmd = &cobra.Command{
 	Short:        "Fetch Tuber yaml files",
 	RunE:         fetch,
 	Args:         cobra.ExactArgs(1),
+	PreRunE:      displayCurrentContext,
 }
 
 func fetch(cmd *cobra.Command, args []string) (err error) {

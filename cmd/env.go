@@ -19,6 +19,7 @@ var envSetCmd = &cobra.Command{
 	Use:          "set [app] [key] [value]",
 	RunE:         envSet,
 	Args:         cobra.ExactArgs(3),
+	PreRunE:      promptCurrentContext,
 }
 
 var envUnsetCmd = &cobra.Command{
@@ -26,6 +27,7 @@ var envUnsetCmd = &cobra.Command{
 	Use:          "unset [app] [key]",
 	RunE:         envUnset,
 	Args:         cobra.ExactArgs(2),
+	PreRunE:      promptCurrentContext,
 }
 
 var envGetCmd = &cobra.Command{
@@ -33,6 +35,7 @@ var envGetCmd = &cobra.Command{
 	Use:          "get [app] [key]",
 	Args:         cobra.ExactArgs(2),
 	RunE:         envGet,
+	PreRunE:      displayCurrentContext,
 }
 
 var fileCmd = &cobra.Command{
@@ -40,6 +43,7 @@ var fileCmd = &cobra.Command{
 	Use:          "file [app] [local filepath]",
 	Short:        "batch env set",
 	Args:         cobra.ExactArgs(2),
+	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		err := k8s.CreateEnvFromFile(appName, args[1])
@@ -56,6 +60,7 @@ var envListCmd = &cobra.Command{
 	Short:        "decode and display an app's env",
 	RunE:         envList,
 	Args:         cobra.ExactArgs(1),
+	PreRunE:      displayCurrentContext,
 }
 
 func envSet(cmd *cobra.Command, args []string) error {

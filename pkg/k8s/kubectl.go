@@ -129,3 +129,12 @@ func Exec(name string, namespace string, args ...string) error {
 	err := cmd.Run()
 	return err
 }
+
+// CurrentContext the current configured kubectl cluster
+func CurrentCluster() (string, error) {
+	out, err := kubectl([]string{"config", "current-context"}...)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}

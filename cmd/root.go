@@ -25,6 +25,7 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 
 	rootCmd.PersistentFlags().BoolP("debug", "d", false, "debug")
+	rootCmd.PersistentFlags().BoolP("confirm", "y", false, "automatic yes to prompts")
 	_ = viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 }
 

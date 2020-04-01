@@ -19,6 +19,7 @@ var appsInstallCmd = &cobra.Command{
 	Use:          "install [app name] [docker repo] [deploy tag]",
 	Short:        "install a new app in the current cluster",
 	Args:         cobra.ExactArgs(3),
+	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		repo := args[1]
@@ -33,6 +34,7 @@ var appsSetBranchCmd = &cobra.Command{
 	Use:          "set-branch [app name] [branch name]",
 	Short:        "set the branch to deploy the app from",
 	Args:         cobra.ExactArgs(2),
+	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		branch := args[1]
@@ -52,6 +54,7 @@ var appsSetRepoCmd = &cobra.Command{
 	Use:          "set-repo [app name] [docker repo]",
 	Short:        "set the docker repo to listen to for changes",
 	Args:         cobra.ExactArgs(2),
+	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		repo := args[1]
@@ -70,6 +73,7 @@ var appsRemoveCmd = &cobra.Command{
 	Use:          "remove [app name]",
 	Short:        "remove an app from the tuber-apps config map in the current cluster",
 	Args:         cobra.ExactArgs(1),
+	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 
@@ -82,6 +86,7 @@ var appsDestroyCmd = &cobra.Command{
 	Use:          "destroy [app name]",
 	Short:        "destroy an app from the current cluster",
 	Args:         cobra.ExactArgs(1),
+	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 

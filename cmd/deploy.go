@@ -15,6 +15,7 @@ var deployCmd = &cobra.Command{
 	Use:          "deploy",
 	Short:        "Deploys an app",
 	RunE:         deploy,
+	PreRunE:      promptCurrentContext,
 }
 
 type emptyAckable struct{}
