@@ -16,7 +16,7 @@ var switchClusterCmd = &cobra.Command{
 }
 
 func switchCluster(cmd *cobra.Command, args []string) error {
-	tuberrc, err := getTuberrc()
+	c, err := getTuberConfig()
 	if err != nil {
 		return err
 	}
@@ -27,8 +27,8 @@ func switchCluster(cmd *cobra.Command, args []string) error {
 	clusterName = args[0]
 	displayCluster = clusterName
 
-	if tuberrc != nil {
-		resolvedShorthand := tuberrc.Clusters[args[0]]
+	if c != nil {
+		resolvedShorthand := c.Clusters[args[0]]
 		if resolvedShorthand != "" {
 			clusterName = resolvedShorthand
 		}

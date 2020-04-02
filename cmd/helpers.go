@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"io/ioutil"
+	"os"
+	"runtime"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 
@@ -48,10 +50,14 @@ func credentials() ([]byte, error) {
 	}
 }
 
-func getTuberrc() (*tuberrc, error) {
-	path := viper.GetString("tuberrc-path")
-	if path == "" {
-		return nil, nil
+type tuberConfig struct {
+	Clusters map[string]string
+}
+
+func getTuberConfig() (*tuberConfig, error) {
+	path, err := tuberConfigPath()
+	if err != nil {
+		return nil, err
 	}
 
 	raw, err := ioutil.ReadFile(path)
@@ -59,7 +65,7 @@ func getTuberrc() (*tuberrc, error) {
 		return nil, err
 	}
 
-	var t tuberrc
+	var t tuberConfig
 	err = yaml.Unmarshal(raw, &t)
 	if err != nil {
 		return nil, err
@@ -68,6 +74,29 @@ func getTuberrc() (*tuberrc, error) {
 	return &t, nil
 }
 
-type tuberrc struct {
-	Clusters map[string]string
+func tuberConfigPath() (string, error) {
+	dir, err := tuberConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return dir + "config.yaml", nil
+}
+
+func tuberConfigDir() (string, error) {
+	basePath, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	slash := slashFormat()
+	return basePath + slash + "tuber" + slash, nil
+}
+
+func slashFormat() string {
+	if runtime.GOOS != "windows" {
+		return "/"
+	} else {
+		return `\`
+	}
 }
