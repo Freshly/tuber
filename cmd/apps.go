@@ -4,7 +4,6 @@ import (
 	"os"
 	"sort"
 	"tuber/pkg/core"
-	"tuber/pkg/k8s"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -15,32 +14,17 @@ var appsCmd = &cobra.Command{
 	Short: "A root command for app configurating.",
 }
 
-var istioEnabled bool
-
 var appsInstallCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "install [app name] [docker repo] [deploy tag] [--istio=<true(default) || false>]",
+	Use:          "install [app name] [docker repo] [deploy tag]",
 	Short:        "install a new app in the current cluster",
 	Args:         cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		repo := args[1]
 		tag := args[2]
-		existsAlready, err := k8s.Exists("namespace", appName, appName)
-		if err != nil {
-			return err
-		}
 
-		if existsAlready {
-			return core.AddAppConfig(appName, repo, tag)
-		}
-
-		err = core.NewAppSetup(appName, istioEnabled)
-		if err != nil {
-			return err
-		}
-
-		return core.AddAppConfig(appName, repo, tag)
+		return core.CreateTuberApp(appName, repo, tag)
 	},
 }
 
@@ -78,7 +62,7 @@ var appsSetRepoCmd = &cobra.Command{
 			return err
 		}
 
-		return core.AddAppConfig(appName, repo, app.Tag)
+		return core.CreateTuberApp(appName, repo, app.Tag)
 	},
 }
 var appsRemoveCmd = &cobra.Command{
@@ -132,7 +116,6 @@ var appsListCmd = &cobra.Command{
 }
 
 func init() {
-	appsInstallCmd.Flags().BoolVar(&istioEnabled, "istio", true, "enable (default) or disable istio sidecar injection for a new app")
 	rootCmd.AddCommand(appsCmd)
 	appsCmd.AddCommand(appsInstallCmd)
 	appsCmd.AddCommand(appsRemoveCmd)
