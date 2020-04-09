@@ -4,7 +4,6 @@ import (
 	"os"
 	"sort"
 	"tuber/pkg/core"
-	"tuber/pkg/k8s"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -26,16 +25,8 @@ var appsInstallCmd = &cobra.Command{
 		appName := args[0]
 		repo := args[1]
 		tag := args[2]
-		existsAlready, err := k8s.Exists("namespace", appName, appName)
-		if err != nil {
-			return err
-		}
 
-		if existsAlready {
-			return core.AddAppConfig(appName, repo, tag)
-		}
-
-		err = core.NewAppSetup(appName, istioEnabled)
+		err := core.NewAppSetup(appName, istioEnabled)
 		if err != nil {
 			return err
 		}

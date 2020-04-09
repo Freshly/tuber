@@ -123,14 +123,5 @@ func RemoveSecretEntry(mapName string, namespace string, key string) (err error)
 
 // CreateEnv creates a Secret for a new TuberApp, to store env vars
 func CreateEnv(appName string) error {
-	existsAlready, err := Exists("namespace", appName, appName)
-	if err != nil {
-		return err
-	}
-
-	if existsAlready {
-		return nil
-	}
-
 	return Create(appName, "secret", "generic", appName+"-env")
 }
