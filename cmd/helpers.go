@@ -3,7 +3,7 @@ package cmd
 import (
 	"io/ioutil"
 	"os"
-	"runtime"
+	"path/filepath"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 
@@ -80,7 +80,7 @@ func tuberConfigPath() (string, error) {
 		return "", err
 	}
 
-	return dir + "config.yaml", nil
+	return filepath.Join(dir, "config.yaml"), nil
 }
 
 func tuberConfigDir() (string, error) {
@@ -89,14 +89,5 @@ func tuberConfigDir() (string, error) {
 		return "", err
 	}
 
-	slash := slashFormat()
-	return basePath + slash + "tuber" + slash, nil
-}
-
-func slashFormat() string {
-	if runtime.GOOS != "windows" {
-		return "/"
-	} else {
-		return `\`
-	}
+	return filepath.Join(basePath, "tuber"), nil
 }

@@ -34,7 +34,7 @@ func config(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		err = os.Mkdir(dir, 0666)
+		err = os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			return err
 		}
