@@ -61,7 +61,9 @@ func config(cmd *cobra.Command, args []string) error {
 	}
 
 	out, err := command.CombinedOutput()
-	fmt.Print(string(out))
+	if err != nil {
+		err = fmt.Errorf(string(out)+"\n"+err.Error()+"\ntuber config located at %v", configPath)
+	}
 	return err
 }
 
