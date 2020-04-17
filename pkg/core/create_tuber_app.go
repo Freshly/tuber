@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	yamls "tuber/data/tuberapps"
 	"tuber/pkg/k8s"
 )
@@ -24,16 +23,21 @@ func NewAppSetup(appName string, istio bool) error {
 
 	for _, yaml := range []yamls.TuberYaml{yamls.Namespace, yamls.Role, yamls.Rolebinding} {
 		err = ApplyTemplate(appName, string(yaml.Contents), data)
+		if err != nil {
+			return err
+		}
 	}
-	if err == nil {
+
+	existsAlready, err := k8s.Exists("secret", appName+"-env", appName)
+	if err != nil {
+		return err
+	}
+
+	if !existsAlready {
 		err = k8s.CreateEnv(appName)
 	}
 
 	if err != nil {
-		deleteErr := k8s.Delete("namespace", appName, appName)
-		if deleteErr != nil {
-			return fmt.Errorf(err.Error() + " failed delete: " + deleteErr.Error())
-		}
 		return err
 	}
 
