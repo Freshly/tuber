@@ -57,7 +57,7 @@ func config(cmd *cobra.Command, args []string) error {
 		psCommand := fmt.Sprintf("start %v", configPath)
 		command = osExec.Command("cmd", "/c", psCommand, "/w")
 	default:
-		panic(fmt.Errorf("what are you on, plan9"))
+		return fmt.Errorf("unsupported os for auto-open, tuber config located at %v", configPath)
 	}
 
 	out, err := command.CombinedOutput()
