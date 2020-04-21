@@ -27,8 +27,6 @@ brews:
       name: homebrew-taps
     folder: Formula
     homepage: https://github.com/Freshly/tuber
-    dependencies:
-      - kubernetes-cli
     description: 🥔
     test: |
       system "#{bin}/tuber -v"
