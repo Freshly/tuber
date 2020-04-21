@@ -109,7 +109,7 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Print("About to run ", cmd.Name(), " on ", cluster)
-	fmt.Println("Press cmd+C / ctrl+C to cancel, enter to continue...")
+	fmt.Println("Press ctrl+C to cancel, enter to continue...")
 	var input string
 	_, err = fmt.Scanln(&input)
 
