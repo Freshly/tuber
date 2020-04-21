@@ -1,48 +1,43 @@
 package core
 
 import (
-	"fmt"
-	data "tuber/data/tuberapps"
+	yamls "tuber/data/tuberapps"
 	"tuber/pkg/k8s"
 )
 
-// CreateTuberApp adds a new tuber app configuration, including namespace,
+// NewAppSetup adds a new tuber app configuration, including namespace,
 // role, rolebinding, and a listing in tuber-apps
-func CreateTuberApp(appName string, repo string, tag string) error {
-	namespaceData := map[string]string{
-		"namespace": appName,
-	}
-
-	existsAlready, err := k8s.Exists("namespace", appName, appName)
-	if err != nil {
-		return err
-	}
-
-	if existsAlready {
-		return AddAppConfig(appName, repo, tag)
-	}
-
-	err = newAppSetup(appName, namespaceData)
-	if err != nil {
-		return err
-	}
-	return AddAppConfig(appName, repo, tag)
-}
-
-func newAppSetup(appName string, namespaceData map[string]string) error {
+func NewAppSetup(appName string, istio bool) error {
 	var err error
-	for _, yaml := range []data.TuberYaml{data.Namespace, data.Role, data.Rolebinding} {
-		err = ApplyTemplate(appName, string(yaml.Contents), namespaceData)
+	var istioEnabled string
+	if istio {
+		istioEnabled = "enabled"
+	} else {
+		istioEnabled = "disabled"
 	}
-	if err == nil {
+
+	data := map[string]string{
+		"namespace":    appName,
+		"istioEnabled": istioEnabled,
+	}
+
+	for _, yaml := range []yamls.TuberYaml{yamls.Namespace, yamls.Role, yamls.Rolebinding} {
+		err = ApplyTemplate(appName, string(yaml.Contents), data)
+		if err != nil {
+			return err
+		}
+	}
+
+	existsAlready, err := k8s.Exists("secret", appName+"-env", appName)
+	if err != nil {
+		return err
+	}
+
+	if !existsAlready {
 		err = k8s.CreateEnv(appName)
 	}
 
 	if err != nil {
-		deleteErr := k8s.Delete("namespace", appName, appName)
-		if deleteErr != nil {
-			return fmt.Errorf(err.Error() + " failed delete: " + deleteErr.Error())
-		}
 		return err
 	}
 

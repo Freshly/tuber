@@ -20,9 +20,10 @@ func init() {
 }
 
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start tuber",
-	Run:   start,
+	Use:     "start",
+	Short:   "Start tuber",
+	Run:     start,
+	PreRunE: promptCurrentContext,
 }
 
 // Attaches interrupt and terminate signals to a cancel function
