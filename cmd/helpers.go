@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 
+	"github.com/goccy/go-yaml"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -45,4 +50,86 @@ func credentials() ([]byte, error) {
 	} else {
 		return creds, nil
 	}
+}
+
+type tuberConfig struct {
+	Clusters map[string]string
+}
+
+func getTuberConfig() (*tuberConfig, error) {
+	path, err := tuberConfigPath()
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var t tuberConfig
+	err = yaml.Unmarshal(raw, &t)
+	if err != nil {
+		return nil, err
+	}
+
+	return &t, nil
+}
+
+func tuberConfigPath() (string, error) {
+	dir, err := tuberConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(dir, "config.yaml"), nil
+}
+
+func tuberConfigDir() (string, error) {
+	basePath, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(basePath, "tuber"), nil
+}
+
+func promptCurrentContext(cmd *cobra.Command, args []string) error {
+	skipConfirmation, err := cmd.Flags().GetBool("confirm")
+	if err != nil {
+		return err
+	}
+
+	if skipConfirmation {
+		return nil
+	}
+
+	cluster, err := k8s.CurrentCluster()
+	if err != nil {
+		return err
+	}
+	fmt.Print("About to run ", cmd.Name(), " on ", cluster)
+	fmt.Println("Press ctrl+C to cancel, enter to continue...")
+	var input string
+	_, err = fmt.Scanln(&input)
+
+	if err != nil {
+		if err.Error() == "unexpected newline" {
+			return nil
+		} else if err.Error() == "EOF" {
+			return fmt.Errorf("cancelled")
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+
+func displayCurrentContext(cmd *cobra.Command, args []string) error {
+	cluster, err := k8s.CurrentCluster()
+	if err != nil {
+		return err
+	}
+	fmt.Println("Running", cmd.Name(), "on", cluster)
+	return nil
 }

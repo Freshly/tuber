@@ -13,6 +13,7 @@ var execCmd = &cobra.Command{
 	Use:          "exec -a [appName] -w [specific workload] -c [specific container] [commands]",
 	Short:        "execs a command on an app",
 	RunE:         exec,
+	PreRunE:      promptCurrentContext,
 }
 var appName string
 

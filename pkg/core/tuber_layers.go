@@ -1,12 +1,41 @@
 package core
 
 import (
+	"fmt"
 	"strings"
+	"tuber/pkg/k8s"
+
+	"github.com/goccy/go-yaml"
+	"github.com/google/uuid"
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // ReleaseTubers combines and interpolates with tuber's conventions, and applies them
-func ReleaseTubers(tubers []string, app *TuberApp, digest string, data *ClusterData) error {
-	return ApplyTemplate(app.Name, strings.Join(tubers, "---\n"), tuberData(digest, app, data))
+func ReleaseTubers(tubers []string, app *TuberApp, digest string, data *ClusterData) ([]string, error) {
+	var releaseIDs []string
+	var interpolated []string
+	d := tuberData(digest, app, data)
+	for _, tuber := range tubers {
+		i, err := interpolate(tuber, d)
+		interpolated = append(interpolated, string(i))
+		if err != nil {
+			return []string{}, err
+		}
+	}
+
+	labeled, releaseIDs, err := annotateDeployments(interpolated)
+	if err != nil {
+		return []string{}, err
+	}
+
+	releaseYamls := strings.Join(labeled, "---\n")
+
+	err = k8s.Apply([]byte(releaseYamls), app.Name)
+	if err != nil {
+		return releaseIDs, err
+	}
+	return releaseIDs, err
 }
 
 // ClusterData is configurable, cluster-wide data available for yaml interpolation
@@ -22,4 +51,60 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (data map
 		"clusterDefaultHost":    clusterData.DefaultHost,
 		"tuberAppName":          app.Name,
 	}
+}
+
+func annotateDeployments(t []string) ([]string, []string, error) {
+	var tubers []string
+	var releaseIDs []string
+	for _, tuber := range t {
+		var resource k8sResource
+		b := []byte(tuber)
+		err := yaml.Unmarshal(b, &resource)
+		if err != nil {
+			return []string{}, []string{}, err
+		}
+		if resource.Kind == "Deployment" {
+			annotated, releaseID, err := addAnnotation(b)
+			if err != nil {
+				return []string{}, []string{}, err
+			}
+			releaseIDs = append(releaseIDs, releaseID)
+			tubers = append(tubers, annotated)
+		} else {
+			tubers = append(tubers, tuber)
+		}
+	}
+	return tubers, releaseIDs, nil
+}
+
+type k8sResource struct {
+	ApiVersion string
+	Kind       string
+}
+
+func addAnnotation(resource []byte) (string, string, error) {
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+
+	obj, versionKind, err := decode(resource, nil, nil)
+	if err != nil {
+		return "", "", err
+	}
+	if versionKind.Version != "v1" {
+		return "", "", fmt.Errorf("must use v1 deployments")
+	}
+
+	deployment := obj.(*v1.Deployment)
+	annotations := deployment.Spec.Template.ObjectMeta.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	releaseID := uuid.New().String()
+	annotations["tuber/releaseID"] = releaseID
+	deployment.Spec.Template.ObjectMeta.SetAnnotations(annotations)
+
+	annotated, err := yaml.Marshal(deployment)
+	if err != nil {
+		return "", "", err
+	}
+	return string(annotated), releaseID, nil
 }
