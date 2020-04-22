@@ -11,7 +11,7 @@ import (
 var plantCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "plant [service account credentials path]",
-	Short:        "tuberize a cluster",
+	Short:        "install tuber to a cluster",
 	Args:         cobra.ExactArgs(1),
 	RunE:         plant,
 }

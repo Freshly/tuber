@@ -12,7 +12,7 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:   "tuber",
-		Short: "🥔",
+		Short: "CLI to manage containerized applications on GKE",
 	}
 )
 

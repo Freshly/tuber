@@ -12,8 +12,8 @@ import (
 
 var deployCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "deploy",
-	Short:        "Deploys an app",
+	Use:          "deploy [app]",
+	Short:        "deploys the latest built image of an app",
 	RunE:         deploy,
 	PreRunE:      promptCurrentContext,
 }

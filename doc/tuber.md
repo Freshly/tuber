@@ -1,10 +1,10 @@
 ## tuber
 
-🥔
+CLI to manage containerized applications on GKE
 
 ### Synopsis
 
-🥔
+CLI to manage containerized applications on GKE
 
 ### Options
 
@@ -20,13 +20,13 @@
 * [tuber apps](tuber_apps.md)	 - A root command for app configurating.
 * [tuber config](tuber_config.md)	 - open local tuber config in your default editor
 * [tuber credentials](tuber_credentials.md)	 - add tuber secrets from file
-* [tuber deploy](tuber_deploy.md)	 - Deploys an app
+* [tuber deploy](tuber_deploy.md)	 - deploys the latest built image of an app
 * [tuber document](tuber_document.md)	 - Generates documentation for tuber
-* [tuber env](tuber_env.md)	 - manage application environment
-* [tuber exec](tuber_exec.md)	 - execs a command on an app
-* [tuber fetch](tuber_fetch.md)	 - Fetch Tuber yaml files
+* [tuber env](tuber_env.md)	 - manage an app's environment
+* [tuber exec](tuber_exec.md)	 - executes a command on an app
+* [tuber fetch](tuber_fetch.md)	 - display all tuber yaml files
 * [tuber init](tuber_init.md)	 - initialize a .tuber directory and relevant yamls
-* [tuber plant](tuber_plant.md)	 - tuberize a cluster
+* [tuber plant](tuber_plant.md)	 - install tuber to a cluster
 * [tuber start](tuber_start.md)	 - Start tuber's pub/sub listener
 * [tuber switch](tuber_switch.md)	 - switch kubectl context to a different cluster
 
