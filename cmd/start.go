@@ -21,7 +21,7 @@ func init() {
 
 var startCmd = &cobra.Command{
 	Use:     "start",
-	Short:   "Start tuber",
+	Short:   "Start tuber's pub/sub listener",
 	Run:     start,
 	PreRunE: promptCurrentContext,
 }

@@ -11,7 +11,8 @@ import (
 )
 
 var envCmd = &cobra.Command{
-	Use: "env [set || unset || get || list || file]",
+	Use:   "env [set || unset || get || list || file]",
+	Short: "manage application environment",
 }
 
 var envSetCmd = &cobra.Command{
