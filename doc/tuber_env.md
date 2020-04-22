@@ -1,10 +1,10 @@
 ## tuber env
 
-
+manage application environment
 
 ### Synopsis
 
-
+manage application environment
 
 ### Options
 
@@ -21,7 +21,7 @@
 
 ### SEE ALSO
 
-* [tuber](tuber.md)	 - 
+* [tuber](tuber.md)	 - 🥔
 * [tuber env file](tuber_env_file.md)	 - batch env set
 * [tuber env get](tuber_env_get.md)	 - 
 * [tuber env list](tuber_env_list.md)	 - decode and display an app's env

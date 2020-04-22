@@ -21,7 +21,7 @@ A root command for app configurating.
 
 ### SEE ALSO
 
-* [tuber](tuber.md)	 - 
+* [tuber](tuber.md)	 - 🥔
 * [tuber apps destroy](tuber_apps_destroy.md)	 - destroy an app from the current cluster
 * [tuber apps install](tuber_apps_install.md)	 - install a new app in the current cluster
 * [tuber apps list](tuber_apps_list.md)	 - List tuberapps
