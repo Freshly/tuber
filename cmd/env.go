@@ -11,12 +11,14 @@ import (
 )
 
 var envCmd = &cobra.Command{
-	Use: "env [set || unset || get || list || file]",
+	Use:   "env [set || unset || get || list || file]",
+	Short: "manage an app's environment",
 }
 
 var envSetCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "set [app] [key] [value]",
+	Short:        "set an environment variable",
 	RunE:         envSet,
 	Args:         cobra.ExactArgs(3),
 	PreRunE:      promptCurrentContext,
@@ -25,6 +27,7 @@ var envSetCmd = &cobra.Command{
 var envUnsetCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "unset [app] [key]",
+	Short:        "unset an environment variable",
 	RunE:         envUnset,
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
@@ -33,6 +36,7 @@ var envUnsetCmd = &cobra.Command{
 var envGetCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "get [app] [key]",
+	Short:        "display the value of an environment variable",
 	Args:         cobra.ExactArgs(2),
 	RunE:         envGet,
 	PreRunE:      displayCurrentContext,
@@ -41,7 +45,7 @@ var envGetCmd = &cobra.Command{
 var fileCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "file [app] [local filepath]",
-	Short:        "batch env set",
+	Short:        "batch set environment variables based on the contents of a yaml file",
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -57,7 +61,7 @@ var fileCmd = &cobra.Command{
 var envListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list [app]",
-	Short:        "decode and display an app's env",
+	Short:        "display all environment variables",
 	RunE:         envList,
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      displayCurrentContext,

@@ -15,7 +15,7 @@ func init() {
 var fetchCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "fetch [appName]",
-	Short:        "Fetch Tuber yaml files",
+	Short:        "display all tuber yaml files",
 	RunE:         fetch,
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      displayCurrentContext,

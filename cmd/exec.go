@@ -11,7 +11,7 @@ import (
 var execCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "exec -a [appName] -w [specific workload] -c [specific container] [commands]",
-	Short:        "execs a command on an app",
+	Short:        "executes a command on an app",
 	RunE:         exec,
 	PreRunE:      promptCurrentContext,
 }

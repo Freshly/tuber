@@ -10,8 +10,8 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init [appName] [routePrefix] [--istio=serviceType]",
 	Short: "initialize a .tuber directory and relevant yamls",
-	Long: `App name is the name of your app, which will be interpolated into the configuration files and used as the
-		namespace, as well as other things.`,
+	Long: `creates and interpolates tuber yamls. specify a service type as one of type
+(grpc grpc http http2 https mongo mysql redis tcp tls udp)`,
 	SilenceUsage: true,
 	Args:         cobra.ExactArgs(2),
 	RunE:         initialize,
