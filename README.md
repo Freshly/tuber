@@ -3,6 +3,13 @@
 ![logo](logo.png)
 
 ## Install
+### Homebrew
+```
+brew tap freshly/taps
+brew install tuber
+```
+
+### Download binary
 Download the binary file from the latest release: https://github.com/Freshly/tuber/releases/
 
 ## What is Tuber?
