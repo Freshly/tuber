@@ -20,6 +20,11 @@ func InitTuberApp(appName string, routePrefix string, withIstio bool, serviceTyp
 		return err
 	}
 
+	err = modDockerFile()
+	if err != nil {
+		return err
+	}
+
 	if !withIstio {
 		return nil
 	}
@@ -64,6 +69,20 @@ func createVirtualServiceYAML(appName string, routePrefix string) error {
 	}
 
 	return writeYAML(data.Virtualservice, templateData)
+}
+
+func modDockerFile() error {
+	f, err := os.OpenFile("./Dockerfile", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString("COPY .tuber /.tuber"); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func writeYAML(app data.TuberYaml, templateData map[string]string) error {
