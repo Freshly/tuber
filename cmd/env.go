@@ -51,9 +51,11 @@ var fileCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		err := k8s.CreateEnvFromFile(appName, args[1])
+
 		if err != nil {
 			return err
 		}
+
 		return k8s.Restart("deployments", appName)
 	},
 }
