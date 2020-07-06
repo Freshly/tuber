@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"os"
 	"sort"
 	"tuber/pkg/core"
@@ -15,6 +16,7 @@ var appsCmd = &cobra.Command{
 }
 
 var istioEnabled bool
+var jsonOutput bool
 
 var appsInstallCmd = &cobra.Command{
 	SilenceUsage: true,
@@ -112,11 +114,23 @@ var appsListCmd = &cobra.Command{
 			return err
 		}
 
+		sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
+		if jsonOutput {
+			out, err := json.Marshal(apps)
+
+			if err != nil {
+				return err
+			}
+
+			os.Stdout.Write(out)
+
+			return err
+		}
+
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetHeader([]string{"Name", "Image"})
 		table.SetBorder(false)
-
-		sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
 
 		for _, app := range apps {
 			table.Append([]string{app.Name, app.ImageTag})
@@ -129,6 +143,7 @@ var appsListCmd = &cobra.Command{
 
 func init() {
 	appsInstallCmd.Flags().BoolVar(&istioEnabled, "istio", true, "enable (default) or disable istio sidecar injection for a new app")
+	appsListCmd.Flags().BoolVar(&jsonOutput, "json", false, "output as json")
 	rootCmd.AddCommand(appsCmd)
 	appsCmd.AddCommand(appsInstallCmd)
 	appsCmd.AddCommand(appsRemoveCmd)
