@@ -125,7 +125,7 @@ var appsListCmd = &cobra.Command{
 
 			os.Stdout.Write(out)
 
-			return err
+			return nil
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
