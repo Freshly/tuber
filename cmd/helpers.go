@@ -130,6 +130,8 @@ func displayCurrentContext(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Running", cmd.Name(), "on", cluster)
+
+	fmt.Fprintf(os.Stderr, "Running %s on %s", cmd.Name(), cluster)
+
 	return nil
 }
