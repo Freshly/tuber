@@ -44,33 +44,35 @@ func (s *streamer) Stream(unprocessed <-chan *listener.RegistryEvent, processed 
 				}
 			}()
 
-			pendingRelease, err := filter(event)
+			pendingReleases, err := filter(event)
 
-			if err != nil || pendingRelease == nil {
+			if err != nil {
 				return
 			}
 
-			imageTag := strings.Split(pendingRelease.ImageTag, ":")[1]
-			var releaseLog = s.logger.With(
-				zap.String("name", pendingRelease.Name),
-				zap.String("branch", pendingRelease.Tag),
-				zap.String("imageTag", imageTag),
-				zap.String("action", "release"),
-			)
-
-			start := time.Now()
-			releaseLog.Info("release: starting", zap.String("event", "begin"))
-
-			err = publish(*releaseLog, pendingRelease, event.Digest, s.creds, s.clusterData)
-
-			if err != nil {
-				releaseLog.Warn(
-					"release: error",
-					zap.String("event", "error"),
-					zap.Error(err),
+			for _, pendingRelease := range pendingReleases {
+				imageTag := strings.Split(pendingRelease.ImageTag, ":")[1]
+				var releaseLog = s.logger.With(
+					zap.String("name", pendingRelease.Name),
+					zap.String("branch", pendingRelease.Tag),
+					zap.String("imageTag", imageTag),
+					zap.String("action", "release"),
 				)
-			} else {
-				releaseLog.Info("release: done", zap.String("event", "complete"), zap.Duration("duration", time.Since(start)))
+
+				start := time.Now()
+				releaseLog.Info("release: starting", zap.String("event", "begin"))
+
+				err = publish(*releaseLog, &pendingRelease, event.Digest, s.creds, s.clusterData)
+
+				if err != nil {
+					releaseLog.Warn(
+						"release: error",
+						zap.String("event", "error"),
+						zap.Error(err),
+					)
+				} else {
+					releaseLog.Info("release: done", zap.String("event", "complete"), zap.Duration("duration", time.Since(start)))
+				}
 			}
 		}(event)
 	}
