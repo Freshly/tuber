@@ -4,8 +4,11 @@ go 1.13
 
 require (
 	cloud.google.com/go/pubsub v1.1.0
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
+	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/getsentry/sentry-go v0.4.0
 	github.com/goccy/go-yaml v1.2.0
+	github.com/google/uuid v1.1.1
 	github.com/joho/godotenv v1.3.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/spf13/cobra v0.0.5
@@ -17,4 +20,7 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
 	google.golang.org/api v0.14.0
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	k8s.io/api v0.18.0
+	k8s.io/client-go v11.0.0+incompatible
 )

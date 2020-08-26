@@ -1,10 +1,12 @@
 package k8s
 
 import (
+	"bufio"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/goccy/go-yaml"
@@ -44,19 +46,37 @@ func CreateTuberCredentials(path string, namespace string) (err error) {
 	return Apply(jsondata, namespace)
 }
 
+func GetSecret(namespace string, secretName string) (*Config, error) {
+	config, err := GetConfig(secretName, namespace, "Secret")
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range config.Data {
+		decoded, decodeErr := base64.StdEncoding.DecodeString(v)
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		config.Data[k] = string(decoded)
+	}
+
+	return config, nil
+}
+
 // CreateEnvFromFile replaces an apps env with data in a local file
 func CreateEnvFromFile(name string, path string) (err error) {
-	config, err := GetConfig(name+"-env", name, "Secret")
+	var out []byte
+
+	if path == "-" {
+		out, err = ioutil.ReadAll(bufio.NewReader(os.Stdin))
+	} else {
+		out, err = ioutil.ReadFile(path)
+	}
 
 	if err != nil {
 		return
 	}
 
-	out, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return
-	}
 	var data map[string]interface{}
 	err = yaml.Unmarshal(out, &data)
 	if err != nil {
@@ -66,6 +86,12 @@ func CreateEnvFromFile(name string, path string) (err error) {
 	var stringifiedData = make(map[string]string)
 	for k, v := range data {
 		stringifiedData[k] = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v", v)))
+	}
+
+	config, err := GetConfig(name+"-env", name, "Secret")
+
+	if err != nil {
+		return
 	}
 
 	config.Data = stringifiedData

@@ -1,8 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: tuber
   name: tuber
   namespace: tuber
 spec:
@@ -12,6 +10,8 @@ spec:
       app: tuber
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
       labels:
         app: tuber
     spec:

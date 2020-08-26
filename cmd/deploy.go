@@ -12,10 +12,10 @@ import (
 
 var deployCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "deploy [appName]",
-	Short:        "Deploys an app",
+	Use:          "deploy [app]",
+	Short:        "deploys the latest built image of an app",
 	RunE:         deploy,
-	Args:         cobra.ExactArgs(1),
+	PreRunE:      promptCurrentContext,
 }
 
 type emptyAckable struct{}
@@ -24,6 +24,7 @@ func (emptyAckable) Ack()  {}
 func (emptyAckable) Nack() {}
 
 func deploy(cmd *cobra.Command, args []string) error {
+	appName := args[0]
 	logger, err := createLogger()
 	if err != nil {
 		return err
@@ -42,7 +43,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	app, err := apps.FindApp(args[0])
+	app, err := apps.FindApp(appName)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	streamer := events.NewStreamer(creds, logger, clusterData())
+	data, err := clusterData()
+	if err != nil {
+		return err
+	}
+
+	streamer := events.NewStreamer(creds, logger, data)
 
 	errorChan := make(chan listener.FailedRelease, 1)
 	unprocessedEvents := make(chan *listener.RegistryEvent, 1)

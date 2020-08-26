@@ -1,14 +1,29 @@
 package k8s
 
 import (
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
-func runKubectl(cmd *exec.Cmd) (out []byte, err error) {
-	out, err = cmd.CombinedOutput()
+func runKubectl(cmd *exec.Cmd) ([]byte, error) {
+	if viper.GetBool("debug") {
+		logger, zapErr := zap.NewDevelopment()
+		if zapErr != nil {
+			return nil, zapErr
+		}
+		logger.Debug(strings.Join(cmd.Args, " "))
+	}
+
+	out, err := cmd.CombinedOutput()
+
+	if err != nil || cmd.ProcessState.ExitCode() != 0 {
+		err = newK8sError(out, err)
+		return nil, err
+	}
 
 	if viper.GetBool("debug") {
 		logger, zapErr := zap.NewDevelopment()
@@ -18,10 +33,7 @@ func runKubectl(cmd *exec.Cmd) (out []byte, err error) {
 		logger.Debug(string(out))
 	}
 
-	if err != nil || cmd.ProcessState.ExitCode() != 0 {
-		err = newK8sError(out, err)
-	}
-	return
+	return out, nil
 }
 
 func kubectl(args ...string) ([]byte, error) {
@@ -63,6 +75,12 @@ func Get(kind string, name string, namespace string, args ...string) ([]byte, er
 	return kubectl(append(get, args...)...)
 }
 
+// GetCollection gets for plural resource types break if given even an empty name
+func GetCollection(kind string, namespace string, args ...string) ([]byte, error) {
+	get := []string{"get", kind, "-n", namespace}
+	return kubectl(append(get, args...)...)
+}
+
 // Delete `kubectl delete` a resource. Specify output or any other flags as args
 func Delete(kind string, name string, namespace string, args ...string) (err error) {
 	deleteArgs := []string{"delete", kind, name, "-n", namespace}
@@ -98,4 +116,31 @@ func Exists(kind string, name string, namespace string, args ...string) (bool, e
 	}
 
 	return true, nil
+}
+
+// Exec interactive exec into a pod with a series of args to run
+func Exec(name string, namespace string, args ...string) error {
+	execArgs := []string{"-n", namespace, "exec", "-it", name}
+	execArgs = append(execArgs, args...)
+	cmd := exec.Command("kubectl", execArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	return err
+}
+
+// UseCluster switch current configured kubectl cluster
+func UseCluster(cluster string) error {
+	_, err := kubectl([]string{"config", "use-context", cluster}...)
+	return err
+}
+
+// CurrentCluster the current configured kubectl cluster
+func CurrentCluster() (string, error) {
+	out, err := kubectl([]string{"config", "current-context"}...)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }

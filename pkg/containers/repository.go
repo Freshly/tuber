@@ -35,14 +35,6 @@ func (a apiError) Error() string {
 	return a.Message
 }
 
-type notTuberLayerError struct {
-	message string
-}
-
-func (n *notTuberLayerError) Error() string {
-	return n.message
-}
-
 type manifest struct {
 	Digest string
 	Layers []layer    `json:"layers"`
@@ -74,6 +66,11 @@ func GetTuberLayer(location RepositoryLocation, creds []byte) (prereleaseYamls [
 
 func GetLatestSHA(location RepositoryLocation, creds []byte) (sha string, err error) {
 	authToken, err := gcloud.GetAccessToken(creds)
+
+	if err != nil {
+		return
+	}
+
 	reg := newRegistry(location.Host, authToken)
 	repo, err := reg.getRepository(location.Path)
 
@@ -198,8 +195,7 @@ func convertResponse(response *http.Response) (prereleaseYamls []string, release
 		}
 
 		if !strings.HasPrefix(header.Name, ".tuber") {
-			err = &notTuberLayerError{"contains stuff other than .tuber"}
-			return
+			continue
 		}
 
 		if !strings.HasSuffix(header.Name, ".yaml") {
@@ -219,7 +215,6 @@ func convertResponse(response *http.Response) (prereleaseYamls []string, release
 			releaseYamls = append(releaseYamls, string(bytes))
 		}
 	}
-	return
 }
 
 // findLayer finds the .tuber layer containing deploy info for Tuber
@@ -238,15 +233,12 @@ func (r *repository) findLayer(tag string) (prereleaseYamls []string, releaseYam
 		prereleaseYamls, releaseYamls, err = r.downloadLayer(&layer)
 
 		if err != nil {
-			switch err.(type) {
-			case *notTuberLayerError:
-				continue
-			default:
-				return
-			}
+			return nil, nil, err
 		}
 
-		return
+		if len(releaseYamls) != 0 {
+			return prereleaseYamls, releaseYamls, nil
+		}
 	}
 
 	err = fmt.Errorf("no tuber layer found")

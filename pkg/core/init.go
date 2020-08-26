@@ -9,34 +9,43 @@ import (
 const tuberConfigPath = ".tuber"
 
 // InitTuberApp creates a bunch of yamls for you
-func InitTuberApp(appName string, routePrefix string) (err error) {
-	if err = createTuberDirectory(); err != nil {
-		return
+func InitTuberApp(appName string, routePrefix string, withIstio bool, serviceType string) error {
+	err := createTuberDirectory()
+	if err != nil {
+		return err
 	}
 
-	if err = createDeploymentYAML(appName); err != nil {
-		return
+	err = createDeploymentYAML(appName)
+	if err != nil {
+		return err
 	}
 
-	if err = createServiceYAML(appName); err != nil {
-		return
+	err = modDockerFile()
+	if err != nil {
+		return err
 	}
 
-	if err = createVirtualServiceYAML(appName, routePrefix); err != nil {
-		return
-	}
-
-	return
-}
-
-func createTuberDirectory() (err error) {
-	if err = os.Mkdir(".tuber", os.ModePerm); os.IsExist(err) {
+	if !withIstio {
 		return nil
 	}
-	return
+
+	err = createServiceYAML(appName, serviceType)
+	if err != nil {
+		return err
+	}
+
+	return createVirtualServiceYAML(appName, routePrefix)
 }
 
-func createDeploymentYAML(appName string) (err error) {
+func createTuberDirectory() error {
+	err := os.Mkdir(".tuber", os.ModePerm)
+	if os.IsExist(err) {
+		return nil
+	}
+	return err
+}
+
+func createDeploymentYAML(appName string) error {
 	templateData := map[string]string{
 		"appName": appName,
 	}
@@ -44,15 +53,16 @@ func createDeploymentYAML(appName string) (err error) {
 	return writeYAML(data.Deployment, templateData)
 }
 
-func createServiceYAML(appName string) (err error) {
+func createServiceYAML(appName string, serviceType string) error {
 	templateData := map[string]string{
-		"appName": appName,
+		"appName":     appName,
+		"serviceType": serviceType,
 	}
 
 	return writeYAML(data.Service, templateData)
 }
 
-func createVirtualServiceYAML(appName string, routePrefix string) (err error) {
+func createVirtualServiceYAML(appName string, routePrefix string) error {
 	templateData := map[string]string{
 		"appName":     appName,
 		"routePrefix": routePrefix,
@@ -61,11 +71,25 @@ func createVirtualServiceYAML(appName string, routePrefix string) (err error) {
 	return writeYAML(data.Virtualservice, templateData)
 }
 
-func writeYAML(app data.TuberYaml, templateData map[string]string) (err error) {
+func modDockerFile() error {
+	f, err := os.OpenFile("./Dockerfile", os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString("COPY .tuber /.tuber"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeYAML(app data.TuberYaml, templateData map[string]string) error {
 	interpolated, err := interpolate(string(app.Contents), templateData)
 
 	if err != nil {
-		return
+		return err
 	}
 
 	return ioutil.WriteFile(tuberConfigPath+"/"+app.Filename, interpolated, 0644)
