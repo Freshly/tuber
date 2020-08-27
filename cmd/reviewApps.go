@@ -44,14 +44,15 @@ var reviewAppsCreateCmd = &cobra.Command{
 		appName := args[0]
 		branch := args[1]
 
-		c := client.NewClient()
+		c, conn := client.NewClient()
+		defer conn.Close()
 
 		req := proto.Request{
 			AppName: appName,
 			Branch:  branch,
 		}
 
-		res, err := c.CreateReviewApp(context.TODO(), &req)
+		res, err := c.CreateReviewApp(context.Background(), &req)
 
 		if err != nil {
 			return err
