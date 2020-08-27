@@ -60,8 +60,6 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 		return nil, err
 	}
 
-	// Will soon be required, must always exist soon.
-	// Once we're there, skip the exists check and remove this condition
 	if valuesMapExists {
 		return withAppSpecificData(universalData, app.Name)
 	} else {
