@@ -37,7 +37,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, req *proto.Request) (*prot
 	var err error
 
 	res := proto.Response{
-		Hostname: "example",
+		Hostname: req.GetAppName() + req.GetBranch(),
 		Error:    "",
 	}
 
