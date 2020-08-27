@@ -1,0 +1,17 @@
+syntax = "proto3";
+package proto;
+
+message Request {
+  string token = 1;
+  string appName = 2;
+  string branch = 3;
+}
+
+message Response {
+  string hostname = 1;
+  string error = 2;
+}
+
+service TuberService {
+  rpc CreateReviewApp(Request) returns (Response) {}
+}

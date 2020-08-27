@@ -9,6 +9,7 @@ import (
 	"tuber/pkg/events"
 	"tuber/pkg/listener"
 	"tuber/pkg/sentry"
+	"tuber/pkg/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -55,6 +56,7 @@ func start(cmd *cobra.Command, args []string) {
 	defer close(errReports)
 
 	go sentry.Stream(sentryEnabled, sentryDsn, errReports, logger)
+	go server.Serve()
 
 	// calling cancel() will signal to the rest of the application
 	// that we want to shut down
