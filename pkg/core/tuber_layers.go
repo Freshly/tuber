@@ -11,6 +11,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
+const tuberValues = "tuber-values"
+
 // ReleaseTubers combines and interpolates with tuber's conventions, and applies them
 func ReleaseTubers(tubers []string, app *TuberApp, digest string, data *ClusterData) ([]string, error) {
 	var releaseIDs []string
@@ -55,7 +57,7 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 		"clusterDefaultHost":    clusterData.DefaultHost,
 		"tuberAppName":          app.Name,
 	}
-	valuesMapExists, err := k8s.Exists("configmap", "tuber-config", app.Name)
+	valuesMapExists, err := k8s.Exists("configmap", tuberValues, app.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,7 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 }
 
 func withAppSpecificData(data map[string]string, name string) (map[string]string, error) {
-	config, err := k8s.GetConfig("tuber-config", name, "ConfigMap")
+	config, err := k8s.GetConfig(tuberValues, name, "ConfigMap")
 	if err != nil {
 		return nil, err
 	}
