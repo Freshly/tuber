@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -130,6 +131,37 @@ func Exec(name string, namespace string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	return err
+}
+
+type unmarshalledList struct {
+	Items []interface{} `json:"items"`
+}
+
+type List struct {
+	Items [][]byte
+}
+
+// List returns a List resource, with an Items slice of raw yamls
+func ListKind(kind string, namespace string, args ...string) (List, error) {
+	get := []string{"get", kind, "-n", namespace, "-o", "json"}
+	out, err := kubectl(append(get, args...)...)
+	if err != nil {
+		return List{}, err
+	}
+	var unmarshalled unmarshalledList
+	err = json.Unmarshal(out, &unmarshalled)
+	if err != nil {
+		return List{}, err
+	}
+	var l List
+	for _, resource := range unmarshalled.Items {
+		marshalled, marshalErr := json.Marshal(resource)
+		if marshalErr != nil {
+			return List{}, marshalErr
+		}
+		l.Items = append(l.Items, marshalled)
+	}
+	return l, nil
 }
 
 // UseCluster switch current configured kubectl cluster
