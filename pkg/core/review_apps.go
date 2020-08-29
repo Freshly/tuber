@@ -7,7 +7,7 @@ import (
 	"tuber/pkg/k8s"
 )
 
-// NewReviewAppSetup replicates roles, rolebindings, and secrets after removing their non-generic metadata.
+// NewReviewAppSetup replicates a namespace and its roles, rolebindings, and secrets after removing their non-generic metadata.
 // Also renames source app name matches across all relevant resources.
 func NewReviewAppSetup(sourceApp string, targetApp string) error {
 	err := duplicateNamespace(sourceApp, targetApp)
