@@ -10,13 +10,33 @@ import (
 // NewReviewAppSetup replicates roles, rolebindings, and secrets after removing their non-generic metadata.
 // Also renames source app name matches across all relevant resources.
 func NewReviewAppSetup(sourceApp string, targetApp string) error {
+	err := duplicateNamespace(sourceApp, targetApp)
+	if err != nil {
+		return err
+	}
 	for _, kind := range []string{"roles", "rolebindings"} {
-		err := replicateKindToTarget(kind, sourceApp, targetApp)
-		if err != nil {
-			return err
+		rolesErr := replicateKindToTarget(kind, sourceApp, targetApp)
+		if rolesErr != nil {
+			return rolesErr
 		}
 	}
-	err := replicateKindToTarget("secrets", sourceApp, targetApp, "--field-selector", "type=Opaque")
+	err = replicateKindToTarget("secrets", sourceApp, targetApp, "--field-selector", "type=Opaque")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func duplicateNamespace(sourceApp string, targetApp string) error {
+	resource, err := k8s.Get("namespace", sourceApp, sourceApp, "-o", "json")
+	if err != nil {
+		return err
+	}
+	resource, err = replicateResource(resource, sourceApp, targetApp)
+	if err != nil {
+		return err
+	}
+	err = k8s.Apply(resource, targetApp)
 	if err != nil {
 		return err
 	}
