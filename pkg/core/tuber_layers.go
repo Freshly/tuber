@@ -57,7 +57,7 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 		"clusterDefaultHost":    clusterData.DefaultHost,
 		"tuberAppName":          app.Name,
 	}
-	valuesMapExists, err := k8s.Exists("configmap", tuberValues, app.Name)
+	valuesMapExists, err := k8s.Exists("secret", tuberValues, app.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (map[stri
 }
 
 func withAppSpecificData(data map[string]string, name string) (map[string]string, error) {
-	config, err := k8s.GetConfig(tuberValues, name, "ConfigMap")
+	config, err := k8s.GetConfig(tuberValues, name, "secret")
 	if err != nil {
 		return nil, err
 	}
