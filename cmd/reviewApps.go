@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"tuber/pkg/client"
+	"tuber/pkg/k8s"
 	"tuber/pkg/proto"
 
 	"github.com/davecgh/go-spew/spew"
@@ -47,9 +48,15 @@ var reviewAppsCreateCmd = &cobra.Command{
 		c, conn := client.NewClient()
 		defer conn.Close()
 
+		auth, err := k8s.ClusterAuth()
+		if err != nil {
+			return err
+		}
+
 		req := proto.Request{
 			AppName: appName,
 			Branch:  branch,
+			Token:   auth,
 		}
 
 		res, err := c.CreateReviewApp(context.Background(), &req)

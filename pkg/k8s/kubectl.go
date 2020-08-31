@@ -1,10 +1,12 @@
 package k8s
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -142,5 +144,59 @@ func CurrentCluster() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+
+	str := strings.Trim(string(out), "\r\n")
+	return str, nil
+}
+
+// ClusterAuth returns the auth key for the current cluster
+func ClusterAuth() (string, error) {
+	type clusterAuth struct {
+		AccessToken string `yaml:"access-token"`
+	}
+
+	type clusterAuthProvider struct {
+		Config clusterAuth `yaml:"config"`
+	}
+
+	type userData struct {
+		AuthProvider clusterAuthProvider `yaml:"auth-provider"`
+	}
+
+	type clusterUser struct {
+		Name     string   `yaml:"name"`
+		UserData userData `yaml:"user"`
+	}
+
+	type clusterUsers struct {
+		Users []clusterUser `yaml:"users"`
+	}
+
+	var tmp clusterUsers
+
+	out, err := kubectl([]string{"config", "view", "--raw"}...)
+	if err != nil {
+		return "", err
+	}
+
+	yaml.Unmarshal(out, &tmp)
+
+	clusterName, err := CurrentCluster()
+	if err != nil {
+		return "", err
+	}
+
+	var authToken string
+	for _, v := range tmp.Users {
+		if v.Name == clusterName {
+			authToken = v.UserData.AuthProvider.Config.AccessToken
+			break
+		}
+	}
+
+	if authToken == "" {
+		return authToken, fmt.Errorf("no auth token found")
+	}
+
+	return authToken, nil
 }
