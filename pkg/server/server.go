@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"tuber/pkg/k8s"
 	"tuber/pkg/proto"
 
 	"google.golang.org/grpc"
@@ -30,11 +31,31 @@ func Serve() {
 	}
 }
 
+// Server serves
 type Server struct {
 }
 
+// Authenticate authenticates
+func (s *Server) Authenticate(appName, token string) bool {
+	return k8s.CanDeploy(appName, token)
+}
+
+// CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, req *proto.Request) (*proto.Response, error) {
 	var err error
+
+	authenticated := s.Authenticate(req.GetAppName(), req.GetToken())
+
+	if authenticated {
+		// Create review app
+
+	} else {
+		res := proto.Response{
+			Error: "failed to create review app: unauthorized",
+		}
+
+		return &res, nil
+	}
 
 	res := proto.Response{
 		Hostname: req.GetAppName() + req.GetBranch(),
