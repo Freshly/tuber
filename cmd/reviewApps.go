@@ -48,7 +48,7 @@ var reviewAppsCreateCmd = &cobra.Command{
 		c, conn := client.NewClient()
 		defer conn.Close()
 
-		auth, err := k8s.ClusterAuth()
+		auth, err := k8s.ClusterToken()
 		if err != nil {
 			return err
 		}
