@@ -149,8 +149,8 @@ func CurrentCluster() (string, error) {
 	return str, nil
 }
 
-// ClusterAuth returns the auth key for the current cluster
-func ClusterAuth() (string, error) {
+// ClusterToken returns the auth key for the current cluster
+func ClusterToken() (string, error) {
 	type clusterAuth struct {
 		AccessToken string `yaml:"access-token"`
 	}
@@ -199,4 +199,18 @@ func ClusterAuth() (string, error) {
 	}
 
 	return authToken, nil
+}
+
+// CanDeploy determines if the current user can create a deployment
+func CanDeploy(appName, token string) bool {
+	t := fmt.Sprintf("--token=%s", token)
+
+	out, err := kubectl([]string{"auth", "can-i", "create", "deployments", "-n", appName, t}...)
+	if err != nil {
+		return false
+	}
+
+	result := strings.Trim(string(out), "\r\n")
+
+	return result == "yes"
 }
