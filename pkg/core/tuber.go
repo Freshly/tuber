@@ -37,23 +37,23 @@ type appsCache struct {
 	expiry time.Time
 }
 
-var cache *appsCache
-var mutex sync.Mutex
+var sourceAppsCache *appsCache
+var sourceAppsMutex sync.Mutex
 
 var reviewAppscache *appsCache
 var reviewMutex sync.Mutex
 
 func (a appsCache) isExpired() bool {
-	return cache.expiry.Before(time.Now())
+	return sourceAppsCache.expiry.Before(time.Now())
 }
 
 func refreshAppsCache(apps []TuberApp) {
 	expiry := time.Now().Add(time.Minute * 5)
-	cache = &appsCache{apps: apps, expiry: expiry}
+	sourceAppsCache = &appsCache{apps: apps, expiry: expiry}
 }
 
-// getTuberApps retrieves data to be stored in cache.
-// always use TuberApps function, never this one directly
+// getTuberApps retrieves data to be stored in sourceAppsCache.
+// always use TuberSourceApps function, never this one directly
 func getTuberApps(mapname string) (apps []TuberApp, err error) {
 	config, err := k8s.GetConfig(mapname, "tuber", "ConfigMap")
 
@@ -95,7 +95,7 @@ func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
 }
 
 func FindApp(name string) (foundApp *TuberApp, err error) {
-	apps, err := TuberApps()
+	apps, err := TuberSourceApps()
 
 	if err != nil {
 		return
@@ -104,11 +104,11 @@ func FindApp(name string) (foundApp *TuberApp, err error) {
 	return apps.FindApp(name)
 }
 
-// TuberApps returns a list of Tuber apps
-func TuberApps() (apps AppList, err error) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	if cache == nil || cache.isExpired() {
+// TuberSourceApps returns a list of Tuber apps
+func TuberSourceApps() (apps AppList, err error) {
+	sourceAppsMutex.Lock()
+	defer sourceAppsMutex.Unlock()
+	if sourceAppsCache == nil || sourceAppsCache.isExpired() {
 		apps, err = getTuberApps(tuberSourceApps)
 
 		if err == nil {
@@ -117,7 +117,7 @@ func TuberApps() (apps AppList, err error) {
 		return
 	}
 
-	apps = cache.apps
+	apps = sourceAppsCache.apps
 	return
 }
 
@@ -134,12 +134,12 @@ func TuberReviewApps() (apps AppList, err error) {
 		return
 	}
 
-	apps = cache.apps
+	apps = sourceAppsCache.apps
 	return
 }
 
 func SourceAndReviewApps() (AppList, error) {
-	apps, err := TuberApps()
+	apps, err := TuberSourceApps()
 	if err != nil {
 		return AppList{}, err
 	}
@@ -150,15 +150,17 @@ func SourceAndReviewApps() (AppList, error) {
 	return append(apps, reviewApps...), nil
 }
 
-// AddAppConfig add a new configuration to Tuber's config map
-func AddAppConfig(appName string, repo string, tag string) (err error) {
-	key := appName
-	value := fmt.Sprintf("%s:%s", repo, tag)
-
-	return k8s.PatchConfigMap(tuberSourceApps, "tuber", key, value)
+// AddSourceAppConfig adds a new Source app that tuber will monitor and deploy
+func AddSourceAppConfig(appName string, repo string, tag string) error {
+	return k8s.PatchConfigMap(tuberSourceApps, "tuber", appName, fmt.Sprintf("%s:%s", repo, tag))
 }
 
-// RemoveAppConfig removes a configuration from Tuber's config map
-func RemoveAppConfig(appName string) (err error) {
+// AddReviewAppConfig adds a new Review app that tuber will monitor and deploy
+func AddReviewAppConfig(appName string, repo string, tag string) error {
+	return k8s.PatchConfigMap(tuberReviewApps, "tuber", appName, fmt.Sprintf("%s:%s", repo, tag))
+}
+
+// RemoveSourceAppConfig removes a configuration from Tuber's control
+func RemoveSourceAppConfig(appName string) (err error) {
 	return k8s.RemoveConfigMapEntry(tuberSourceApps, "tuber", appName)
 }
