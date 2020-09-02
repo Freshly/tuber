@@ -1,4 +1,4 @@
-package core
+package reviewapps
 
 import (
 	"encoding/json"
@@ -7,49 +7,49 @@ import (
 	"tuber/pkg/k8s"
 )
 
-// NewReviewAppSetup replicates a namespace and its roles, rolebindings, and secrets after removing their non-generic metadata.
+// NewReviewAppSetup replicates a namespace and its roles, rolebindings, and opaque secrets after removing their non-generic metadata.
 // Also renames source app name matches across all relevant resources.
-func NewReviewAppSetup(sourceApp string, targetApp string) error {
-	err := duplicateNamespace(sourceApp, targetApp)
+func NewReviewAppSetup(sourceApp string, reviewApp string) error {
+	err := copyNamespace(sourceApp, reviewApp)
 	if err != nil {
 		return err
 	}
 	for _, kind := range []string{"roles", "rolebindings"} {
-		rolesErr := replicateKindToTarget(kind, sourceApp, targetApp)
+		rolesErr := copyResources(kind, sourceApp, reviewApp)
 		if rolesErr != nil {
 			return rolesErr
 		}
 	}
-	err = replicateKindToTarget("secrets", sourceApp, targetApp, "--field-selector", "type=Opaque")
+	err = copyResources("secrets", sourceApp, reviewApp, "--field-selector", "type=Opaque")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func duplicateNamespace(sourceApp string, targetApp string) error {
+func copyNamespace(sourceApp string, reviewApp string) error {
 	resource, err := k8s.Get("namespace", sourceApp, sourceApp, "-o", "json")
 	if err != nil {
 		return err
 	}
-	resource, err = replicateResource(resource, sourceApp, targetApp)
+	resource, err = duplicateResource(resource, sourceApp, reviewApp)
 	if err != nil {
 		return err
 	}
-	err = k8s.Apply(resource, targetApp)
+	err = k8s.Apply(resource, reviewApp)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func replicateKindToTarget(kind string, sourceApp string, targetApp string, args ...string) error {
-	data, err := replicatedByKind(kind, sourceApp, targetApp, args...)
+func copyResources(kind string, sourceApp string, reviewApp string, args ...string) error {
+	data, err := duplicatedResources(kind, sourceApp, reviewApp, args...)
 	if err != nil {
 		return err
 	}
 	for _, resource := range data {
-		applyErr := k8s.Apply(resource, targetApp)
+		applyErr := k8s.Apply(resource, reviewApp)
 		if applyErr != nil {
 			return applyErr
 		}
@@ -57,14 +57,14 @@ func replicateKindToTarget(kind string, sourceApp string, targetApp string, args
 	return nil
 }
 
-func replicatedByKind(kind string, sourceApp string, targetApp string, args ...string) ([][]byte, error) {
+func duplicatedResources(kind string, sourceApp string, reviewApp string, args ...string) ([][]byte, error) {
 	list, err := k8s.ListKind(kind, sourceApp, args...)
 	if err != nil {
 		return nil, err
 	}
 	var resources [][]byte
 	for _, resource := range list.Items {
-		replicated, replicationErr := replicateResource(resource, sourceApp, targetApp)
+		replicated, replicationErr := duplicateResource(resource, sourceApp, reviewApp)
 		if replicationErr != nil {
 			return nil, replicationErr
 		}
@@ -75,7 +75,7 @@ func replicatedByKind(kind string, sourceApp string, targetApp string, args ...s
 
 var nonGenericMetadata = []string{"annotations", "creationTimestamp", "namespace", "resourceVersion", "selfLink", "uid"}
 
-func replicateResource(resource []byte, sourceApp string, targetApp string) ([]byte, error) {
+func duplicateResource(resource []byte, sourceApp string, reviewApp string) ([]byte, error) {
 	unmarshalled := make(map[string]interface{})
 	err := json.Unmarshal(resource, &unmarshalled)
 	if err != nil {
@@ -84,7 +84,7 @@ func replicateResource(resource []byte, sourceApp string, targetApp string) ([]b
 	metadata := unmarshalled["metadata"]
 	stringKeyMetadata, ok := metadata.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("resource metadata could not be coerced into map[string]interface{} for genericization")
+		return nil, fmt.Errorf("resource metadata could not be coerced into map[string]interface{} for duplication")
 	}
 	for _, key := range nonGenericMetadata {
 		delete(stringKeyMetadata, key)
@@ -95,7 +95,7 @@ func replicateResource(resource []byte, sourceApp string, targetApp string) ([]b
 		return nil, fmt.Errorf("resource name could not be coerced into string for potential replacement")
 	}
 	if strings.Contains(stringName, sourceApp) {
-		renamed := strings.ReplaceAll(stringName, sourceApp, targetApp)
+		renamed := strings.ReplaceAll(stringName, sourceApp, reviewApp)
 		stringKeyMetadata["name"] = renamed
 	}
 
