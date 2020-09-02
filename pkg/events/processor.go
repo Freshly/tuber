@@ -48,9 +48,9 @@ func (p EventProcessor) Start() {
 
 func (p EventProcessor) apps() ([]core.TuberApp, error) {
 	if p.ReviewAppsEnabled {
-		return core.TuberApps()
-	} else {
 		return core.SourceAndReviewApps()
+	} else {
+		return core.TuberSourceApps()
 	}
 }
 

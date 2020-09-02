@@ -8,5 +8,5 @@ func DestroyTuberApp(appName string) (err error) {
 		return
 	}
 
-	return RemoveAppConfig(appName)
+	return RemoveSourceAppConfig(appName)
 }

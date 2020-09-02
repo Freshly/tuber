@@ -34,7 +34,7 @@ var appsInstallCmd = &cobra.Command{
 			return err
 		}
 
-		return core.AddAppConfig(appName, repo, tag)
+		return core.AddSourceAppConfig(appName, repo, tag)
 	},
 }
 
@@ -54,7 +54,7 @@ var appsSetBranchCmd = &cobra.Command{
 			return err
 		}
 
-		return core.AddAppConfig(appName, app.Repo, branch)
+		return core.AddSourceAppConfig(appName, app.Repo, branch)
 	},
 }
 
@@ -74,7 +74,7 @@ var appsSetRepoCmd = &cobra.Command{
 			return err
 		}
 
-		return core.AddAppConfig(appName, repo, app.Tag)
+		return core.AddSourceAppConfig(appName, repo, app.Tag)
 	},
 }
 var appsRemoveCmd = &cobra.Command{
@@ -86,7 +86,7 @@ var appsRemoveCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 
-		return core.RemoveAppConfig(appName)
+		return core.RemoveSourceAppConfig(appName)
 	},
 }
 
@@ -108,7 +108,7 @@ var appsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List tuberapps",
 	RunE: func(*cobra.Command, []string) (err error) {
-		apps, err := core.TuberApps()
+		apps, err := core.TuberSourceApps()
 
 		if err != nil {
 			return err

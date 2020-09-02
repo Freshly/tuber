@@ -33,7 +33,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	defer logger.Sync()
 
-	apps, err := core.TuberApps()
+	apps, err := core.TuberSourceApps()
 
 	if err != nil {
 		return err
