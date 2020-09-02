@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func publish(logger zap.Logger, app *core.TuberApp, digest string, creds []byte, clusterData *core.ClusterData) (err error) {
+func deploy(logger zap.Logger, app *core.TuberApp, digest string, creds []byte, clusterData *core.ClusterData) (err error) {
 	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), creds)
 
 	if err != nil {
