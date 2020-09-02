@@ -18,7 +18,9 @@ var configCmd = &cobra.Command{
 }
 
 var defaultTuberConfig = `# clusters:
-#   someShorthandName: some_full_cluster_name
+#   someShorthandName: 
+#     name: some_full_cluster_name
+#     url: that_clusters_tuber_url
 `
 
 func config(cmd *cobra.Command, args []string) error {
