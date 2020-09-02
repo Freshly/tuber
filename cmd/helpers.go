@@ -53,7 +53,12 @@ func credentials() ([]byte, error) {
 }
 
 type tuberConfig struct {
-	Clusters map[string]string
+	Clusters map[string]Cluster
+}
+
+type Cluster struct {
+	Name string `yaml:"name"`
+	Url  string `yaml:"url"`
 }
 
 func getTuberConfig() (*tuberConfig, error) {
