@@ -67,7 +67,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	failedReleases := make(chan listener.FailedRelease, 1)
 	sentryErrors := make(chan error, 1)
 
-	streamer := events.Streamer{
+	eventProcessor := events.EventProcessor{
 		Creds:             creds,
 		Logger:            logger,
 		ClusterData:       data,
@@ -78,7 +78,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		ChErrReports:      sentryErrors,
 	}
 
-	go streamer.Stream()
+	go eventProcessor.Start()
 
 	ackable := emptyAckable{}
 	deployEvent := listener.RegistryEvent{
