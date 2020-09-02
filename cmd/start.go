@@ -98,7 +98,7 @@ func start(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	streamer := events.Streamer{
+	eventProcessor := events.EventProcessor{
 		Creds:             creds,
 		Logger:            logger,
 		ClusterData:       data,
@@ -108,7 +108,7 @@ func start(cmd *cobra.Command, args []string) {
 		ChErr:             failedEvents,
 		ChErrReports:      errReports,
 	}
-	go streamer.Stream()
+	go eventProcessor.Start()
 
 	// Wait for cancel() of context
 	<-ctx.Done()
