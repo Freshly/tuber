@@ -98,9 +98,17 @@ func start(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	// Create a new streamer
-	streamer := events.NewStreamer(creds, logger, data)
-	go streamer.Stream(unprocessedEvents, processedEvents, failedEvents, errReports)
+	streamer := events.Streamer{
+		Creds:             creds,
+		Logger:            logger,
+		ClusterData:       data,
+		ReviewAppsEnabled: viper.GetBool("reviewapps-enabled"),
+		Unprocessed:       unprocessedEvents,
+		Processed:         processedEvents,
+		ChErr:             failedEvents,
+		ChErrReports:      errReports,
+	}
+	go streamer.Stream()
 
 	// Wait for cancel() of context
 	<-ctx.Done()
