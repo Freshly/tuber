@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -9,37 +10,44 @@ import (
 
 var switchClusterCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "switch [cluster name or shorthand]",
+	Use:          "switch [shorthand cluster name]",
 	Short:        "switch kubectl context to a different cluster",
 	Args:         cobra.ExactArgs(1),
 	RunE:         switchCluster,
 }
 
 func switchCluster(cmd *cobra.Command, args []string) error {
-	c, err := getTuberConfig()
+	config, err := getTuberConfig()
 	if err != nil {
 		return err
 	}
 
-	var clusterName string
-	var displayCluster string
+	currentCluster, err := k8s.CurrentCluster()
+	if err != nil {
+		return err
+	}
 
-	clusterName = args[0]
-	displayCluster = clusterName
+	clusterShortName := args[0]
 
-	if c != nil {
-		resolvedShorthand := c.Clusters[args[0]]
-		if resolvedShorthand != "" {
-			clusterName = resolvedShorthand
+	if config == nil {
+		return fmt.Errorf("tuber config empty, run `tuber config`")
+	}
+
+	cluster := config.Clusters[clusterShortName]
+
+	if cluster.Name == "" {
+		return fmt.Errorf("cluster name not found")
+	}
+
+	if strings.Trim(currentCluster, "\r\n") == cluster.Name {
+		fmt.Println("Already on", clusterShortName)
+	} else {
+		err = k8s.UseCluster(cluster.Name)
+		if err != nil {
+			return err
 		}
+		fmt.Println("Switched to", clusterShortName)
 	}
-
-	err = k8s.UseCluster(clusterName)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Switched to", displayCluster)
 
 	return nil
 }
