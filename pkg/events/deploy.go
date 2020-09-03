@@ -11,8 +11,6 @@ import (
 func deploy(logger zap.Logger, app *core.TuberApp, digest string, creds []byte, clusterData *core.ClusterData) (err error) {
 	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), creds)
 
-	return fmt.Errorf("does this work too")
-
 	if err != nil {
 		return
 	}
