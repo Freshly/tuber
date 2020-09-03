@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"tuber/pkg/events"
 	"tuber/pkg/listener"
-	"tuber/pkg/sentry"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -40,53 +39,35 @@ func bindShutdown(logger *zap.Logger, cancel func()) {
 }
 
 func start(cmd *cobra.Command, args []string) {
-	// Create a logger and defer an final sync (os.flush())
 	logger, err := createLogger()
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Sync()
 
-	// Report any errors to Sentry
-	sentryEnabled := viper.GetBool("sentry-enabled")
-	sentryDsn := viper.GetString("sentry-dsn")
-	errReports := make(chan error, 1)
+	errReports := errorReportingChannel(logger)
 
 	defer close(errReports)
 
-	go sentry.Stream(sentryEnabled, sentryDsn, errReports, logger)
-
-	// calling cancel() will signal to the rest of the application
-	// that we want to shut down
 	var ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
 	// bind the cancel to signals
 	bindShutdown(logger, cancel)
 
-	// create a new PubSub listener
-	var options = make([]listener.Option, 0)
-	if viper.IsSet("max-accept") {
-		options = append(options, listener.WithMaxAccept(viper.GetInt("max-accept")))
-	}
-
-	if viper.IsSet("max-timeout") {
-		options = append(options, listener.WithMaxTimeout(viper.GetDuration("max-timeout")))
-	}
-
 	subscriptionName := viper.GetString("pubsub-subscription-name")
 	if subscriptionName == "" {
 		panic(errors.New("pubsub subscription name is required"))
 	}
 
-	var l = listener.NewListener(logger, subscriptionName, options...)
+	var l = listener.NewListener(logger, subscriptionName)
 
 	creds, err := credentials()
 	if err != nil {
 		panic(err)
 	}
 
-	unprocessedEvents, processedEvents, failedEvents, err := l.Listen(ctx, creds)
+	unprocessedEvents, processedEvents, failedReleases, err := l.Listen(ctx, creds)
 	if err != nil {
 		panic(err)
 	}
@@ -103,8 +84,8 @@ func start(cmd *cobra.Command, args []string) {
 		ReviewAppsEnabled: viper.GetBool("reviewapps-enabled"),
 		Unprocessed:       unprocessedEvents,
 		Processed:         processedEvents,
-		ChErr:             failedEvents,
-		ChErrReports:      errReports,
+		FailedReleases:    failedReleases,
+		Errors:            errReports,
 	}
 	go eventProcessor.Start()
 

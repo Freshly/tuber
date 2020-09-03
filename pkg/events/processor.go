@@ -17,15 +17,15 @@ type EventProcessor struct {
 	ReviewAppsEnabled bool
 	Unprocessed       <-chan *listener.RegistryEvent
 	Processed         chan<- *listener.RegistryEvent
-	ChErr             chan<- listener.FailedRelease
-	ChErrReports      chan<- error
+	FailedReleases    chan<- listener.FailedRelease
+	Errors            chan<- error
 }
 
 // Start streams a stream
 func (p EventProcessor) Start() {
 	defer close(p.Processed)
-	defer close(p.ChErr)
-	defer close(p.ChErrReports)
+	defer close(p.FailedReleases)
+	defer close(p.Errors)
 
 	var wait = &sync.WaitGroup{}
 
@@ -98,7 +98,7 @@ func (p EventProcessor) reportFailedRelease(event *listener.RegistryEvent, relea
 		zap.String("event", "error"),
 		zap.Error(err),
 	)
-	p.ChErr <- listener.FailedRelease{Err: err, Event: event}
-	p.ChErrReports <- err
+	p.FailedReleases <- listener.FailedRelease{Err: err, Event: event}
+	p.Errors <- err
 	p.Processed <- event
 }

@@ -65,7 +65,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	unprocessed := make(chan *listener.RegistryEvent, 1)
 	processed := make(chan *listener.RegistryEvent, 1)
 	failedReleases := make(chan listener.FailedRelease, 1)
-	sentryErrors := make(chan error, 1)
+	errors := make(chan error, 1)
 
 	eventProcessor := events.EventProcessor{
 		Creds:             creds,
@@ -74,8 +74,8 @@ func deploy(cmd *cobra.Command, args []string) error {
 		ReviewAppsEnabled: viper.GetBool("reviewapps-enabled"),
 		Unprocessed:       unprocessed,
 		Processed:         processed,
-		ChErr:             failedReleases,
-		ChErrReports:      sentryErrors,
+		FailedReleases:    failedReleases,
+		Errors:            errors,
 	}
 
 	go eventProcessor.Start()
@@ -94,7 +94,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	case <-failedReleases:
 		close(unprocessed)
 		return fmt.Errorf("deploy failed")
-	case <-sentryErrors:
+	case <-errors:
 		close(unprocessed)
 		return nil
 	}

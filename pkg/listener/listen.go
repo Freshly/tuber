@@ -17,9 +17,9 @@ type listener struct {
 	projectID    string
 	subscription string
 
-	unprocessed chan *RegistryEvent
-	processed   chan *RegistryEvent
-	failures    chan FailedRelease
+	unprocessed    chan *RegistryEvent
+	processed      chan *RegistryEvent
+	failedReleases chan FailedRelease
 
 	// TODO: What should this channel receive?
 	reportableErrors chan error
@@ -55,7 +55,7 @@ func NewListener(logger *zap.Logger, subscriptionName string, options ...Option)
 
 		unprocessed:      make(chan *RegistryEvent, 1),
 		processed:        make(chan *RegistryEvent, 1),
-		failures:         make(chan FailedRelease, 1),
+		failedReleases:   make(chan FailedRelease, 1),
 		reportableErrors: make(chan error, 1),
 		wait:             &sync.WaitGroup{},
 		logger:           logger,
@@ -73,7 +73,7 @@ func (l *listener) Listen(ctx context.Context, credentials []byte) (<-chan *Regi
 	go l.startAcker(ctx)
 
 	var err = l.startListener(ctx, credentials)
-	return l.unprocessed, l.processed, l.failures, err
+	return l.unprocessed, l.processed, l.failedReleases, err
 }
 
 func (l *listener) startListener(ctx context.Context, credentials []byte) error {
@@ -157,7 +157,7 @@ func (l *listener) startNacker(ctx context.Context) {
 
 	l.logger.Debug("error loop: starting")
 
-	for failure := range l.failures {
+	for failure := range l.failedReleases {
 		l.logger.Info("nacked", zap.String("tag", failure.Event.Tag))
 		l.logger.Warn("failed release", zap.Error(failure.Err))
 		failure.Event.Message.Nack()
