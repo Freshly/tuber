@@ -61,15 +61,19 @@ var reviewAppsCreateCmd = &cobra.Command{
 		c, conn := client.NewClient(cluster.URL)
 		defer conn.Close()
 
-		auth, err := k8s.ClusterToken()
+		k8sConfig, err := k8s.GetConfig()
 		if err != nil {
 			return err
+		}
+
+		if k8sConfig.AccessToken == "" {
+			return fmt.Errorf("missing access token for current cluster")
 		}
 
 		req := proto.Request{
 			AppName: sourceAppName,
 			Branch:  branch,
-			Token:   auth,
+			Token:   k8sConfig.AccessToken,
 		}
 
 		res, err := c.CreateReviewApp(context.Background(), &req)
