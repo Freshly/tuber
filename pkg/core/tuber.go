@@ -55,7 +55,7 @@ func refreshAppsCache(apps []TuberApp) {
 // getTuberApps retrieves data to be stored in sourceAppsCache.
 // always use TuberSourceApps function, never this one directly
 func getTuberApps(mapname string) (apps []TuberApp, err error) {
-	config, err := k8s.GetConfig(mapname, "tuber", "ConfigMap")
+	config, err := k8s.GetConfigResource(mapname, "tuber", "ConfigMap")
 
 	if err != nil {
 		return
