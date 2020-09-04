@@ -170,6 +170,10 @@ func UseCluster(cluster string) error {
 	return err
 }
 
+// CanDeploy determines if the current user can create a deployment
+func CanDeploy(appName, token string) bool {
+	t := fmt.Sprintf("--token=%s", token)
+
 // CurrentCluster the current configured kubectl cluster
 func CurrentCluster() (string, error) {
 	out, err := kubectl([]string{"config", "current-context"}...)
