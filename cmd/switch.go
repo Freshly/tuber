@@ -33,7 +33,7 @@ func switchCluster(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("tuber config empty, run `tuber config`")
 	}
 
-	cluster := config.Clusters[clusterShortName]
+	cluster := config.FindByShortName(clusterShortName)
 
 	if cluster.Name == "" {
 		return fmt.Errorf("cluster name not found")
