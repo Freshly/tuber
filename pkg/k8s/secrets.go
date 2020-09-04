@@ -28,7 +28,7 @@ func CreateTuberCredentials(path string, namespace string) (err error) {
 		Namespace: namespace,
 	}
 
-	config := k8sConfig{
+	config := k8sConfigResource{
 		APIVersion: "v1",
 		Kind:       "Secret",
 		Type:       "Opaque",
@@ -46,7 +46,7 @@ func CreateTuberCredentials(path string, namespace string) (err error) {
 	return Apply(jsondata, namespace)
 }
 
-func GetSecret(namespace string, secretName string) (*Config, error) {
+func GetSecret(namespace string, secretName string) (*ConfigResource, error) {
 	config, err := GetConfig(secretName, namespace, "Secret")
 	if err != nil {
 		return nil, err
