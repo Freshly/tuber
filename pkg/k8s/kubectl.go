@@ -174,6 +174,16 @@ func UseCluster(cluster string) error {
 func CanDeploy(appName, token string) bool {
 	t := fmt.Sprintf("--token=%s", token)
 
+	out, err := kubectl([]string{"auth", "can-i", "create", "deployments", "-n", appName, t}...)
+	if err != nil {
+		return false
+	}
+
+	result := strings.Trim(string(out), "\r\n")
+
+	return result == "yes"
+}
+
 // CurrentCluster the current configured kubectl cluster
 func CurrentCluster() (string, error) {
 	out, err := kubectl([]string{"config", "current-context"}...)
