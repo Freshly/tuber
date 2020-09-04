@@ -31,9 +31,6 @@ var reviewAppsCmd = &cobra.Command{
 	Use:   "review-apps",
 	Short: "A brief description of your command",
 	Long:  "",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("reviewApps called")
-	},
 }
 
 var reviewAppsCreateCmd = &cobra.Command{
@@ -42,10 +39,26 @@ var reviewAppsCreateCmd = &cobra.Command{
 	Long:  "",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appName := args[0]
+		sourceAppName := args[0]
 		branch := args[1]
 
-		c, conn := client.NewClient()
+		config, err := getTuberConfig()
+		if err != nil {
+			return err
+		}
+
+		currentCluster, err := k8s.CurrentCluster()
+		if err != nil {
+			return err
+		}
+
+		cluster := config.FindByName(currentCluster)
+
+		if cluster.URL == "" {
+			return fmt.Errorf("cluster not found in configuration")
+		}
+
+		c, conn := client.NewClient(cluster.URL)
 		defer conn.Close()
 
 		auth, err := k8s.ClusterToken()
@@ -54,7 +67,7 @@ var reviewAppsCreateCmd = &cobra.Command{
 		}
 
 		req := proto.Request{
-			AppName: appName,
+			AppName: sourceAppName,
 			Branch:  branch,
 			Token:   auth,
 		}
