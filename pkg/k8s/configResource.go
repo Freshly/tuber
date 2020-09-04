@@ -10,7 +10,7 @@ type k8sMetadata struct {
 	Namespace string `json:"namespace"`
 }
 
-type k8sConfig struct {
+type k8sConfigResource struct {
 	APIVersion string            `json:"apiVersion"`
 	Kind       string            `json:"kind"`
 	Metadata   k8sMetadata       `json:"metadata"`
@@ -19,14 +19,14 @@ type k8sConfig struct {
 	StringData map[string]string `json:"stringData,omitempty"`
 }
 
-// Config represents the editable portion of a configmap
-type Config struct {
-	config *k8sConfig
+// ConfigResource represents the editable portion of a configmap
+type ConfigResource struct {
+	config *k8sConfigResource
 	Data   map[string]string
 }
 
 // Save persists updates to a configmap to k8s
-func (c *Config) Save(namespace string) (err error) {
+func (c *ConfigResource) Save(namespace string) (err error) {
 	config := c.config
 	config.Data = c.Data
 
@@ -43,16 +43,16 @@ func (c *Config) Save(namespace string) (err error) {
 }
 
 // GetConfig returns a Config struct with a Data element containing config map entries
-func GetConfig(name string, namespace string, kind string) (config *Config, err error) {
+func GetConfig(name string, namespace string, kind string) (config *ConfigResource, err error) {
 	result, err := Get(strings.ToLower(kind), name, namespace, "-o", "json")
 
 	if err != nil {
 		return
 	}
-	var k8sc k8sConfig
+	var k8sc k8sConfigResource
 
 	if result == nil {
-		k8sc = k8sConfig{
+		k8sc = k8sConfigResource{
 			APIVersion: "v1",
 			Kind:       kind,
 			Data:       map[string]string{},
@@ -67,7 +67,7 @@ func GetConfig(name string, namespace string, kind string) (config *Config, err 
 		data = map[string]string{}
 	}
 
-	config = &Config{
+	config = &ConfigResource{
 		config: &k8sc,
 		Data:   data,
 	}
