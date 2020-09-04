@@ -53,12 +53,34 @@ func credentials() ([]byte, error) {
 }
 
 type tuberConfig struct {
-	Clusters map[string]Cluster
+	Clusters []Cluster
 }
 
+// Cluster is a cluster
 type Cluster struct {
-	Name string `yaml:"name"`
-	Url  string `yaml:"url"`
+	Name      string `yaml:"name"`
+	Shorthand string `yaml:"shorthand"`
+	URL       string `yaml:"url"`
+}
+
+func (c tuberConfig) FindByShortName(name string) Cluster {
+	for _, cl := range c.Clusters {
+		if cl.Shorthand == name {
+			return cl
+		}
+	}
+
+	return Cluster{}
+}
+
+func (c tuberConfig) FindByName(name string) Cluster {
+	for _, cl := range c.Clusters {
+		if cl.Name == name {
+			return cl
+		}
+	}
+
+	return Cluster{}
 }
 
 func getTuberConfig() (*tuberConfig, error) {
