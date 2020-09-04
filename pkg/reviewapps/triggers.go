@@ -13,7 +13,7 @@ const tuberReposConfig = "tuber-repos"
 const tuberReviewTriggersConfig = "tuber-review-triggers"
 
 func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, project string, targetAppName string, branch string) error {
-	config, err := k8s.GetConfig(tuberReposConfig, "tuber", "configmap")
+	config, err := k8s.GetConfigResource(tuberReposConfig, "tuber", "configmap")
 	if err != nil {
 		return err
 	}
