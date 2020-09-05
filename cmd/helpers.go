@@ -63,6 +63,15 @@ type Cluster struct {
 	URL       string `yaml:"url"`
 }
 
+func (c tuberConfig) CurrentClusterConfig() Cluster {
+	name, err := k8s.CurrentCluster()
+	if err != nil {
+		return Cluster{}
+	}
+
+	return c.FindByName(name)
+}
+
 func (c tuberConfig) FindByShortName(name string) Cluster {
 	for _, cl := range c.Clusters {
 		if cl.Shorthand == name {
