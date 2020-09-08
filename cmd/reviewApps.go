@@ -37,7 +37,10 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no cluster config found. run `tuber config`")
 	}
 
-	client, conn := reviewapps.NewClient(clusterConf.URL)
+	client, conn, err := reviewapps.NewClient(clusterConf.URL)
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 
 	config, err := k8s.GetConfig()
