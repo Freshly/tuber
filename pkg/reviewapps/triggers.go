@@ -12,10 +12,11 @@ import (
 const tuberReposConfig = "tuber-repos"
 const tuberReviewTriggersConfig = "tuber-review-triggers"
 
-func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, project string, targetAppName string, branch string) error {
+// CreateAndRunTrigger creates a cloud build trigger for the review app
+func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, project string, targetAppName string, branch string) (func() error, error) {
 	config, err := k8s.GetConfigResource(tuberReposConfig, "tuber", "configmap")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var cloudSourceRepo string
 	for k, v := range config.Data {
@@ -24,11 +25,11 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 		}
 	}
 	if cloudSourceRepo == "" {
-		return fmt.Errorf("source repo not present in tuber-repos")
+		return nil, fmt.Errorf("source repo not present in tuber-repos")
 	}
 	cloudbuildService, err := cloudbuild.NewService(ctx, option.WithCredentialsJSON(creds))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
 	triggerTemplate := cloudbuild.RepoSource{
@@ -45,30 +46,40 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	triggerCreateCall := service.Create(project, &buildTrigger)
 	triggerCreateResult, err := triggerCreateCall.Do()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = k8s.PatchConfigMap(tuberReviewTriggersConfig, "tuber", targetAppName, triggerCreateResult.Id)
 	if err != nil {
 		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
 		if deleteErr != nil {
-			return fmt.Errorf(err.Error() + deleteErr.Error())
+			return nil, fmt.Errorf(err.Error() + deleteErr.Error())
 		}
-		return err
+		return nil, err
 	}
 	triggerRunCall := service.Run(project, triggerCreateResult.Id, &triggerTemplate)
 	_, err = triggerRunCall.Do()
 	if err != nil {
 		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
 		if deleteErr != nil {
-			return fmt.Errorf(err.Error() + deleteErr.Error())
+			return nil, fmt.Errorf(err.Error() + deleteErr.Error())
 		}
+		return nil, err
+	}
+
+	return func() error { return deleteTrigger(service, project, targetAppName, triggerCreateResult.Id) }, nil
+}
+
+func deleteTrigger(service *cloudbuild.ProjectsTriggersService, projectID, triggerID, appName string) error {
+	err := deleteReviewAppTrigger(service, projectID, triggerID, appName)
+	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func deleteReviewAppTrigger(service *cloudbuild.ProjectsTriggersService, project string, triggerId string, appName string) error {
-	deleteCall := service.Delete(project, triggerId)
+func deleteReviewAppTrigger(service *cloudbuild.ProjectsTriggersService, project string, triggerID string, appName string) error {
+	deleteCall := service.Delete(project, triggerID)
 	_, err := deleteCall.Do()
 	if err != nil {
 		return err

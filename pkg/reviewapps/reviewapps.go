@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 )
 
@@ -24,6 +25,16 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// ReviewAppTearDown tears down a reviewapp (namespace, secrets, configmaps, etc.)
+func ReviewAppTearDown(reviewApp string) error {
+	err := core.DestroyTuberApp(reviewApp)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
