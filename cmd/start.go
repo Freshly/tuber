@@ -110,26 +110,17 @@ func start(cmd *cobra.Command, args []string) {
 	}
 	go eventProcessor.Start()
 
-	// TODO: Handle errors but also don't block on server.Start()
 	go func() {
-		reviewAppsEnabled := viper.GetBool("review-apps")
-		clusterDefaultHost := viper.GetString("cluster-default-host")
-		projectName := viper.GetString("project-name")
-		creds, err := credentials()
-		if err != nil {
-			panic(err)
-		}
-
-		s := reviewapps.Server{
-			ReviewAppsEnabled:  reviewAppsEnabled,
-			ClusterDefaultHost: clusterDefaultHost,
-			ProjectName:        projectName,
+		srv := reviewapps.Server{
+			ReviewAppsEnabled:  viper.GetBool("review-apps"),
+			ClusterDefaultHost: viper.GetString("cluster-default-host"),
+			ProjectName:        viper.GetString("project-name"),
 			Credentials:        creds,
 		}
 
-		err = server.Start(3000, s)
+		err = server.Start(3000, srv)
 		if err != nil {
-			panic(err)
+			cancel()
 		}
 	}()
 
