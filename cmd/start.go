@@ -8,7 +8,9 @@ import (
 	"syscall"
 	"tuber/pkg/events"
 	"tuber/pkg/listener"
+	"tuber/pkg/reviewapps"
 	"tuber/pkg/sentry"
+	"tuber/pkg/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -107,6 +109,29 @@ func start(cmd *cobra.Command, args []string) {
 		ChErrReports:      errReports,
 	}
 	go eventProcessor.Start()
+
+	// TODO: Handle errors but also don't block on server.Start()
+	go func() {
+		reviewAppsEnabled := viper.GetBool("review-apps")
+		clusterDefaultHost := viper.GetString("cluster-default-host")
+		projectName := viper.GetString("project-name")
+		creds, err := credentials()
+		if err != nil {
+			panic(err)
+		}
+
+		s := reviewapps.Server{
+			ReviewAppsEnabled:  reviewAppsEnabled,
+			ClusterDefaultHost: clusterDefaultHost,
+			ProjectName:        projectName,
+			Credentials:        creds,
+		}
+
+		err = server.Start(3000, s)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	// Wait for cancel() of context
 	<-ctx.Done()
