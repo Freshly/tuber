@@ -18,7 +18,5 @@ func NewClient(url string) (proto.TuberClient, *grpc.ClientConn) {
 		log.Fatalf("grpc client: %s", err)
 	}
 
-	client := proto.NewTuberClient(conn)
-
-	return client, conn
+	return proto.NewTuberClient(conn), conn
 }
