@@ -48,25 +48,28 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	if err != nil {
 		return nil, err
 	}
+
+	delete := func() error { return deleteTrigger(service, project, targetAppName, triggerCreateResult.Id) }
+
 	err = k8s.PatchConfigMap(tuberReviewTriggersConfig, "tuber", targetAppName, triggerCreateResult.Id)
 	if err != nil {
 		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
 		if deleteErr != nil {
-			return nil, fmt.Errorf(err.Error() + deleteErr.Error())
+			return delete, fmt.Errorf(err.Error() + deleteErr.Error())
 		}
-		return nil, err
+		return delete, err
 	}
 	triggerRunCall := service.Run(project, triggerCreateResult.Id, &triggerTemplate)
 	_, err = triggerRunCall.Do()
 	if err != nil {
 		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
 		if deleteErr != nil {
-			return nil, fmt.Errorf(err.Error() + deleteErr.Error())
+			return delete, fmt.Errorf(err.Error() + deleteErr.Error())
 		}
-		return nil, err
+		return delete, err
 	}
 
-	return func() error { return deleteTrigger(service, project, targetAppName, triggerCreateResult.Id) }, nil
+	return delete, nil
 }
 
 func deleteTrigger(service *cloudbuild.ProjectsTriggersService, projectID, triggerID, appName string) error {
