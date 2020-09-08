@@ -3,6 +3,7 @@ package reviewapps
 import (
 	"context"
 	"fmt"
+	"tuber/pkg/core"
 	"tuber/pkg/proto"
 
 	"github.com/google/uuid"
@@ -25,7 +26,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 
 	err := NewReviewAppSetup(in.AppName, reviewAppName)
 	if err != nil {
-		teardownErr := ReviewAppTearDown(in.AppName)
+		teardownErr := core.DestroyTuberApp(reviewAppName)
 		if teardownErr != nil {
 			return &proto.CreateReviewAppResponse{
 				Error: teardownErr.Error(),
