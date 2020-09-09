@@ -11,7 +11,7 @@ import (
 
 // NewClient returns a GRPC client
 func NewClient(url string) (proto.TuberClient, *grpc.ClientConn, error) {
-	hostname := fmt.Sprintf("%s:9000", url)
+	hostname := fmt.Sprintf("%s:3000", url)
 
 	var conn *grpc.ClientConn
 	creds := credentials.NewTLS(&tls.Config{})
