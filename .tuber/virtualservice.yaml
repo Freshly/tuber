@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: 'tuber-ingress'
+spec:
+  hosts:
+  - {{.clusterDefaultHost}}
+  gateways:
+  - {{.clusterDefaultGateway}}
+  http:
+  - match:
+    - uri:
+        prefix: /tuber
+    route:
+    - destination:
+        host: tuber
