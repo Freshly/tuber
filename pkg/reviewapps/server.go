@@ -83,9 +83,15 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 }
 
 func reviewAppName(appName, branch string) string {
-	appName = appName[0:8]
-	branch = branch[0:8]
 	randStr := uuid.New().String()[0:8]
+
+	if len(branch) > 8 {
+		branch = branch[0:8]
+	}
+
+	if len(appName) > 8 {
+		appName = appName[0:8]
+	}
 
 	return fmt.Sprintf("%s-%s-%s", appName, branch, randStr)
 }
