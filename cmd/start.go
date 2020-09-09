@@ -114,7 +114,7 @@ func start(cmd *cobra.Command, args []string) {
 		logger = logger.With(zap.String("action", "grpc"))
 
 		srv := reviewapps.Server{
-			ReviewAppsEnabled:  viper.GetBool("review-apps"),
+			ReviewAppsEnabled:  viper.GetBool("reviewapps-enabled"),
 			ClusterDefaultHost: viper.GetString("cluster-default-host"),
 			ProjectName:        viper.GetString("project-name"),
 			Logger:             logger,
