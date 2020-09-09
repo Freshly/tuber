@@ -10,7 +10,7 @@ spec:
   http:
   - match:
     - uri:
-        prefix: /tuber
+        prefix: /proto.Tuber
     route:
     - destination:
         host: tuber
