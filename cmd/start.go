@@ -111,15 +111,19 @@ func start(cmd *cobra.Command, args []string) {
 	go eventProcessor.Start()
 
 	go func() {
+		logger = logger.With(zap.String("action", "grpc"))
+
 		srv := reviewapps.Server{
 			ReviewAppsEnabled:  viper.GetBool("review-apps"),
 			ClusterDefaultHost: viper.GetString("cluster-default-host"),
 			ProjectName:        viper.GetString("project-name"),
+			Logger:             logger,
 			Credentials:        creds,
 		}
 
 		err = server.Start(3000, srv)
 		if err != nil {
+			logger.Error("grpc server: failed to start")
 			cancel()
 		}
 	}()
