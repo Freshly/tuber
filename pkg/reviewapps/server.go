@@ -36,6 +36,8 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		zap.String("branch", in.Branch),
 	)
 
+	logger.Info("creating review app")
+
 	logger.Info("checking permissions")
 	if !canCreate(in.AppName, in.Token) {
 		return &proto.CreateReviewAppResponse{
@@ -43,13 +45,20 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		}, nil
 	}
 
-	logger.Info("creating review app resources")
-	err := NewReviewAppSetup(in.AppName, reviewAppName)
+	sourceApp, err := core.FindApp(in.AppName)
 	if err != nil {
-		logger.Info("error creating review app resources; tearing down")
+		return &proto.CreateReviewAppResponse{
+			Error: fmt.Sprintf("can't find source app. is %s managed by tuber?", in.AppName),
+		}, nil
+	}
+
+	logger.Info("creating review app resources")
+	err = NewReviewAppSetup(in.AppName, reviewAppName)
+	if err != nil {
+		logger.Error("error creating review app resources; tearing down", zap.Error(err))
 		teardownErr := core.DestroyTuberApp(reviewAppName)
 		if teardownErr != nil {
-			logger.Info("error tearing down review app resources")
+			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
 			return nil, teardownErr
 		}
 
@@ -59,7 +68,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 	}
 
 	logger.Info("creating and running review app trigger")
-	removeTrigger, err := CreateAndRunTrigger(ctx, s.Credentials, in.AppName, s.ProjectName, reviewAppName, in.Branch)
+	removeTrigger, err := CreateAndRunTrigger(ctx, s.Credentials, sourceApp.Repo, s.ProjectName, reviewAppName, in.Branch)
 	if err != nil {
 		logger.Error("error creating trigger; no trigger resource created")
 
