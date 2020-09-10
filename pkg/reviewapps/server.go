@@ -39,7 +39,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 	logger.Info("creating review app")
 
 	logger.Info("checking permissions")
-	if !canCreate(in.AppName, in.Token) {
+	if !canCreate(logger, in.AppName, in.Token) {
 		return &proto.CreateReviewAppResponse{
 			Error: "not permitted to create a review app",
 		}, nil

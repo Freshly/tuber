@@ -1,16 +1,16 @@
 package reviewapps
 
 import (
-	"fmt"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
+
+	"go.uber.org/zap"
 )
 
-func canCreate(appName, token string) bool {
-	fmt.Println("----------- canCreate --------------")
-	fmt.Println("appName ->", appName)
-	fmt.Println("canDeploy ->", k8s.CanDeploy(appName, token))
-	fmt.Println("appExists ->", appExists(appName))
+func canCreate(logger *zap.Logger, appName, token string) bool {
+	logger.Info("----------- canCreate --------------")
+	logger.Info("canDeploy ->", zap.Bool("canDeploy", k8s.CanDeploy(appName, token)))
+	logger.Info("appExists ->", zap.Bool("appExists", appExists(appName)))
 
 	return appName != "tuber" &&
 		k8s.CanDeploy(appName, token) &&
