@@ -1,11 +1,17 @@
 package reviewapps
 
 import (
+	"fmt"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 )
 
 func canCreate(appName, token string) bool {
+	fmt.Println("----------- canCreate --------------")
+	fmt.Println("appName ->", appName)
+	fmt.Println("canDeploy ->", k8s.CanDeploy(appName, token))
+	fmt.Println("appExists ->", appExists(appName))
+
 	return appName != "tuber" &&
 		k8s.CanDeploy(appName, token) &&
 		appExists(appName)
