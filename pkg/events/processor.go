@@ -60,6 +60,7 @@ func (p EventProcessor) apps() ([]core.TuberApp, error) {
 
 func (p EventProcessor) processEvent(event *listener.RegistryEvent, apps []core.TuberApp) {
 	p.Logger.Info("processing event", zap.String("tag", event.Tag))
+	p.Logger.Info("app list", zap.Any("apps", apps))
 
 	for _, app := range apps {
 		if app.ImageTag == event.Tag {
