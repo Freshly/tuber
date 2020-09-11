@@ -40,7 +40,7 @@ type appsCache struct {
 var sourceAppsCache *appsCache
 var sourceAppsMutex sync.Mutex
 
-var reviewAppscache *appsCache
+var reviewAppsCache *appsCache
 var reviewMutex sync.Mutex
 
 func (a appsCache) isExpired() bool {
@@ -54,7 +54,7 @@ func refreshSourceAppsCache(apps []TuberApp) {
 
 func refreshReviewAppsCache(apps []TuberApp) {
 	expiry := time.Now().Add(time.Second * 10)
-	reviewAppscache = &appsCache{apps: apps, expiry: expiry}
+	reviewAppsCache = &appsCache{apps: apps, expiry: expiry}
 }
 
 // getTuberApps retrieves data to be stored in sourceAppsCache.
@@ -130,7 +130,7 @@ func TuberSourceApps() (apps AppList, err error) {
 func TuberReviewApps() (apps AppList, err error) {
 	reviewMutex.Lock()
 	defer reviewMutex.Unlock()
-	if reviewAppscache == nil || reviewAppscache.isExpired() {
+	if reviewAppsCache == nil || reviewAppsCache.isExpired() {
 		apps, err = getTuberApps(tuberReviewApps)
 
 		if err == nil {
@@ -139,7 +139,7 @@ func TuberReviewApps() (apps AppList, err error) {
 		return
 	}
 
-	apps = sourceAppsCache.apps
+	apps = reviewAppsCache.apps
 	return
 }
 
@@ -148,10 +148,12 @@ func SourceAndReviewApps() (AppList, error) {
 	if err != nil {
 		return AppList{}, err
 	}
+
 	reviewApps, err := TuberReviewApps()
 	if err != nil {
 		return AppList{}, err
 	}
+
 	return append(reviewApps, apps...), nil
 }
 
