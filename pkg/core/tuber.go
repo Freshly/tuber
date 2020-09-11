@@ -47,9 +47,14 @@ func (a appsCache) isExpired() bool {
 	return sourceAppsCache.expiry.Before(time.Now())
 }
 
-func refreshAppsCache(apps []TuberApp) {
-	expiry := time.Now().Add(time.Minute * 5)
+func refreshSourceAppsCache(apps []TuberApp) {
+	expiry := time.Now().Add(time.Second * 10)
 	sourceAppsCache = &appsCache{apps: apps, expiry: expiry}
+}
+
+func refreshReviewAppsCache(apps []TuberApp) {
+	expiry := time.Now().Add(time.Second * 10)
+	reviewAppscache = &appsCache{apps: apps, expiry: expiry}
 }
 
 // getTuberApps retrieves data to be stored in sourceAppsCache.
@@ -112,7 +117,7 @@ func TuberSourceApps() (apps AppList, err error) {
 		apps, err = getTuberApps(tuberSourceApps)
 
 		if err == nil {
-			refreshAppsCache(apps)
+			refreshSourceAppsCache(apps)
 		}
 		return
 	}
@@ -129,7 +134,7 @@ func TuberReviewApps() (apps AppList, err error) {
 		apps, err = getTuberApps(tuberReviewApps)
 
 		if err == nil {
-			refreshAppsCache(apps)
+			refreshReviewAppsCache(apps)
 		}
 		return
 	}
@@ -147,7 +152,7 @@ func SourceAndReviewApps() (AppList, error) {
 	if err != nil {
 		return AppList{}, err
 	}
-	return append(apps, reviewApps...), nil
+	return append(reviewApps, apps...), nil
 }
 
 // AddSourceAppConfig adds a new Source app that tuber will monitor and deploy
