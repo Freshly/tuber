@@ -18,6 +18,7 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	if err != nil {
 		return nil, err
 	}
+
 	var cloudSourceRepo string
 	for k, v := range config.Data {
 		if v == sourceRepo {
@@ -25,9 +26,11 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 			break
 		}
 	}
+
 	if cloudSourceRepo == "" {
 		return nil, fmt.Errorf("source repo not present in tuber-repos")
 	}
+
 	cloudbuildService, err := cloudbuild.NewService(ctx, option.WithCredentialsJSON(creds))
 	if err != nil {
 		return nil, fmt.Errorf("cloudbuild service: %w", err)
@@ -38,9 +41,10 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 		ProjectId:  project,
 		RepoName:   cloudSourceRepo,
 	}
+
 	buildTrigger := cloudbuild.BuildTrigger{
 		Description:     "created by tuber",
-		Filename:        "cloudbuild.yml",
+		Filename:        "cloudbuild.yaml",
 		Name:            "review-app-for-" + targetAppName,
 		TriggerTemplate: &triggerTemplate,
 	}

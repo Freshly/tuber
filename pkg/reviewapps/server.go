@@ -58,9 +58,11 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 	}
 
 	logger.Info("creating review app resources")
+
 	err = NewReviewAppSetup(in.AppName, reviewAppName)
 	if err != nil {
 		logger.Error("error creating review app resources; tearing down", zap.Error(err))
+
 		teardownErr := core.DestroyTuberApp(reviewAppName)
 		if teardownErr != nil {
 			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
@@ -72,10 +74,26 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		}, nil
 	}
 
+	logger.Info("creating app entry for review app")
+
+	err = core.AddReviewAppConfig(reviewAppName, sourceApp.Repo, in.Branch)
+	if err != nil {
+		teardownErr := core.DestroyTuberApp(reviewAppName)
+		if teardownErr != nil {
+			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
+			return nil, teardownErr
+		}
+
+		return nil, err
+	}
+
 	logger.Info("creating and running review app trigger")
+
 	removeTrigger, err := CreateAndRunTrigger(ctx, s.Credentials, sourceApp.Repo, s.ProjectName, reviewAppName, in.Branch)
 	if err != nil {
-		logger.Error("error creating trigger; no trigger resource created")
+		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
+
+		teardownErr := core.DestroyTuberApp(reviewAppName)
 
 		if removeTrigger != nil {
 			logger.Error("error creating trigger: removing trigger resources")
@@ -86,13 +104,18 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 			}
 		}
 
+		if teardownErr != nil {
+			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
+			return nil, teardownErr
+		}
+
 		return &proto.CreateReviewAppResponse{
 			Error: err.Error(),
 		}, nil
 	}
 
 	return &proto.CreateReviewAppResponse{
-		Hostname: fmt.Sprintf("%s/%s", s.ClusterDefaultHost, reviewAppName),
+		Hostname: fmt.Sprintf("https://%s.%s/", s.ClusterDefaultHost, reviewAppName),
 	}, nil
 }
 
