@@ -22,6 +22,7 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	for k, v := range config.Data {
 		if v == sourceRepo {
 			cloudSourceRepo = k
+			break
 		}
 	}
 	if cloudSourceRepo == "" {
@@ -29,7 +30,7 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	}
 	cloudbuildService, err := cloudbuild.NewService(ctx, option.WithCredentialsJSON(creds))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cloudbuild service: %w", err)
 	}
 	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
 	triggerTemplate := cloudbuild.RepoSource{
@@ -39,14 +40,14 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	}
 	buildTrigger := cloudbuild.BuildTrigger{
 		Description:     "created by tuber",
-		Filename:        "cloudbuild.yaml",
+		Filename:        "cloudbuild.yml",
 		Name:            "review-app-for-" + targetAppName,
 		TriggerTemplate: &triggerTemplate,
 	}
 	triggerCreateCall := service.Create(project, &buildTrigger)
 	triggerCreateResult, err := triggerCreateCall.Do()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create trigger: %w", err)
 	}
 
 	delete := func() error { return deleteTrigger(service, project, targetAppName, triggerCreateResult.Id) }
@@ -64,9 +65,9 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	if err != nil {
 		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
 		if deleteErr != nil {
-			return delete, fmt.Errorf(err.Error() + deleteErr.Error())
+			return delete, fmt.Errorf("delete trigger: %v - %v", err, deleteErr)
 		}
-		return delete, err
+		return delete, fmt.Errorf("run trigger: %w", err)
 	}
 
 	return delete, nil

@@ -7,27 +7,30 @@ import (
 	"go.uber.org/zap"
 )
 
-func canCreate(logger *zap.Logger, appName, token string) bool {
-	logger.Info("----------- canCreate --------------")
-	logger.Info("canDeploy ->", zap.Bool("canDeploy", k8s.CanDeploy(appName, token)))
-	logger.Info("appExists ->", zap.Bool("appExists", appExists(appName)))
+func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
+	exists, err := appExists(appName)
+	if err != nil {
+		return false, err
+	}
 
-	return appName != "tuber" &&
-		k8s.CanDeploy(appName, token) &&
-		appExists(appName)
+	canDeploy := k8s.CanDeploy(appName, token)
+
+	return (appName != "tuber" &&
+		canDeploy &&
+		exists), nil
 }
 
-func appExists(appName string) bool {
+func appExists(appName string) (bool, error) {
 	apps, err := core.SourceAndReviewApps()
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	for _, app := range apps {
 		if app.Name == appName {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
