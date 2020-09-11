@@ -64,6 +64,7 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 		}
 		return delete, err
 	}
+
 	triggerRunCall := service.Run(project, triggerCreateResult.Id, &triggerTemplate)
 	_, err = triggerRunCall.Do()
 	if err != nil {
