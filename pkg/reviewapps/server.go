@@ -94,6 +94,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
 
 		teardownErr := core.DestroyTuberApp(reviewAppName)
+		cleanupConfigErr := core.RemoveReviewAppConfig(reviewAppName)
 
 		if removeTrigger != nil {
 			logger.Error("error creating trigger: removing trigger resources")
@@ -109,13 +110,18 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 			return nil, teardownErr
 		}
 
+		if cleanupConfigErr != nil {
+			logger.Error("error removing config entry for app", zap.Error(cleanupConfigErr))
+			return nil, cleanupConfigErr
+		}
+
 		return &proto.CreateReviewAppResponse{
 			Error: err.Error(),
 		}, nil
 	}
 
 	return &proto.CreateReviewAppResponse{
-		Hostname: fmt.Sprintf("https://%s.%s/", s.ClusterDefaultHost, reviewAppName),
+		Hostname: fmt.Sprintf("https://%s.%s/", reviewAppName, s.ClusterDefaultHost),
 	}, nil
 }
 

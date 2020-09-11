@@ -169,3 +169,8 @@ func AddReviewAppConfig(appName string, repo string, tag string) error {
 func RemoveSourceAppConfig(appName string) (err error) {
 	return k8s.RemoveConfigMapEntry(tuberSourceApps, "tuber", appName)
 }
+
+// RemoveReviewAppConfig removes a configuration from Tuber's control
+func RemoveReviewAppConfig(appName string) (err error) {
+	return k8s.RemoveConfigMapEntry(tuberReviewApps, "tuber", appName)
+}

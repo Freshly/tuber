@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// EventProcessor processes events
 type EventProcessor struct {
 	Creds             []byte
 	Logger            *zap.Logger
@@ -27,6 +28,7 @@ func (p EventProcessor) Start() {
 	defer close(p.ChErr)
 	defer close(p.ChErrReports)
 
+	p.Logger.Info("event processor", zap.Any("event processor", p))
 	var wait = &sync.WaitGroup{}
 
 	for event := range p.Unprocessed {
