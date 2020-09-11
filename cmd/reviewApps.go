@@ -96,6 +96,27 @@ func delete(cmd *cobra.Command, args []string) error {
 	}
 	defer conn.Close()
 
+	config, err := k8s.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	req := proto.DeleteReviewAppRequest{
+		AppName: reviewAppName,
+		Token:   config.AccessToken,
+	}
+
+	res, err := client.DeleteReviewApp(context.Background(), &req)
+	if err != nil {
+		return err
+	}
+
+	if res.Error != "" {
+		return fmt.Errorf(res.Error)
+	}
+
+	fmt.Println("Deleted review app")
+
 	return nil
 }
 

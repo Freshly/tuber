@@ -125,6 +125,11 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 	}, nil
 }
 
+func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppRequest) (*proto.DeleteReviewAppResponse, error) {
+	res := &proto.DeleteReviewAppResponse{}
+	return res, nil
+}
+
 func reviewAppName(appName, branch string) string {
 	randStr := uuid.New().String()[0:8]
 
