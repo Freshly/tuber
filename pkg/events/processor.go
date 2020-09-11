@@ -28,7 +28,7 @@ func (p EventProcessor) Start() {
 	defer close(p.ChErr)
 	defer close(p.ChErrReports)
 
-	p.Logger.Info("event processor", zap.Any("event processor", p))
+	p.Logger.Info("event processor", zap.Bool("review apps enabled", p.ReviewAppsEnabled))
 	var wait = &sync.WaitGroup{}
 
 	for event := range p.Unprocessed {
@@ -50,13 +50,17 @@ func (p EventProcessor) Start() {
 
 func (p EventProcessor) apps() ([]core.TuberApp, error) {
 	if p.ReviewAppsEnabled {
+		p.Logger.Info("core.SourceAndReviewApps()")
 		return core.SourceAndReviewApps()
-	} else {
-		return core.TuberSourceApps()
 	}
+
+	p.Logger.Info("core.TuberSourceApps")
+	return core.TuberSourceApps()
 }
 
 func (p EventProcessor) processEvent(event *listener.RegistryEvent, apps []core.TuberApp) {
+	p.Logger.Info("processing event", zap.String("tag", event.Tag))
+
 	for _, app := range apps {
 		if app.ImageTag == event.Tag {
 			p.runDeploy(app, event)
