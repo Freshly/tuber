@@ -41,15 +41,16 @@ func credentials() ([]byte, error) {
 	viper.SetDefault("credentials-path", "/etc/tuber-credentials/credentials.json")
 	credentialsPath := viper.GetString("credentials-path")
 	creds, err := ioutil.ReadFile(credentialsPath)
+
 	if err != nil {
 		config, err := k8s.GetSecret("tuber", "tuber-credentials.json")
 		if err != nil {
 			return nil, err
 		}
 		return []byte(config.Data["credentials.json"]), nil
-	} else {
-		return creds, nil
 	}
+
+	return creds, nil
 }
 
 type tuberConfig struct {

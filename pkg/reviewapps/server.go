@@ -89,21 +89,13 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 
 	logger.Info("creating and running review app trigger")
 
-	removeTrigger, err := CreateAndRunTrigger(ctx, s.Credentials, sourceApp.Repo, s.ProjectName, reviewAppName, in.Branch)
+	err = CreateAndRunTrigger(ctx, s.Credentials, sourceApp.Repo, s.ProjectName, reviewAppName, in.Branch)
 	if err != nil {
 		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
 
+		triggerCleanupErr := deleteReviewAppTrigger(ctx, s.Credentials, s.ProjectName, reviewAppName)
 		teardownErr := core.DestroyTuberApp(reviewAppName)
 		cleanupConfigErr := core.RemoveReviewAppConfig(reviewAppName)
-
-		if removeTrigger != nil {
-			logger.Error("error creating trigger: removing trigger resources")
-
-			rmvErr := removeTrigger()
-			if rmvErr != nil {
-				return nil, rmvErr
-			}
-		}
 
 		if teardownErr != nil {
 			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
@@ -113,6 +105,11 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		if cleanupConfigErr != nil {
 			logger.Error("error removing config entry for app", zap.Error(cleanupConfigErr))
 			return nil, cleanupConfigErr
+		}
+
+		if triggerCleanupErr != nil {
+			logger.Error("error removing trigger", zap.Error(triggerCleanupErr))
+			return nil, triggerCleanupErr
 		}
 
 		return &proto.CreateReviewAppResponse{
@@ -127,6 +124,25 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 
 func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppRequest) (*proto.DeleteReviewAppResponse, error) {
 	res := &proto.DeleteReviewAppResponse{}
+	reviewAppName := in.GetAppName()
+
+	logger := s.Logger.With(
+		zap.String("appName", in.AppName),
+	)
+
+	err := core.DestroyTuberApp(reviewAppName)
+	if err != nil {
+		logger.Error("error deleting tuber app", zap.Error(err))
+		return nil, err
+	}
+
+	err = core.RemoveReviewAppConfig(reviewAppName)
+	if err != nil {
+		logger.Error("error deleting tuber review map app config entry item row", zap.Error(err))
+	}
+
+	err = deleteReviewAppTrigger(ctx, s.Credentials, s.ProjectName, reviewAppName)
+
 	return res, nil
 }
 
