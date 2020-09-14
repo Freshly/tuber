@@ -2,11 +2,16 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
+	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 	"tuber/pkg/proto"
 	"tuber/pkg/reviewapps"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +34,14 @@ var reviewAppsDeleteCmd = &cobra.Command{
 	Short:        "",
 	Args:         cobra.ExactArgs(1),
 	RunE:         delete,
+}
+
+var reviewAppsListCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "list",
+	Short:        "",
+	Args:         cobra.ExactArgs(0),
+	RunE:         list,
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -120,8 +133,42 @@ func delete(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func list(*cobra.Command, []string) (err error) {
+	apps, err := core.TuberReviewApps()
+
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
+	if jsonOutput {
+		out, err := json.Marshal(apps)
+
+		if err != nil {
+			return err
+		}
+
+		os.Stdout.Write(out)
+
+		return nil
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Image"})
+	table.SetBorder(false)
+
+	for _, app := range apps {
+		table.Append([]string{app.Name, app.ImageTag})
+	}
+
+	table.Render()
+	return
+}
+
 func init() {
 	rootCmd.AddCommand(reviewAppsCmd)
 	reviewAppsCmd.AddCommand(reviewAppsCreateCmd)
 	reviewAppsCmd.AddCommand(reviewAppsDeleteCmd)
+	reviewAppsCmd.AddCommand(reviewAppsListCmd)
 }
