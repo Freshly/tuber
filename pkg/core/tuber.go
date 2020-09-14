@@ -40,22 +40,27 @@ type appsCache struct {
 var sourceAppsCache *appsCache
 var sourceAppsMutex sync.Mutex
 
-var reviewAppscache *appsCache
+var reviewAppsCache *appsCache
 var reviewMutex sync.Mutex
 
 func (a appsCache) isExpired() bool {
 	return sourceAppsCache.expiry.Before(time.Now())
 }
 
-func refreshAppsCache(apps []TuberApp) {
-	expiry := time.Now().Add(time.Minute * 5)
+func refreshSourceAppsCache(apps []TuberApp) {
+	expiry := time.Now().Add(time.Second * 10)
 	sourceAppsCache = &appsCache{apps: apps, expiry: expiry}
+}
+
+func refreshReviewAppsCache(apps []TuberApp) {
+	expiry := time.Now().Add(time.Second * 10)
+	reviewAppsCache = &appsCache{apps: apps, expiry: expiry}
 }
 
 // getTuberApps retrieves data to be stored in sourceAppsCache.
 // always use TuberSourceApps function, never this one directly
 func getTuberApps(mapname string) (apps []TuberApp, err error) {
-	config, err := k8s.GetConfig(mapname, "tuber", "ConfigMap")
+	config, err := k8s.GetConfigResource(mapname, "tuber", "ConfigMap")
 
 	if err != nil {
 		return
@@ -112,7 +117,7 @@ func TuberSourceApps() (apps AppList, err error) {
 		apps, err = getTuberApps(tuberSourceApps)
 
 		if err == nil {
-			refreshAppsCache(apps)
+			refreshSourceAppsCache(apps)
 		}
 		return
 	}
@@ -125,16 +130,16 @@ func TuberSourceApps() (apps AppList, err error) {
 func TuberReviewApps() (apps AppList, err error) {
 	reviewMutex.Lock()
 	defer reviewMutex.Unlock()
-	if reviewAppscache == nil || reviewAppscache.isExpired() {
+	if reviewAppsCache == nil || reviewAppsCache.isExpired() {
 		apps, err = getTuberApps(tuberReviewApps)
 
 		if err == nil {
-			refreshAppsCache(apps)
+			refreshReviewAppsCache(apps)
 		}
 		return
 	}
 
-	apps = sourceAppsCache.apps
+	apps = reviewAppsCache.apps
 	return
 }
 
@@ -143,11 +148,13 @@ func SourceAndReviewApps() (AppList, error) {
 	if err != nil {
 		return AppList{}, err
 	}
+
 	reviewApps, err := TuberReviewApps()
 	if err != nil {
 		return AppList{}, err
 	}
-	return append(apps, reviewApps...), nil
+
+	return append(reviewApps, apps...), nil
 }
 
 // AddSourceAppConfig adds a new Source app that tuber will monitor and deploy
@@ -163,4 +170,9 @@ func AddReviewAppConfig(appName string, repo string, tag string) error {
 // RemoveSourceAppConfig removes a configuration from Tuber's control
 func RemoveSourceAppConfig(appName string) (err error) {
 	return k8s.RemoveConfigMapEntry(tuberSourceApps, "tuber", appName)
+}
+
+// RemoveReviewAppConfig removes a configuration from Tuber's control
+func RemoveReviewAppConfig(appName string) (err error) {
+	return k8s.RemoveConfigMapEntry(tuberReviewApps, "tuber", appName)
 }

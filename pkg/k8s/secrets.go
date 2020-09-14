@@ -28,7 +28,7 @@ func CreateTuberCredentials(path string, namespace string) (err error) {
 		Namespace: namespace,
 	}
 
-	config := k8sConfig{
+	config := k8sConfigResource{
 		APIVersion: "v1",
 		Kind:       "Secret",
 		Type:       "Opaque",
@@ -46,8 +46,8 @@ func CreateTuberCredentials(path string, namespace string) (err error) {
 	return Apply(jsondata, namespace)
 }
 
-func GetSecret(namespace string, secretName string) (*Config, error) {
-	config, err := GetConfig(secretName, namespace, "Secret")
+func GetSecret(namespace string, secretName string) (*ConfigResource, error) {
+	config, err := GetConfigResource(secretName, namespace, "Secret")
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func CreateEnvFromFile(name string, path string) (err error) {
 		stringifiedData[k] = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v", v)))
 	}
 
-	config, err := GetConfig(name+"-env", name, "Secret")
+	config, err := GetConfigResource(name+"-env", name, "Secret")
 
 	if err != nil {
 		return
@@ -100,7 +100,7 @@ func CreateEnvFromFile(name string, path string) (err error) {
 
 // PatchSecret gets, patches, and saves a secret
 func PatchSecret(mapName string, namespace string, key string, value string) (err error) {
-	config, err := GetConfig(mapName, namespace, "Secret")
+	config, err := GetConfigResource(mapName, namespace, "Secret")
 
 	if err != nil {
 		return
@@ -119,7 +119,7 @@ func PatchSecret(mapName string, namespace string, key string, value string) (er
 
 // RemoveSecretEntry removes an entry, from a secret
 func RemoveSecretEntry(mapName string, namespace string, key string) (err error) {
-	config, err := GetConfig(mapName, namespace, "Secret")
+	config, err := GetConfigResource(mapName, namespace, "Secret")
 
 	if err != nil {
 		return
