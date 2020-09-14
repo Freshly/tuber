@@ -23,6 +23,14 @@ var reviewAppsCreateCmd = &cobra.Command{
 	RunE:         create,
 }
 
+var reviewAppsDeleteCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "delete [review app name]",
+	Short:        "",
+	Args:         cobra.ExactArgs(1),
+	RunE:         delete,
+}
+
 func create(cmd *cobra.Command, args []string) error {
 	sourceAppName := args[0]
 	branch := args[1]
@@ -69,7 +77,51 @@ func create(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func delete(cmd *cobra.Command, args []string) error {
+	reviewAppName := args[0]
+
+	tuberConf, err := getTuberConfig()
+	if err != nil {
+		return err
+	}
+
+	clusterConf := tuberConf.CurrentClusterConfig()
+	if clusterConf.URL == "" {
+		return fmt.Errorf("no cluster config found. run `tuber config`")
+	}
+
+	client, conn, err := reviewapps.NewClient(clusterConf.URL)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	config, err := k8s.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	req := proto.DeleteReviewAppRequest{
+		AppName: reviewAppName,
+		Token:   config.AccessToken,
+	}
+
+	res, err := client.DeleteReviewApp(context.Background(), &req)
+	if err != nil {
+		return err
+	}
+
+	if res.Error != "" {
+		return fmt.Errorf(res.Error)
+	}
+
+	fmt.Println("Deleted review app")
+
+	return nil
+}
+
 func init() {
 	rootCmd.AddCommand(reviewAppsCmd)
 	reviewAppsCmd.AddCommand(reviewAppsCreateCmd)
+	reviewAppsCmd.AddCommand(reviewAppsDeleteCmd)
 }

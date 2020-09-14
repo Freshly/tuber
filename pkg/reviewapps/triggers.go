@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"tuber/pkg/k8s"
 
+	"github.com/davecgh/go-spew/spew"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
 )
@@ -13,10 +14,10 @@ const tuberReposConfig = "tuber-repos"
 const tuberReviewTriggersConfig = "tuber-review-triggers"
 
 // CreateAndRunTrigger creates a cloud build trigger for the review app
-func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, project string, targetAppName string, branch string) (func() error, error) {
+func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, project string, targetAppName string, branch string) error {
 	config, err := k8s.GetConfigResource(tuberReposConfig, "tuber", "configmap")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var cloudSourceRepo string
@@ -28,12 +29,12 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	}
 
 	if cloudSourceRepo == "" {
-		return nil, fmt.Errorf("source repo not present in tuber-repos")
+		return fmt.Errorf("source repo not present in tuber-repos")
 	}
 
 	cloudbuildService, err := cloudbuild.NewService(ctx, option.WithCredentialsJSON(creds))
 	if err != nil {
-		return nil, fmt.Errorf("cloudbuild service: %w", err)
+		return fmt.Errorf("cloudbuild service: %w", err)
 	}
 	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
 	triggerTemplate := cloudbuild.RepoSource{
@@ -51,46 +52,45 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	triggerCreateCall := service.Create(project, &buildTrigger)
 	triggerCreateResult, err := triggerCreateCall.Do()
 	if err != nil {
-		return nil, fmt.Errorf("create trigger: %w", err)
+		return fmt.Errorf("create trigger: %w", err)
 	}
-
-	delete := func() error { return deleteTrigger(service, project, targetAppName, triggerCreateResult.Id) }
 
 	err = k8s.PatchConfigMap(tuberReviewTriggersConfig, "tuber", targetAppName, triggerCreateResult.Id)
 	if err != nil {
-		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
-		if deleteErr != nil {
-			return delete, fmt.Errorf(err.Error() + deleteErr.Error())
-		}
-		return delete, err
+		return err
 	}
+
 	triggerRunCall := service.Run(project, triggerCreateResult.Id, &triggerTemplate)
 	_, err = triggerRunCall.Do()
 	if err != nil {
-		deleteErr := deleteReviewAppTrigger(service, project, triggerCreateResult.Id, targetAppName)
-		if deleteErr != nil {
-			return delete, fmt.Errorf("delete trigger: %v - %v", err, deleteErr)
-		}
-		return delete, fmt.Errorf("run trigger: %w", err)
-	}
-
-	return delete, nil
-}
-
-func deleteTrigger(service *cloudbuild.ProjectsTriggersService, projectID, triggerID, appName string) error {
-	err := deleteReviewAppTrigger(service, projectID, triggerID, appName)
-	if err != nil {
-		return err
+		return fmt.Errorf("run trigger: %w", err)
 	}
 
 	return nil
 }
 
-func deleteReviewAppTrigger(service *cloudbuild.ProjectsTriggersService, project string, triggerID string, appName string) error {
-	deleteCall := service.Delete(project, triggerID)
-	_, err := deleteCall.Do()
+func deleteReviewAppTrigger(ctx context.Context, creds []byte, project string, reviewAppName string) error {
+	config, err := k8s.GetConfigResource(tuberReviewTriggersConfig, "tuber", "configmap")
 	if err != nil {
 		return err
 	}
-	return k8s.RemoveConfigMapEntry(tuberReviewTriggersConfig, "tuber", appName)
+
+	spew.Dump(config.Data)
+
+	triggerID := config.Data[reviewAppName]
+
+	cloudbuildService, err := cloudbuild.NewService(ctx, option.WithCredentialsJSON(creds))
+	if err != nil {
+		return fmt.Errorf("cloudbuild service: %w", err)
+	}
+
+	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
+
+	deleteCall := service.Delete(project, triggerID)
+	_, err = deleteCall.Do()
+	if err != nil {
+		return err
+	}
+
+	return k8s.RemoveConfigMapEntry(tuberReviewTriggersConfig, "tuber", reviewAppName)
 }
