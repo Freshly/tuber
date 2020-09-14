@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -168,11 +169,23 @@ func UseCluster(cluster string) error {
 	return err
 }
 
+// CanDeploy determines if the current user can create a deployment
+func CanDeploy(appName, token string) bool {
+	t := fmt.Sprintf("--token=%s", token)
+
+	out, err := kubectl([]string{"auth", "can-i", "create", "deployments", "-n", appName, t}...)
+	if err != nil {
+		return false
+	}
+
+	return strings.Trim(string(out), "\r\n") == "yes"
+}
+
 // CurrentCluster the current configured kubectl cluster
 func CurrentCluster() (string, error) {
 	out, err := kubectl([]string{"config", "current-context"}...)
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+	return strings.Trim(string(out), "\r\n"), nil
 }

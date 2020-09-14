@@ -2,74 +2,53 @@ package k8s
 
 import (
 	"encoding/json"
-	"strings"
+	"fmt"
 )
 
-type k8sMetadata struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
+// configParser represents a part of kubectl's local config
+type configParser struct {
+	Users []struct {
+		Name        string `json:"name"`
+		ClusterUser struct {
+			UserData struct {
+				AuthProvider struct {
+					AccessToken string `json:"access-token"`
+				} `json:"config"`
+			} `json:"auth-provider"`
+		} `json:"user"`
+	} `json:"users"`
 }
 
-type k8sConfig struct {
-	APIVersion string            `json:"apiVersion"`
-	Kind       string            `json:"kind"`
-	Metadata   k8sMetadata       `json:"metadata"`
-	Type       string            `json:"type,omitempty"`
-	Data       map[string]string `json:"data"`
-	StringData map[string]string `json:"stringData,omitempty"`
+// ClusterConfig returns config for a cluster
+type ClusterConfig struct {
+	Name        string
+	AccessToken string
 }
 
-// Config represents the editable portion of a configmap
-type Config struct {
-	config *k8sConfig
-	Data   map[string]string
-}
+// GetConfig returns `kubectl config view`
+func GetConfig() (*ClusterConfig, error) {
+	var config configParser
 
-// Save persists updates to a configmap to k8s
-func (c *Config) Save(namespace string) (err error) {
-	config := c.config
-	config.Data = c.Data
-
-	var jsondata []byte
-	jsondata, err = json.Marshal(config)
-
+	out, err := kubectl([]string{"config", "view", "-o", "json"}...)
 	if err != nil {
-		return
+		return &ClusterConfig{}, err
 	}
 
-	Apply(jsondata, namespace)
+	json.Unmarshal(out, &config)
 
-	return
-}
-
-// GetConfig returns a Config struct with a Data element containing config map entries
-func GetConfig(name string, namespace string, kind string) (config *Config, err error) {
-	result, err := Get(strings.ToLower(kind), name, namespace, "-o", "json")
-
+	clusterName, err := CurrentCluster()
 	if err != nil {
-		return
+		return &ClusterConfig{}, err
 	}
-	var k8sc k8sConfig
 
-	if result == nil {
-		k8sc = k8sConfig{
-			APIVersion: "v1",
-			Kind:       kind,
-			Data:       map[string]string{},
-			Metadata:   k8sMetadata{Name: name, Namespace: namespace},
+	for _, cnf := range config.Users {
+		if cnf.Name == clusterName {
+			return &ClusterConfig{
+				Name:        cnf.Name,
+				AccessToken: cnf.ClusterUser.UserData.AuthProvider.AccessToken,
+			}, nil
 		}
-	} else {
-		json.Unmarshal(result, &k8sc)
 	}
 
-	data := k8sc.Data
-	if data == nil {
-		data = map[string]string{}
-	}
-
-	config = &Config{
-		config: &k8sc,
-		Data:   data,
-	}
-	return
+	return &ClusterConfig{}, fmt.Errorf("no config found for current cluster")
 }

@@ -8,6 +8,7 @@ import (
 	"tuber/pkg/listener"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var deployCmd = &cobra.Command{
@@ -32,7 +33,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	defer logger.Sync()
 
-	apps, err := core.TuberApps()
+	apps, err := core.TuberSourceApps()
 
 	if err != nil {
 		return err
@@ -61,14 +62,23 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	streamer := events.NewStreamer(creds, logger, data)
+	unprocessed := make(chan *listener.RegistryEvent, 1)
+	processed := make(chan *listener.RegistryEvent, 1)
+	failedReleases := make(chan listener.FailedRelease, 1)
+	sentryErrors := make(chan error, 1)
 
-	errorChan := make(chan listener.FailedRelease, 1)
-	unprocessedEvents := make(chan *listener.RegistryEvent, 1)
-	processedEvents := make(chan *listener.RegistryEvent, 1)
-	errorReports := make(chan error, 1)
+	eventProcessor := events.EventProcessor{
+		Creds:             creds,
+		Logger:            logger,
+		ClusterData:       data,
+		ReviewAppsEnabled: viper.GetBool("reviewapps-enabled"),
+		Unprocessed:       unprocessed,
+		Processed:         processed,
+		ChErr:             failedReleases,
+		ChErrReports:      sentryErrors,
+	}
 
-	go streamer.Stream(unprocessedEvents, processedEvents, errorChan, errorReports)
+	go eventProcessor.Start()
 
 	ackable := emptyAckable{}
 	deployEvent := listener.RegistryEvent{
@@ -78,14 +88,14 @@ func deploy(cmd *cobra.Command, args []string) error {
 		Message: ackable,
 	}
 
-	unprocessedEvents <- &deployEvent
+	unprocessed <- &deployEvent
 
 	select {
-	case <-errorChan:
-		close(unprocessedEvents)
+	case <-failedReleases:
+		close(unprocessed)
 		return fmt.Errorf("deploy failed")
-	case <-processedEvents:
-		close(unprocessedEvents)
+	case <-sentryErrors:
+		close(unprocessed)
 		return nil
 	}
 }

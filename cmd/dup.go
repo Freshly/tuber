@@ -1,1 +1,0 @@
-	targetAppName := args[1]

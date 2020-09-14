@@ -4,8 +4,10 @@ go 1.13
 
 require (
 	cloud.google.com/go/pubsub v1.1.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/getsentry/sentry-go v0.4.0
 	github.com/goccy/go-yaml v1.2.0
+	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/joho/godotenv v1.3.0
 	github.com/olekukonko/tablewriter v0.0.4
@@ -18,6 +20,8 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
 	google.golang.org/api v0.14.0
+	google.golang.org/grpc v1.27.0
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 	k8s.io/api v0.18.0
 	k8s.io/client-go v11.0.0+incompatible
