@@ -8,7 +8,9 @@ import (
 	"syscall"
 	"tuber/pkg/events"
 	"tuber/pkg/listener"
+	"tuber/pkg/reviewapps"
 	"tuber/pkg/sentry"
+	"tuber/pkg/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -107,6 +109,24 @@ func start(cmd *cobra.Command, args []string) {
 		ChErrReports:      errReports,
 	}
 	go eventProcessor.Start()
+
+	go func() {
+		logger = logger.With(zap.String("action", "grpc"))
+
+		srv := reviewapps.Server{
+			ReviewAppsEnabled:  viper.GetBool("reviewapps-enabled"),
+			ClusterDefaultHost: viper.GetString("cluster-default-host"),
+			ProjectName:        viper.GetString("project-name"),
+			Logger:             logger,
+			Credentials:        creds,
+		}
+
+		err = server.Start(3000, srv)
+		if err != nil {
+			logger.Error("grpc server: failed to start")
+			cancel()
+		}
+	}()
 
 	// Wait for cancel() of context
 	<-ctx.Done()

@@ -178,9 +178,7 @@ func CanDeploy(appName, token string) bool {
 		return false
 	}
 
-	result := strings.Trim(string(out), "\r\n")
-
-	return result == "yes"
+	return strings.Trim(string(out), "\r\n") == "yes"
 }
 
 // CurrentCluster the current configured kubectl cluster
@@ -189,5 +187,5 @@ func CurrentCluster() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+	return strings.Trim(string(out), "\r\n"), nil
 }

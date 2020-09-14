@@ -1,25 +1,22 @@
 package k8s
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/goccy/go-yaml"
 )
 
 // configParser represents a part of kubectl's local config
 type configParser struct {
 	Users []struct {
+		Name        string `json:"name"`
 		ClusterUser struct {
-			Name     string `yaml:"name"`
 			UserData struct {
 				AuthProvider struct {
-					Config struct {
-						AccessToken string `yaml:"access-token"`
-					} `yaml:"config"`
-				} `yaml:"auth-provider"`
-			} `yaml:"user"`
-		}
-	} `yaml:"users"`
+					AccessToken string `json:"access-token"`
+				} `json:"config"`
+			} `json:"auth-provider"`
+		} `json:"user"`
+	} `json:"users"`
 }
 
 // ClusterConfig returns config for a cluster
@@ -32,12 +29,12 @@ type ClusterConfig struct {
 func GetConfig() (*ClusterConfig, error) {
 	var config configParser
 
-	out, err := kubectl([]string{"config", "view", "--raw"}...)
+	out, err := kubectl([]string{"config", "view", "-o", "json"}...)
 	if err != nil {
 		return &ClusterConfig{}, err
 	}
 
-	yaml.Unmarshal(out, &config)
+	json.Unmarshal(out, &config)
 
 	clusterName, err := CurrentCluster()
 	if err != nil {
@@ -45,10 +42,10 @@ func GetConfig() (*ClusterConfig, error) {
 	}
 
 	for _, cnf := range config.Users {
-		if cnf.ClusterUser.Name == clusterName {
+		if cnf.Name == clusterName {
 			return &ClusterConfig{
-				Name:        cnf.ClusterUser.Name,
-				AccessToken: cnf.ClusterUser.UserData.AuthProvider.Config.AccessToken,
+				Name:        cnf.Name,
+				AccessToken: cnf.ClusterUser.UserData.AuthProvider.AccessToken,
 			}, nil
 		}
 	}

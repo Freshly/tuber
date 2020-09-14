@@ -24,6 +24,7 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
