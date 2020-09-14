@@ -27,7 +27,7 @@ func fetch(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	apps, err := core.TuberApps()
+	apps, err := core.TuberSourceApps()
 
 	if err != nil {
 		return

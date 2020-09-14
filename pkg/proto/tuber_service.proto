@@ -1,0 +1,28 @@
+syntax = "proto3";
+package proto;
+
+message CreateReviewAppRequest {
+  string token = 1;
+  string appName = 2;
+  string branch = 3;
+}
+
+message CreateReviewAppResponse {
+  string hostname = 1;
+  string error = 2;
+}
+
+message DeleteReviewAppRequest {
+  string token = 1;
+  string appName = 2;
+}
+
+message DeleteReviewAppResponse {
+  string appName = 1;
+  string error = 2;
+}
+
+service Tuber {
+  rpc CreateReviewApp(CreateReviewAppRequest) returns (CreateReviewAppResponse) {}
+  rpc DeleteReviewApp(DeleteReviewAppRequest) returns (DeleteReviewAppResponse) {}
+}

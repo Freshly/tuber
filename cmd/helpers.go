@@ -41,24 +41,56 @@ func credentials() ([]byte, error) {
 	viper.SetDefault("credentials-path", "/etc/tuber-credentials/credentials.json")
 	credentialsPath := viper.GetString("credentials-path")
 	creds, err := ioutil.ReadFile(credentialsPath)
+
 	if err != nil {
 		config, err := k8s.GetSecret("tuber", "tuber-credentials.json")
 		if err != nil {
 			return nil, err
 		}
 		return []byte(config.Data["credentials.json"]), nil
-	} else {
-		return creds, nil
 	}
+
+	return creds, nil
 }
 
 type tuberConfig struct {
-	Clusters map[string]Cluster
+	Clusters []Cluster
 }
 
+// Cluster is a cluster
 type Cluster struct {
-	Name string `yaml:"name"`
-	Url  string `yaml:"url"`
+	Name      string `yaml:"name"`
+	Shorthand string `yaml:"shorthand"`
+	URL       string `yaml:"url"`
+}
+
+func (c tuberConfig) CurrentClusterConfig() Cluster {
+	name, err := k8s.CurrentCluster()
+	if err != nil {
+		return Cluster{}
+	}
+
+	return c.FindByName(name)
+}
+
+func (c tuberConfig) FindByShortName(name string) Cluster {
+	for _, cl := range c.Clusters {
+		if cl.Shorthand == name {
+			return cl
+		}
+	}
+
+	return Cluster{}
+}
+
+func (c tuberConfig) FindByName(name string) Cluster {
+	for _, cl := range c.Clusters {
+		if cl.Name == name {
+			return cl
+		}
+	}
+
+	return Cluster{}
 }
 
 func getTuberConfig() (*tuberConfig, error) {
