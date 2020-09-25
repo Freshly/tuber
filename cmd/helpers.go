@@ -164,6 +164,15 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 }
 
 func displayCurrentContext(cmd *cobra.Command, args []string) error {
+	skipConfirmation, err := cmd.Flags().GetBool("confirm")
+	if err != nil {
+		return err
+	}
+
+	if skipConfirmation {
+		return nil
+	}
+
 	cluster, err := k8s.CurrentCluster()
 	if err != nil {
 		return err
