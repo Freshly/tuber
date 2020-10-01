@@ -75,10 +75,10 @@ func (p EventProcessor) processEvent(event *listener.RegistryEvent, apps []core.
 	for _, app := range apps {
 		if app.ImageTag == event.Tag {
 			p.runDeploy(app, event)
-		} else {
-			p.Processed <- event
 		}
 	}
+
+	p.Processed <- event
 }
 
 func (p EventProcessor) releaseLogger(app core.TuberApp) *zap.Logger {
@@ -117,7 +117,6 @@ func (p EventProcessor) reportSuccessfulRelease(event *listener.RegistryEvent, r
 		zap.String("tag", event.Tag),
 		zap.String("digest", event.Digest),
 	)
-	p.Processed <- event
 }
 
 func (p EventProcessor) reportFailedRelease(event *listener.RegistryEvent, releaseLog *zap.Logger, err error) {
@@ -130,5 +129,4 @@ func (p EventProcessor) reportFailedRelease(event *listener.RegistryEvent, relea
 	)
 	p.ChErr <- listener.FailedRelease{Err: err, Event: event}
 	p.ChErrReports <- err
-	p.Processed <- event
 }
