@@ -75,6 +75,8 @@ func (p EventProcessor) processEvent(event *listener.RegistryEvent, apps []core.
 	for _, app := range apps {
 		if app.ImageTag == event.Tag {
 			p.runDeploy(app, event)
+		} else {
+			p.Processed <- event
 		}
 	}
 }
