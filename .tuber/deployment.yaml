@@ -15,6 +15,7 @@ spec:
       labels:
         app: tuber
     spec:
+      serviceAccountName: tuber
       containers:
       - image: {{ .tuberImage }}
         name: tuber

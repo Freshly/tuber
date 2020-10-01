@@ -37,6 +37,16 @@ func plant(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	err = k8s.Create("tuber", "configmap", "tuber-repos")
+	if err != nil {
+		return err
+	}
+
+	err = k8s.Create("tuber", "configmap", "tuber-review-triggers")
+	if err != nil {
+		return err
+	}
+
 	return k8s.CreateTuberCredentials(credentialsPath, "tuber")
 }
 

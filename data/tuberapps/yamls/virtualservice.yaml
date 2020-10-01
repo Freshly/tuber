@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: {{.appName}}-ingress
+  name: {{"{{.tuberAppName}}"}}-ingress
 spec:
   hosts:
   - {{"{{.clusterDefaultHost}}"}}
@@ -13,4 +13,4 @@ spec:
         prefix: {{.routePrefix}}
     route:
     - destination:
-        host: {{.appName}}
+        host: {{"{{.tuberAppName}}"}}

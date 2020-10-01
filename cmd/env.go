@@ -121,7 +121,7 @@ func envGet(cmd *cobra.Command, args []string) (err error) {
 	appName := args[0]
 	mapName := fmt.Sprintf("%s-env", appName)
 	key := args[1]
-	config, err := k8s.GetConfig(mapName, appName, "Secret")
+	config, err := k8s.GetConfigResource(mapName, appName, "Secret")
 
 	if err != nil {
 		return
