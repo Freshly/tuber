@@ -111,6 +111,7 @@ func (l *listener) startListener(ctx context.Context, credentials []byte) error 
 				if jsonErr != nil {
 					l.logger.Warn("could not unmarshal message")
 				} else {
+					l.logger.Debug("Sending event to unprocessed channel from listener", zap.String("tag", obj.Tag), zap.String("digest", obj.Digest))
 					in <- obj
 				}
 			})
@@ -140,8 +141,15 @@ func (l *listener) startAcker(ctx context.Context) {
 	ackLogger.Debug("starting")
 
 	for event := range l.processed {
+		ackLogger.Debug("Acknowledging",
+			zap.String("tag", event.Tag),
+			zap.String("digest", event.Digest),
+		)
 		event.Message.Ack()
-		ackLogger.Info("acknowledged", zap.String("tag", event.Tag))
+		ackLogger.Info("Acknowledged",
+			zap.String("tag", event.Tag),
+			zap.String("digest", event.Digest),
+		)
 	}
 
 	ackLogger.Debug("stopped")
@@ -158,9 +166,16 @@ func (l *listener) startNacker(ctx context.Context) {
 	l.logger.Debug("error loop: starting")
 
 	for failure := range l.failures {
-		l.logger.Info("nacked", zap.String("tag", failure.Event.Tag))
+		l.logger.Debug("nacking",
+			zap.String("tag", failure.Event.Tag),
+			zap.String("digest", failure.Event.Digest),
+		)
 		l.logger.Warn("failed release", zap.Error(failure.Err))
 		failure.Event.Message.Nack()
+		l.logger.Info("nacked",
+			zap.String("tag", failure.Event.Tag),
+			zap.String("digest", failure.Event.Digest),
+		)
 	}
 
 	l.logger.Debug("error loop: stopped")

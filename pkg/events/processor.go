@@ -28,7 +28,7 @@ func (p EventProcessor) Start() {
 	defer close(p.ChErr)
 	defer close(p.ChErrReports)
 
-	p.Logger.Info("event processor", zap.Bool("review apps enabled", p.ReviewAppsEnabled))
+	p.Logger.Info("Event processor starting", zap.Bool("review apps enabled", p.ReviewAppsEnabled))
 	var wait = &sync.WaitGroup{}
 
 	for event := range p.Unprocessed {
@@ -38,6 +38,11 @@ func (p EventProcessor) Start() {
 
 			apps, err := p.apps()
 			if err != nil {
+				p.Logger.Error("An error occured looking up tuber apps! Reporting the event as failed and acking",
+					zap.Error(err),
+					zap.String("tag", event.Tag),
+					zap.String("digest", event.Digest),
+				)
 				p.reportFailedRelease(event, p.Logger, err)
 				return
 			}
@@ -50,17 +55,22 @@ func (p EventProcessor) Start() {
 
 func (p EventProcessor) apps() ([]core.TuberApp, error) {
 	if p.ReviewAppsEnabled {
-		p.Logger.Info("core.SourceAndReviewApps()")
+		p.Logger.Debug("Listing source and review apps")
 		return core.SourceAndReviewApps()
 	}
 
-	p.Logger.Info("core.TuberSourceApps")
+	p.Logger.Debug("Listing source apps")
 	return core.TuberSourceApps()
 }
 
 func (p EventProcessor) processEvent(event *listener.RegistryEvent, apps []core.TuberApp) {
-	p.Logger.Info("processing event", zap.String("tag", event.Tag))
-	p.Logger.Info("app list", zap.Any("apps", apps))
+	p.Logger.Info("Processing event",
+		zap.String("tag", event.Tag),
+		zap.String("digest", event.Digest),
+	)
+	p.Logger.Debug("Listing tuber apps",
+		zap.Any("apps", apps),
+	)
 
 	for _, app := range apps {
 		if app.ImageTag == event.Tag {
@@ -83,7 +93,11 @@ func (p EventProcessor) runDeploy(app core.TuberApp, event *listener.RegistryEve
 	releaseLog := p.releaseLogger(app)
 
 	startTime := time.Now()
-	releaseLog.Info("release: starting", zap.String("event", "begin"))
+	releaseLog.Info("release: starting",
+		zap.String("event", "begin"),
+		zap.String("tag", event.Tag),
+		zap.String("digest", event.Digest),
+	)
 
 	err := deploy(*releaseLog, &app, event.Digest, p.Creds, p.ClusterData)
 
@@ -95,7 +109,12 @@ func (p EventProcessor) runDeploy(app core.TuberApp, event *listener.RegistryEve
 }
 
 func (p EventProcessor) reportSuccessfulRelease(event *listener.RegistryEvent, releaseLog *zap.Logger, startTime time.Time) {
-	releaseLog.Info("release: done", zap.String("event", "complete"), zap.Duration("duration", time.Since(startTime)))
+	releaseLog.Info("release: done",
+		zap.String("event", "complete"),
+		zap.Duration("duration", time.Since(startTime)),
+		zap.String("tag", event.Tag),
+		zap.String("digest", event.Digest),
+	)
 	p.Processed <- event
 }
 
@@ -104,6 +123,8 @@ func (p EventProcessor) reportFailedRelease(event *listener.RegistryEvent, relea
 		"release: error",
 		zap.String("event", "error"),
 		zap.Error(err),
+		zap.String("tag", event.Tag),
+		zap.String("digest", event.Digest),
 	)
 	p.ChErr <- listener.FailedRelease{Err: err, Event: event}
 	p.ChErrReports <- err
