@@ -52,13 +52,13 @@ func start(cmd *cobra.Command, args []string) {
 	// Report any errors to Sentry
 	sentryEnabled := viper.GetBool("sentry-enabled")
 	sentryDsn := viper.GetString("sentry-dsn")
+
 	errReports := make(chan error, 1)
+	defer close(errReports)
 
 	if sentryEnabled != true {
 		logger.Debug("Beginning pubsub processor without Sentry enabled.")
 	}
-
-	defer close(errReports)
 
 	go sentry.Stream(sentryEnabled, sentryDsn, errReports, logger)
 
