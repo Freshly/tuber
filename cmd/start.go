@@ -58,8 +58,6 @@ func start(cmd *cobra.Command, args []string) {
 		logger.Debug("Beginning pubsub processor without Sentry enabled.")
 	}
 
-	defer close(errReports)
-
 	go sentry.Stream(sentryEnabled, sentryDsn, errReports, logger)
 
 	// calling cancel() will signal to the rest of the application
