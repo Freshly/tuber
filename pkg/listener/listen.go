@@ -113,7 +113,7 @@ func (l *listener) startListener(ctx context.Context, credentials []byte) error 
 					return
 				}
 
-				l.logger.Info("receiving pub/sub event", zap.String("tag", obj.Tag), zap.String("digest", obj.Digest))
+				l.logger.Info("processing pub/sub event", zap.String("tag", obj.Tag), zap.String("digest", obj.Digest))
 				unprocessed <- obj
 			})
 
