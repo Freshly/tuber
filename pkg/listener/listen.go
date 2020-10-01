@@ -93,33 +93,35 @@ func (l *listener) startListener(ctx context.Context, credentials []byte) error 
 	subscription := client.Subscription(l.subscription)
 	subscription.ReceiveSettings = l.recvSettings
 
-	go func(in chan<- *RegistryEvent, logger *zap.Logger) {
-		// Register this goroutine in the waiter
+	go func(unprocessed chan<- *RegistryEvent, logger *zap.Logger) {
 		l.wait.Add(1)
 		defer l.wait.Done()
 
 		// Close the message channel before exiting to signal to downstream that we're done
-		defer close(in)
+		defer close(unprocessed)
 
-		l.logger.Debug("listener: starting")
+		l.logger.Info("listener: starting")
 		l.logger.Debug("listener: subscription options", zap.Reflect("options", subscription.ReceiveSettings))
+
 		err = subscription.Receive(ctx,
 			func(ctx context.Context, message *pubsub.Message) {
 				obj := &RegistryEvent{Message: message}
 				jsonErr := json.Unmarshal(message.Data, obj)
 
 				if jsonErr != nil {
-					l.logger.Warn("could not unmarshal message")
-				} else {
-					l.logger.Debug("Sending event to unprocessed channel from listener", zap.String("tag", obj.Tag), zap.String("digest", obj.Digest))
-					in <- obj
+					l.logger.Error("failed to unmarshal pub/sub event", zap.Error(jsonErr))
+					return
 				}
+
+				l.logger.Info("receiving pub/sub event", zap.String("tag", obj.Tag), zap.String("digest", obj.Digest))
+				unprocessed <- obj
 			})
 
 		if err != nil {
-			l.logger.With(zap.Error(err)).Warn("listener: receiver error")
+			l.logger.Error("error establishing subscription to pub/sub", zap.Error(err))
 		}
-		l.logger.Debug("listener: shutting down")
+
+		l.logger.Info("listener: shutting down")
 	}(l.unprocessed, l.logger)
 
 	return err
