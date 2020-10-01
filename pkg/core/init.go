@@ -46,16 +46,13 @@ func createTuberDirectory() error {
 }
 
 func createDeploymentYAML(appName string) error {
-	templateData := map[string]string{
-		"appName": appName,
-	}
+	templateData := map[string]string{}
 
 	return writeYAML(data.Deployment, templateData)
 }
 
 func createServiceYAML(appName string, serviceType string) error {
 	templateData := map[string]string{
-		"appName":     appName,
 		"serviceType": serviceType,
 	}
 
@@ -64,7 +61,6 @@ func createServiceYAML(appName string, serviceType string) error {
 
 func createVirtualServiceYAML(appName string, routePrefix string) error {
 	templateData := map[string]string{
-		"appName":     appName,
 		"routePrefix": routePrefix,
 	}
 
