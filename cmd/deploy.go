@@ -97,6 +97,9 @@ func deploy(cmd *cobra.Command, args []string) error {
 	case <-sentryErrors:
 		close(unprocessed)
 		return nil
+	case <-processed:
+		close(unprocessed)
+		return nil
 	}
 }
 
