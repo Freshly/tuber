@@ -8,6 +8,7 @@ require (
 	github.com/getsentry/sentry-go v0.4.0
 	github.com/goccy/go-yaml v1.2.0
 	github.com/golang/protobuf v1.4.2
+	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/joho/godotenv v1.3.0
 	github.com/olekukonko/tablewriter v0.0.4
@@ -17,11 +18,13 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/tools/gopls v0.5.0 // indirect
+	golang.org/x/tools v0.0.0-20200914163123-ea50a3c84940 // indirect
 	google.golang.org/api v0.14.0
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.25.0
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
 	k8s.io/api v0.18.0
 	k8s.io/client-go v11.0.0+incompatible
 )
