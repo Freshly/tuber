@@ -9,7 +9,8 @@ import (
 // portForwardCmd represents the portForward command
 var portForwardCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "port-forward",
+	Use:          "port-forward -a appName [port(s)]",
+	Args:         cobra.MinimumNArgs(1),
 	Short:        "forward requests from your local machine to a running pod",
 	Long: `Forward requests from a local address and port to a running pod.
 You are able to specify multiple addresses and ports, but all combinations must be valid and running.
