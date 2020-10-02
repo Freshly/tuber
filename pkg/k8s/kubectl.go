@@ -51,7 +51,7 @@ func kubectlIO(args ...string) error {
 	if viper.GetBool("debug") {
 		logger, zapErr := zap.NewDevelopment()
 		if zapErr != nil {
-			return nil, zapErr
+			return zapErr
 		}
 		logger.Debug(strings.Join(cmd.Args, " "))
 	}
@@ -141,14 +141,14 @@ func Exists(kind string, name string, namespace string, args ...string) (bool, e
 func Exec(name string, namespace string, args ...string) error {
 	execArgs := []string{"-n", namespace, "exec", "-it", name}
 	execArgs = append(execArgs, args...)
-	return kubectlIO("kubectl", execArgs...)
+	return kubectlIO(execArgs...)
 }
 
 // PortForward forward local requests to a running pod
 func PortForward(podName string, namespace string, ports []string, args ...string) error {
 	portForwardArgs := []string{"port-forward", podName}
 	portForwardArgs = append(append(append(portForwardArgs, args...), ports...), "-n", namespace)
-	return kubectlIO(args)
+	return kubectlIO(portForwardArgs...)
 }
 
 type unmarshalledList struct {
