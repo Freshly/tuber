@@ -63,7 +63,6 @@ func portForward(cmd *cobra.Command, args []string) error {
 		}
 		podName = strings.Trim(string(podNameByte), "\"")
 	}
-	fmt.Println(args)
 	ports := args
 
 	portForwardArgs := []string{"--address", address, "--pod-running-timeout", podRunningTimeout}
