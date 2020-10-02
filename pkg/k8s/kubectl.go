@@ -132,15 +132,24 @@ func Exec(name string, namespace string, args ...string) error {
 	return err
 }
 
+// PortForward forward local requests to a running pod
+func PortForward(podName string, namespace string, ports []string, args ...string) error {
+	portForwardArgs := []string{"port-forward", podName}
+	portForwardArgs = append(append(append(portForwardArgs, args...), ports...), "-n", namespace)
+	_, err := kubectl(portForwardArgs...)
+	return err
+}
+
 type unmarshalledList struct {
 	Items []interface{} `json:"items"`
 }
 
+// List represents a nested list of Items
 type List struct {
 	Items [][]byte
 }
 
-// List returns a List resource, with an Items slice of raw yamls
+// ListKind returns a List resource, with an Items slice of raw yamls
 func ListKind(kind string, namespace string, args ...string) (List, error) {
 	get := []string{"get", kind, "-n", namespace, "-o", "json"}
 	out, err := kubectl(append(get, args...)...)

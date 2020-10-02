@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+	"tuber/pkg/k8s"
+
 	"github.com/spf13/cobra"
 )
 
@@ -28,12 +32,48 @@ If no pod name is supplied a pod will be randomly selected for you. To target a 
 }
 
 var pod string
+var address string
+var podRunningTimeout string
 
 func portForward(cmd *cobra.Command, args []string) error {
-	return nil
+	var err error
+	var workloadName string
+	if workload != "" {
+		workloadName = workload
+	} else {
+		workloadName = appName
+	}
+
+	var podName string
+	if pod != "" {
+		podName = pod
+	} else {
+		template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
+		l, err := k8s.Get("deployment", workloadName, appName, "-o", "go-template", "--template", template)
+		if err != nil {
+			return err
+		}
+
+		labels := strings.TrimSuffix(string(l), ",")
+
+		jsonPath := fmt.Sprintf(`-o=jsonpath="%s"`, `{.items[0].metadata.name}`)
+		podNameByte, err := k8s.GetCollection("pods", appName, "-l", labels, jsonPath)
+		if err != nil {
+			return err
+		}
+		podName = strings.Trim(string(podNameByte), "\"")
+	}
+	fmt.Println(args)
+	ports := args
+
+	portForwardArgs := []string{"--address", address, "--pod-running-timeout", podRunningTimeout}
+	err = k8s.PortForward(podName, appName, ports, portForwardArgs...)
+	return err
 }
 
 func init() {
+	portForwardCmd.Flags().StringVar(&address, "address", "localhost", "specify an address on your local machine to forward from. Can be a comma separated list. Only IP addresses and 'localhost' are valid.")
+	portForwardCmd.Flags().StringVar(&podRunningTimeout, "pod-running-timeout", "1m0s", "The length of time (like 5s, 2m, or 3h, higher than zero) to wait until at least one pod is running.")
 	portForwardCmd.Flags().StringVarP(&workload, "workload", "w", "", "specify a deployment name if it does not match your app's name")
 	portForwardCmd.Flags().StringVarP(&pod, "pod", "p", "", "specify a pod (selects one randomly from deployment otherwise)")
 	portForwardCmd.Flags().StringVarP(&appName, "app", "a", "", "app name (required)")
