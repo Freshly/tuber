@@ -28,6 +28,7 @@ If no pod name is supplied a pod will be randomly selected for you. To target a 
 }
 
 func portForward(cmd *cobra.Command, args []string) error {
+	return nil
 }
 
 func init() {
