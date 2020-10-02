@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"strings"
 	"tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -31,37 +29,10 @@ If no pod name is supplied a pod will be randomly selected for you. To target a 
 	PreRunE: promptCurrentContext,
 }
 
-var pod string
-var address string
-var podRunningTimeout string
-
 func portForward(cmd *cobra.Command, args []string) error {
-	var err error
-	var workloadName string
-	if workload != "" {
-		workloadName = workload
-	} else {
-		workloadName = appName
-	}
-
-	var podName string
-	if pod != "" {
-		podName = pod
-	} else {
-		template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
-		l, err := k8s.Get("deployment", workloadName, appName, "-o", "go-template", "--template", template)
-		if err != nil {
-			return err
-		}
-
-		labels := strings.TrimSuffix(string(l), ",")
-
-		jsonPath := fmt.Sprintf(`-o=jsonpath="%s"`, `{.items[0].metadata.name}`)
-		podNameByte, err := k8s.GetCollection("pods", appName, "-l", labels, jsonPath)
-		if err != nil {
-			return err
-		}
-		podName = strings.Trim(string(podNameByte), "\"")
+	podName, err := fetchPodname()
+	if err != nil {
+		return err
 	}
 	ports := args
 
