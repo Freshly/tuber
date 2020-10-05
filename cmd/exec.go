@@ -24,13 +24,14 @@ func exec(cmd *cobra.Command, args []string) error {
 		containerName = fetchWorkload()
 	}
 	podName, err := fetchPodname()
+	if err != nil {
+		return err
+	}
 
 	execArgs := []string{"-c", containerName}
 	execArgs = append(execArgs, args...)
 
-	err = k8s.Exec(podName, appName, execArgs...)
-
-	return err
+	return k8s.Exec(podName, appName, execArgs...)
 }
 
 func init() {
