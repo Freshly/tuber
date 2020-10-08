@@ -49,11 +49,6 @@ func start(cmd *cobra.Command, args []string) {
 	defer logger.Sync()
 
 	errReports := errorReportingChannel(logger)
-
-	if sentryEnabled != true {
-		logger.Debug("Beginning pubsub processor without Sentry enabled.")
-	}
-
 	defer close(errReports)
 
 	var ctx, cancel = context.WithCancel(context.Background())

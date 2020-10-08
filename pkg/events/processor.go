@@ -26,7 +26,6 @@ type EventProcessor struct {
 func (p EventProcessor) Start() {
 	defer close(p.Processed)
 	defer close(p.ChErr)
-	defer close(p.ChErrReports)
 
 	p.Logger.Info("Event processor starting", zap.Bool("review apps enabled", p.ReviewAppsEnabled))
 	var wait = &sync.WaitGroup{}
