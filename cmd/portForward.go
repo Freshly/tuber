@@ -21,7 +21,7 @@ Specifying a workload:
 The workload name will default to the app name if not supplied. If the workload name is not the same as the app name, that argument will be required to run the command successfully.
 
 For example. When the desired workload is a deployment named 'user-service-sidekiq' within a tuber app named 'user-service':
-tuber exec -a user-service -w user-service-sidekiq
+tuber port-forward -a user-service -w user-service-sidekiq
 
 Specifying pods:
 If no pod name is supplied a pod will be randomly selected for you. To target a specific pod that can be supplied as an argument to '-p' or '--pod'.
