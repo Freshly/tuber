@@ -6,11 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"tuber/pkg/core"
+	"tuber/pkg/errorReporting"
 	"tuber/pkg/k8s"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 func clusterData() (*core.ClusterData, error) {
@@ -172,4 +175,23 @@ func displayCurrentContext(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(os.Stderr, "Running %s on %s", cmd.Name(), cluster)
 
 	return nil
+}
+
+func errorReportingChannel(logger *zap.Logger) chan error {
+	integrations := errorReporting.ErrorIntegrations{
+		Reporters: []errorReporting.ErrorReporter{
+			errorReporting.Sentry{
+				Enable: viper.GetBool("sentry-enabled"),
+				Options: sentry.ClientOptions{
+					Dsn:              viper.GetString("sentry-dsn"),
+					AttachStacktrace: true,
+				},
+			},
+		},
+	}
+	errReports, err := errorReporting.StartWatching(integrations, logger)
+	if err != nil {
+		panic(err)
+	}
+	return errReports
 }
