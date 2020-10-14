@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	data "tuber/data/tuberapps"
@@ -87,6 +88,8 @@ func writeYAML(app data.TuberYaml, templateData map[string]string) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("writing %q to %q\n", app.Filename, tuberConfigPath)
 
 	return ioutil.WriteFile(tuberConfigPath+"/"+app.Filename, interpolated, 0644)
 }
