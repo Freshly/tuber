@@ -84,12 +84,15 @@ func modDockerFile() error {
 
 func writeYAML(app data.TuberYaml, templateData map[string]string) error {
 	interpolated, err := interpolate(string(app.Contents), templateData)
-
 	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(tuberConfigPath+"/"+app.Filename, interpolated, 0644); err != nil {
 		return err
 	}
 
 	fmt.Printf("writing %q to %q\n", app.Filename, tuberConfigPath)
 
-	return ioutil.WriteFile(tuberConfigPath+"/"+app.Filename, interpolated, 0644)
+	return nil
 }
