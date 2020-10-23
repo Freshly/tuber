@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"tuber/pkg/core"
 	"tuber/pkg/errorReporting"
 	"tuber/pkg/k8s"
@@ -15,6 +16,12 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
+
+var address string
+var appName string
+var pod string
+var podRunningTimeout string
+var workload string
 
 func clusterData() (*core.ClusterData, error) {
 	defaultGateway := viper.GetString("cluster-default-gateway")
@@ -194,4 +201,31 @@ func errorReportingChannel(logger *zap.Logger) chan error {
 		panic(err)
 	}
 	return errReports
+}
+
+func fetchWorkload() string {
+	if workload != "" {
+		return workload
+	}
+	return appName
+}
+
+func fetchPodname() (string, error) {
+	if pod != "" {
+		return pod, nil
+	}
+	template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
+	l, err := k8s.Get("deployment", fetchWorkload(), appName, "-o", "go-template", "--template", template)
+	if err != nil {
+		return "", err
+	}
+
+	labels := strings.TrimSuffix(string(l), ",")
+
+	jsonPath := fmt.Sprintf(`-o=jsonpath="%s"`, `{.items[0].metadata.name}`)
+	podNameByte, err := k8s.GetCollection("pods", appName, "-l", labels, jsonPath)
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(string(podNameByte), "\""), nil
 }

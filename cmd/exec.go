@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"strings"
 	"tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -15,36 +13,17 @@ var execCmd = &cobra.Command{
 	RunE:         exec,
 	PreRunE:      promptCurrentContext,
 }
-var appName string
 
-var workload string
 var container string
 
 func exec(cmd *cobra.Command, args []string) error {
-	var workloadName string
-	if workload != "" {
-		workloadName = workload
-	} else {
-		workloadName = appName
-	}
-
 	var containerName string
 	if container != "" {
 		containerName = container
 	} else {
-		containerName = workloadName
+		containerName = fetchWorkload()
 	}
-
-	template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
-	l, err := k8s.Get("deployment", workloadName, appName, "-o", "go-template", "--template", template)
-	if err != nil {
-		return err
-	}
-
-	labels := strings.TrimSuffix(string(l), ",")
-
-	jsonPath := fmt.Sprintf(`-o=jsonpath="%s"`, `{.items[0].metadata.name}`)
-	name, err := k8s.GetCollection("pods", appName, "-l", labels, jsonPath)
+	podName, err := fetchPodname()
 	if err != nil {
 		return err
 	}
@@ -52,13 +31,12 @@ func exec(cmd *cobra.Command, args []string) error {
 	execArgs := []string{"-c", containerName}
 	execArgs = append(execArgs, args...)
 
-	err = k8s.Exec(strings.Trim(string(name), "\""), appName, execArgs...)
-
-	return err
+	return k8s.Exec(podName, appName, execArgs...)
 }
 
 func init() {
 	execCmd.Flags().StringVarP(&workload, "workload", "w", "", "specify a deployment name if it does not match your app's name")
+	execCmd.Flags().StringVarP(&pod, "pod", "p", "", "specify a pod (selects one randomly from deployment otherwise)")
 	execCmd.Flags().StringVarP(&container, "container", "c", "", "specify a container (selects by the deployment name by default)")
 	execCmd.Flags().StringVarP(&appName, "app", "a", "", "app name (required)")
 	execCmd.MarkFlagRequired("app")

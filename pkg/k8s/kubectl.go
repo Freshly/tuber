@@ -42,6 +42,23 @@ func kubectl(args ...string) ([]byte, error) {
 	return runKubectl(exec.Command("kubectl", args...))
 }
 
+func kubectlIO(args ...string) error {
+	cmd := exec.Command("kubectl", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+
+	if viper.GetBool("debug") {
+		logger, zapErr := zap.NewDevelopment()
+		if zapErr != nil {
+			return zapErr
+		}
+		logger.Debug(strings.Join(cmd.Args, " "))
+	}
+
+	return cmd.Run()
+}
+
 func pipeToKubectl(data []byte, args ...string) (out []byte, err error) {
 	cmd := exec.Command("kubectl", args...)
 	stdin, err := cmd.StdinPipe()
@@ -124,23 +141,26 @@ func Exists(kind string, name string, namespace string, args ...string) (bool, e
 func Exec(name string, namespace string, args ...string) error {
 	execArgs := []string{"-n", namespace, "exec", "-it", name}
 	execArgs = append(execArgs, args...)
-	cmd := exec.Command("kubectl", execArgs...)
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	return err
+	return kubectlIO(execArgs...)
+}
+
+// PortForward forward local requests to a running pod
+func PortForward(podName string, namespace string, ports []string, args ...string) error {
+	portForwardArgs := []string{"port-forward", podName}
+	portForwardArgs = append(append(append(portForwardArgs, args...), ports...), "-n", namespace)
+	return kubectlIO(portForwardArgs...)
 }
 
 type unmarshalledList struct {
 	Items []interface{} `json:"items"`
 }
 
+// List represents a nested list of Items
 type List struct {
 	Items [][]byte
 }
 
-// List returns a List resource, with an Items slice of raw yamls
+// ListKind returns a List resource, with an Items slice of raw yamls
 func ListKind(kind string, namespace string, args ...string) (List, error) {
 	get := []string{"get", kind, "-n", namespace, "-o", "json"}
 	out, err := kubectl(append(get, args...)...)
