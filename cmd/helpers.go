@@ -7,14 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 	"tuber/pkg/core"
-	"tuber/pkg/errorReporting"
 	"tuber/pkg/k8s"
+	"tuber/pkg/report"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 var address string
@@ -157,7 +156,7 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(os.Stderr, "About to run %s on %s", cmd.Name(), cluster)
-	fmt.Fprintf(os.Stderr, "Press ctrl+C to cancel, enter to continue...")
+	fmt.Fprintf(os.Stderr, "\nPress ctrl+C to cancel, enter to continue...")
 	var input string
 	_, err = fmt.Scanln(&input)
 
@@ -174,33 +173,36 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 }
 
 func displayCurrentContext(cmd *cobra.Command, args []string) error {
+	skipConfirmation, err := cmd.Flags().GetBool("confirm")
+	if err != nil {
+		return err
+	}
+
+	if skipConfirmation {
+		return nil
+	}
 	cluster, err := k8s.CurrentCluster()
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Running %s on %s", cmd.Name(), cluster)
+	fmt.Fprintf(os.Stderr, "Running %s on %s\n", cmd.Name(), cluster)
 
 	return nil
 }
 
-func errorReportingChannel(logger *zap.Logger) chan error {
-	integrations := errorReporting.ErrorIntegrations{
-		Reporters: []errorReporting.ErrorReporter{
-			errorReporting.Sentry{
-				Enable: viper.GetBool("sentry-enabled"),
-				Options: sentry.ClientOptions{
-					Dsn:              viper.GetString("sentry-dsn"),
-					AttachStacktrace: true,
-				},
+func initErrorReporters() {
+	report.ErrorReporters = []report.ErrorReporter{
+		report.Sentry{
+			Enable: viper.GetBool("sentry-enabled"),
+			Options: sentry.ClientOptions{
+				Dsn:              viper.GetString("sentry-dsn"),
+				Environment:      viper.GetString("sentry-environment"),
+				AttachStacktrace: true,
 			},
 		},
 	}
-	errReports, err := errorReporting.StartWatching(integrations, logger)
-	if err != nil {
-		panic(err)
-	}
-	return errReports
+	report.InitErrorReporters()
 }
 
 func fetchWorkload() string {

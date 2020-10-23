@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
 	"tuber/pkg/events"
-	"tuber/pkg/listener"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -18,11 +18,6 @@ var deployCmd = &cobra.Command{
 	RunE:         deploy,
 	PreRunE:      promptCurrentContext,
 }
-
-type emptyAckable struct{}
-
-func (emptyAckable) Ack()  {}
-func (emptyAckable) Nack() {}
 
 func deploy(cmd *cobra.Command, args []string) error {
 	appName := args[0]
@@ -62,45 +57,19 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	unprocessed := make(chan *listener.RegistryEvent, 1)
-	processed := make(chan *listener.RegistryEvent, 1)
-	failedReleases := make(chan listener.FailedRelease, 1)
-	sentryErrors := make(chan error, 1)
+	var ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
 
-	eventProcessor := events.EventProcessor{
-		Creds:             creds,
-		Logger:            logger,
-		ClusterData:       data,
-		ReviewAppsEnabled: viper.GetBool("reviewapps-enabled"),
-		Unprocessed:       unprocessed,
-		Processed:         processed,
-		ChErr:             failedReleases,
-		ChErrReports:      sentryErrors,
+	processor := events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled"))
+
+	digest := app.RepoHost + "/" + app.RepoPath + "@" + sha
+	tag := app.ImageTag
+	message := pubsub.Message{
+		Data: []byte(`{"action":"INSERT","digest":"` + digest + `","tag":"` + tag + `"}`),
 	}
 
-	go eventProcessor.Start()
-
-	ackable := emptyAckable{}
-	deployEvent := listener.RegistryEvent{
-		Action:  "INSERT",
-		Digest:  app.RepoHost + "/" + app.RepoPath + "@" + sha,
-		Tag:     app.ImageTag,
-		Message: ackable,
-	}
-
-	unprocessed <- &deployEvent
-
-	select {
-	case <-failedReleases:
-		close(unprocessed)
-		return fmt.Errorf("deploy failed")
-	case <-sentryErrors:
-		close(unprocessed)
-		return nil
-	case <-processed:
-		close(unprocessed)
-		return nil
-	}
+	processor.ProcessMessage(&message)
+	return nil
 }
 
 func init() {

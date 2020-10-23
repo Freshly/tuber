@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
 	"tuber/pkg/events"
-	"tuber/pkg/listener"
+	"tuber/pkg/messages"
+	"tuber/pkg/report"
 	"tuber/pkg/reviewapps"
 	"tuber/pkg/server"
 
@@ -22,7 +22,7 @@ func init() {
 
 var startCmd = &cobra.Command{
 	Use:     "start",
-	Short:   "Start tuber's pub/sub listener",
+	Short:   "Start tuber's pub/sub server",
 	Run:     start,
 	PreRunE: promptCurrentContext,
 }
@@ -42,76 +42,81 @@ func bindShutdown(logger *zap.Logger, cancel func()) {
 
 func start(cmd *cobra.Command, args []string) {
 	logger, err := createLogger()
+	defer logger.Sync()
+
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Sync()
 
-	errReports := errorReportingChannel(logger)
-	defer close(errReports)
+	initErrorReporters()
+	scope := report.Scope{"during": "startup"}
+	startupLogger := logger.With(zap.String("action", "startup"))
 
 	var ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	// bind the cancel to signals
 	bindShutdown(logger, cancel)
-
-	subscriptionName := viper.GetString("pubsub-subscription-name")
-	if subscriptionName == "" {
-		panic(errors.New("pubsub subscription name is required"))
-	}
-
-	var l = listener.NewListener(logger, subscriptionName)
 
 	creds, err := credentials()
 	if err != nil {
-		panic(err)
-	}
-
-	unprocessedEvents, processedEvents, failedReleases, err := l.Listen(ctx, creds)
-	if err != nil {
+		startupLogger.Warn("failed to get credentials", zap.Error(err))
+		report.Error(err, scope.WithContext("getting credentials"))
 		panic(err)
 	}
 
 	data, err := clusterData()
 	if err != nil {
+		startupLogger.Warn("failed to get cluster data", zap.Error(err))
+		report.Error(err, scope.WithContext("getting cluster data"))
 		panic(err)
 	}
 
-	eventProcessor := events.EventProcessor{
-		Creds:             creds,
-		Logger:            logger,
-		ClusterData:       data,
-		ReviewAppsEnabled: viper.GetBool("reviewapps-enabled"),
-		Unprocessed:       unprocessedEvents,
-		Processed:         processedEvents,
-		ChErr:             failedReleases,
-		ChErrReports:      errReports,
+	listener, err := messages.NewListener(
+		ctx,
+		logger,
+		viper.GetString("pubsub-project"),
+		viper.GetString("pubsub-subscription-name"),
+		creds,
+		data,
+		events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled")),
+	)
+
+	if err != nil {
+		startupLogger.Warn("failed to initialize listener", zap.Error(err))
+		report.Error(err, scope.WithContext("initialize listener"))
+		panic(err)
 	}
-	go eventProcessor.Start()
 
-	go func() {
-		logger = logger.With(zap.String("action", "grpc"))
+	if viper.GetBool("reviewapps-enabled") {
+		startReviewAppsServer(logger, creds)
+	}
 
-		srv := reviewapps.Server{
-			ReviewAppsEnabled:  viper.GetBool("reviewapps-enabled"),
-			ClusterDefaultHost: viper.GetString("cluster-default-host"),
-			ProjectName:        viper.GetString("project-name"),
-			Logger:             logger,
-			Credentials:        creds,
-		}
+	err = listener.Listen()
+	if err != nil {
+		startupLogger.Warn("listener shutdown", zap.Error(err))
+		report.Error(err, scope.WithContext("listener shutdown"))
+		panic(err)
+	}
 
-		err = server.Start(3000, srv)
-		if err != nil {
-			logger.Error("grpc server: failed to start")
-			cancel()
-		}
-	}()
-
-	// Wait for cancel() of context
 	<-ctx.Done()
 	logger.Info("Shutting down...")
+}
 
-	// Wait for queues to drain
-	l.Wait()
+func startReviewAppsServer(logger *zap.Logger, creds []byte) {
+	logger = logger.With(zap.String("action", "grpc"))
+
+	srv := reviewapps.Server{
+		ReviewAppsEnabled:  viper.GetBool("reviewapps-enabled"),
+		ClusterDefaultHost: viper.GetString("cluster-default-host"),
+		ProjectName:        viper.GetString("project-name"),
+		Logger:             logger,
+		Credentials:        creds,
+	}
+
+	err := server.Start(3000, srv)
+	if err != nil {
+		logger.Error("grpc server: failed to start")
+		report.Error(err, report.Scope{"during": "grpc server startup"})
+		panic(err)
+	}
 }

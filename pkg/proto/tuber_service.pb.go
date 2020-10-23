@@ -8,14 +8,15 @@ package proto
 
 import (
 	context "context"
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -403,7 +404,7 @@ func file_pkg_proto_tuber_service_proto_init() {
 	file_pkg_proto_tuber_service_proto_depIdxs = nil
 }
 
-// Reference imports to suppress errors if they are not otherwise used.
+// Reference imports to suppress report if they are not otherwise used.
 var _ context.Context
 var _ grpc.ClientConnInterface
 
