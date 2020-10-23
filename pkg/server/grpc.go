@@ -21,7 +21,6 @@ func Start(port int, s reviewapps.Server) error {
 	proto.RegisterTuberServer(server, &s)
 	reflection.Register(server)
 
-	fmt.Println("starting GRPC server")
 	if err := server.Serve(lis); err != nil {
 		return err
 	}

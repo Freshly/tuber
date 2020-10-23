@@ -57,7 +57,7 @@ func (p Processor) ProcessMessage(message *pubsub.Message) {
 		report.Error(err, event.errorScope.WithContext("tuber apps lookup"))
 		return
 	}
-	event.logger.Debug("processing event: current tuber apps", zap.Any("apps", apps))
+	event.logger.Debug("filtering event against current tuber apps", zap.Any("apps", apps))
 
 	matchFound := false
 	for _, app := range apps {
@@ -67,7 +67,7 @@ func (p Processor) ProcessMessage(message *pubsub.Message) {
 		}
 	}
 	if !matchFound {
-		event.logger.Info("ignored event")
+		event.logger.Debug("ignored event")
 	}
 }
 
@@ -84,11 +84,11 @@ func (p Processor) eventFromMessage(message *pubsub.Message) (*Event, error) {
 
 func (p Processor) apps() ([]core.TuberApp, error) {
 	if p.reviewAppsEnabled {
-		p.logger.Debug("listing source and review apps")
+		p.logger.Debug("pulling source and review apps")
 		return core.SourceAndReviewApps()
 	}
 
-	p.logger.Debug("listing source apps")
+	p.logger.Debug("pulling source apps")
 	return core.TuberSourceApps()
 }
 
@@ -111,8 +111,8 @@ func (p Processor) deploy(event *Event, app *core.TuberApp) {
 	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), p.creds)
 
 	if err != nil {
-		deployLogger.Warn("failed to get tuber layer", zap.Error(err))
-		report.Error(err, errorScope.WithContext("get tuber layer"))
+		deployLogger.Warn("failed to find tuber layer", zap.Error(err))
+		report.Error(err, errorScope.WithContext("find tuber layer"))
 		return
 	}
 

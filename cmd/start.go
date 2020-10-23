@@ -113,9 +113,10 @@ func startReviewAppsServer(logger *zap.Logger, creds []byte) {
 		Credentials:        creds,
 	}
 
+	logger.Debug("starting GRPC server")
 	err := server.Start(3000, srv)
 	if err != nil {
-		logger.Error("grpc server: failed to start")
+		logger.Error("grpc server failed to start")
 		report.Error(err, report.Scope{"during": "grpc server startup"})
 		panic(err)
 	}
