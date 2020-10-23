@@ -51,7 +51,7 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 	}, nil
 }
 
-// Listen starts up the pubsub server and pipes incoming pubsub to the Listener's events.Processor
+// Listen starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
 func (l *Listener) Listen() error {
 	var client *cloudpubsub.Client
 	var err error
