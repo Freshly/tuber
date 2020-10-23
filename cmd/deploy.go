@@ -5,8 +5,8 @@ import (
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
 	"tuber/pkg/events"
+	"tuber/pkg/pubsub"
 
-	"cloud.google.com/go/pubsub"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -64,11 +64,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	digest := app.RepoHost + "/" + app.RepoPath + "@" + sha
 	tag := app.ImageTag
-	message := pubsub.Message{
-		Data: []byte(`{"action":"INSERT","digest":"` + digest + `","tag":"` + tag + `"}`),
-	}
+	var message = new(pubsub.Message)
+	message.Data = []byte(`{"action":"INSERT","digest":"` + digest + `","tag":"` + tag + `"}`)
 
-	processor.ProcessMessage(&message)
+	processor.ProcessMessage(message)
 	return nil
 }
 

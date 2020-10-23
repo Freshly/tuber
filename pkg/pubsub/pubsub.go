@@ -1,4 +1,4 @@
-package messages
+package pubsub
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"cloud.google.com/go/pubsub"
+	cloudpubsub "cloud.google.com/go/pubsub"
 	"google.golang.org/api/option"
 )
 
@@ -23,6 +23,9 @@ type Listener struct {
 	clusterData      *core.ClusterData
 	processor        events.Processor
 }
+
+// Message is an alias for cloud pubsub message
+type Message = *cloudpubsub.Message
 
 // NewListener is a constructor for Listener with field validation
 func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, subscriptionName string,
@@ -48,15 +51,15 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 	}, nil
 }
 
-// Listen starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
+// Listen starts up the pubsub server and pipes incoming pubsub to the Listener's events.Processor
 func (l *Listener) Listen() error {
-	var client *pubsub.Client
+	var client *cloudpubsub.Client
 	var err error
 
-	client, err = pubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
+	client, err = cloudpubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
 
 	if err != nil {
-		client, err = pubsub.NewClient(l.ctx, l.pubsubProject)
+		client, err = cloudpubsub.NewClient(l.ctx, l.pubsubProject)
 	}
 
 	if err != nil {
@@ -69,16 +72,16 @@ func (l *Listener) Listen() error {
 	listenLogger.Debug("pubsub server starting")
 	listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
 
-	err = subscription.Receive(l.ctx, func(ctx context.Context, message *pubsub.Message) {
+	err = subscription.Receive(l.ctx, func(ctx context.Context, message *cloudpubsub.Message) {
 		message.Ack()
-		go l.processor.ProcessMessage(message)
+		go l.processor.ProcessMessage(&message)
 	})
 
 	if err != nil {
 		listenLogger.With(zap.Error(err)).Warn("receiver error")
 		report.Error(err, report.Scope{"context": "pubsubServer"})
 	}
-	listenLogger.Debug("shutting down")
+	listenLogger.Debug("listener stopped")
 
 	return err
 }

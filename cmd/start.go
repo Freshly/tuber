@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 	"tuber/pkg/events"
-	"tuber/pkg/messages"
+	"tuber/pkg/pubsub"
 	"tuber/pkg/report"
 	"tuber/pkg/reviewapps"
 	"tuber/pkg/server"
@@ -71,7 +71,7 @@ func start(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	listener, err := messages.NewListener(
+	listener, err := pubsub.NewListener(
 		ctx,
 		logger,
 		viper.GetString("pubsub-project"),

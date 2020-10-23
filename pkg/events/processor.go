@@ -6,9 +6,9 @@ import (
 	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
+	"tuber/pkg/pubsub"
 	"tuber/pkg/report"
 
-	"cloud.google.com/go/pubsub"
 	"go.uber.org/zap"
 )
 
