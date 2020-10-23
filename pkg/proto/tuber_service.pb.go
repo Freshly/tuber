@@ -404,7 +404,7 @@ func file_pkg_proto_tuber_service_proto_init() {
 	file_pkg_proto_tuber_service_proto_depIdxs = nil
 }
 
-// Reference imports to suppress report if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
 var _ grpc.ClientConnInterface
 
