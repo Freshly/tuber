@@ -2,14 +2,15 @@ package pubsub
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"tuber/pkg/core"
 	"tuber/pkg/events"
 	"tuber/pkg/report"
 
+	"cloud.google.com/go/pubsub"
 	"go.uber.org/zap"
 
-	cloudpubsub "cloud.google.com/go/pubsub"
 	"google.golang.org/api/option"
 )
 
@@ -23,9 +24,6 @@ type Listener struct {
 	clusterData      *core.ClusterData
 	processor        events.Processor
 }
-
-// Message is an alias for cloud pubsub message
-type Message = *cloudpubsub.Message
 
 // NewListener is a constructor for Listener with field validation
 func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, subscriptionName string,
@@ -51,35 +49,50 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 	}, nil
 }
 
-// Listen starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
-func (l *Listener) Listen() error {
-	var client *cloudpubsub.Client
+// Message json deserialization target for pubsub messages
+type Message struct {
+	Digest string `json:"digest"`
+	Tag    string `json:"tag"`
+}
+
+// Start starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
+func (l *Listener) Start() error {
+	var client *pubsub.Client
 	var err error
 
-	client, err = cloudpubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
+	client, err = pubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
 
 	if err != nil {
-		client, err = cloudpubsub.NewClient(l.ctx, l.pubsubProject)
+		client, err = pubsub.NewClient(l.ctx, l.pubsubProject)
 	}
 
+	listenLogger := l.logger.With(zap.String("context", "pubsubServer"))
 	if err != nil {
+		listenLogger.With(zap.Error(err)).Warn("pubsub client initialization failed")
+		report.Error(err, report.Scope{"context": "pubsub client initialization"})
 		return err
 	}
 
 	subscription := client.Subscription(l.subscriptionName)
 
-	listenLogger := l.logger.With(zap.String("context", "pubsubServer"))
 	listenLogger.Debug("pubsub server starting")
 	listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
 
-	err = subscription.Receive(l.ctx, func(ctx context.Context, message *cloudpubsub.Message) {
+	err = subscription.Receive(l.ctx, func(ctx context.Context, message *pubsub.Message) {
 		message.Ack()
-		go l.processor.ProcessMessage(&message)
+		var pubsubEvent Message
+		err := json.Unmarshal(message.Data, pubsubEvent)
+		if err != nil {
+			listenLogger.Warn("failed to unmarshal pubsub message", zap.Error(err))
+			report.Error(err, report.Scope{"context": "messageProcessing"})
+			return
+		}
+		go l.processor.ProcessMessage(pubsubEvent.Digest, pubsubEvent.Tag)
 	})
 
 	if err != nil {
-		listenLogger.With(zap.Error(err)).Warn("receiver error")
-		report.Error(err, report.Scope{"context": "pubsubServer"})
+		listenLogger.With(zap.Error(err)).Warn("pubsub listener halted")
+		report.Error(err, report.Scope{"context": "pubsub listener halted"})
 	}
 	listenLogger.Debug("listener stopped")
 

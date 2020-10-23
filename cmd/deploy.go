@@ -5,7 +5,6 @@ import (
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
 	"tuber/pkg/events"
-	"tuber/pkg/pubsub"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -61,13 +60,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	processor := events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled"))
-
 	digest := app.RepoHost + "/" + app.RepoPath + "@" + sha
 	tag := app.ImageTag
-	var message = new(pubsub.Message)
-	message.Data = []byte(`{"action":"INSERT","digest":"` + digest + `","tag":"` + tag + `"}`)
 
-	processor.ProcessMessage(message)
+	processor.ProcessMessage(digest, tag)
 	return nil
 }
 

@@ -91,7 +91,7 @@ func start(cmd *cobra.Command, args []string) {
 		go startReviewAppsServer(logger, creds)
 	}
 
-	err = listener.Listen()
+	err = listener.Start()
 	if err != nil {
 		startupLogger.Warn("listener shutdown", zap.Error(err))
 		report.Error(err, scope.WithContext("listener shutdown"))

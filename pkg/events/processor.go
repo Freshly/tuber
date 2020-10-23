@@ -2,11 +2,9 @@ package events
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
-	"tuber/pkg/pubsub"
 	"tuber/pkg/report"
 
 	"go.uber.org/zap"
@@ -32,25 +30,21 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, cluster
 	}
 }
 
-// Event json deserialize target for pubsub
-type Event struct {
-	Action     string `json:"action"`
-	Digest     string `json:"digest"`
-	Tag        string `json:"tag"`
-	message    *pubsub.Message
+type event struct {
+	digest     string
+	tag        string
 	logger     *zap.Logger
 	errorScope report.Scope
 }
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers deploys for matching apps
-func (p Processor) ProcessMessage(message *pubsub.Message) {
-	event, err := p.eventFromMessage(message)
-	if err != nil {
-		p.logger.Warn("failed to unmarshal pubsub message", zap.Error(err))
-		report.Error(err, report.Scope{"context": "messageProcessing"})
-		return
+func (p Processor) ProcessMessage(digest string, tag string) {
+	event := event{
+		digest:     digest,
+		tag:        tag,
+		logger:     p.logger.With(zap.String("tag", tag), zap.String("digest", digest)),
+		errorScope: report.Scope{"tag": tag, "digest": digest},
 	}
-
 	apps, err := p.apps()
 	if err != nil {
 		event.logger.Error("failed to look up tuber apps", zap.Error(err))
@@ -61,7 +55,7 @@ func (p Processor) ProcessMessage(message *pubsub.Message) {
 
 	matchFound := false
 	for _, app := range apps {
-		if app.ImageTag == event.Tag {
+		if app.ImageTag == event.tag {
 			matchFound = true
 			p.deploy(event, &app)
 		}
@@ -69,17 +63,6 @@ func (p Processor) ProcessMessage(message *pubsub.Message) {
 	if !matchFound {
 		event.logger.Debug("ignored event")
 	}
-}
-
-func (p Processor) eventFromMessage(message *pubsub.Message) (*Event, error) {
-	event := &Event{message: message}
-	err := json.Unmarshal(message.Data, event)
-	if err != nil {
-		return nil, err
-	}
-	event.logger = p.logger.With(zap.String("tag", event.Tag), zap.String("digest", event.Digest))
-	event.errorScope = report.Scope{"tag": event.Tag, "digest": event.Digest}
-	return event, nil
 }
 
 func (p Processor) apps() ([]core.TuberApp, error) {
@@ -92,7 +75,7 @@ func (p Processor) apps() ([]core.TuberApp, error) {
 	return core.TuberSourceApps()
 }
 
-func (p Processor) deploy(event *Event, app *core.TuberApp) {
+func (p Processor) deploy(event event, app *core.TuberApp) {
 	deployLogger := event.logger.With(
 		zap.String("name", app.Name),
 		zap.String("branch", app.Tag),
@@ -119,7 +102,7 @@ func (p Processor) deploy(event *Event, app *core.TuberApp) {
 	if len(prereleaseYamls) > 0 {
 		deployLogger.Info("prerelease starting")
 
-		err = core.RunPrerelease(prereleaseYamls, app, event.Digest, p.clusterData)
+		err = core.RunPrerelease(prereleaseYamls, app, event.digest, p.clusterData)
 
 		if err != nil {
 			report.Error(err, errorScope.WithContext("prerelease"))
@@ -130,7 +113,7 @@ func (p Processor) deploy(event *Event, app *core.TuberApp) {
 		deployLogger.Info("prerelease complete")
 	}
 
-	releaseIDs, err := core.ReleaseTubers(releaseYamls, app, event.Digest, p.clusterData)
+	releaseIDs, err := core.ReleaseTubers(releaseYamls, app, event.digest, p.clusterData)
 	if err != nil {
 		deployLogger.Warn("failed release", zap.Error(err))
 		report.Error(err, errorScope.WithContext("release"))
