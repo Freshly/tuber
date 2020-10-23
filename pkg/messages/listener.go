@@ -65,22 +65,20 @@ func (l *Listener) Listen() error {
 
 	subscription := client.Subscription(l.subscriptionName)
 
-	go func() {
-		listenLogger := l.logger.With(zap.String("context", "pubsubServer"))
-		listenLogger.Debug("pubsub server starting")
-		listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
+	listenLogger := l.logger.With(zap.String("context", "pubsubServer"))
+	listenLogger.Debug("pubsub server starting")
+	listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
 
-		err = subscription.Receive(l.ctx, func(ctx context.Context, message *pubsub.Message) {
-			message.Ack()
-			go l.processor.ProcessMessage(message)
-		})
+	err = subscription.Receive(l.ctx, func(ctx context.Context, message *pubsub.Message) {
+		message.Ack()
+		go l.processor.ProcessMessage(message)
+	})
 
-		if err != nil {
-			listenLogger.With(zap.Error(err)).Warn("receiver error")
-			report.Error(err, report.Scope{"context": "pubsubServer"})
-		}
-		listenLogger.Debug("shutting down")
-	}()
+	if err != nil {
+		listenLogger.With(zap.Error(err)).Warn("receiver error")
+		report.Error(err, report.Scope{"context": "pubsubServer"})
+	}
+	listenLogger.Debug("shutting down")
 
 	return err
 }
