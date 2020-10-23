@@ -79,14 +79,14 @@ func (l *Listener) Start() error {
 	listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
 
 	err = subscription.Receive(l.ctx, func(ctx context.Context, message *pubsub.Message) {
-		message.Ack()
 		var pubsubEvent Message
-		err := json.Unmarshal(message.Data, pubsubEvent)
+		err := json.Unmarshal(message.Data, &pubsubEvent)
 		if err != nil {
 			listenLogger.Warn("failed to unmarshal pubsub message", zap.Error(err))
 			report.Error(err, report.Scope{"context": "messageProcessing"})
 			return
 		}
+		message.Ack()
 		go l.processor.ProcessMessage(pubsubEvent.Digest, pubsubEvent.Tag)
 	})
 
