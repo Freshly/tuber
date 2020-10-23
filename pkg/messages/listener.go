@@ -74,7 +74,7 @@ func (l *Listener) Listen() error {
 
 		if err != nil {
 			listenLogger.With(zap.Error(err)).Warn("receiver error")
-			report.Error(err, map[string]string{"context": "pubsubServer"})
+			report.Error(err, report.Scope{"context": "pubsubServer"})
 		}
 		listenLogger.Debug("shutting down")
 	}()

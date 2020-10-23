@@ -81,8 +81,8 @@ func (p Processor) apps() ([]core.TuberApp, error) {
 }
 
 func (p Processor) processEvent(event *Event, apps []core.TuberApp) {
-	event.logger.Info("processing event")
-	event.logger.Debug("listing tuber apps", zap.Any("apps", apps))
+	event.logger.Debug("processing event")
+	event.logger.Debug("current tuber apps", zap.Any("apps", apps))
 
 	matchFound := false
 	for _, app := range apps {
@@ -92,7 +92,7 @@ func (p Processor) processEvent(event *Event, apps []core.TuberApp) {
 		}
 	}
 	if !matchFound {
-		event.logger.Info("ignoring event")
+		event.logger.Info("ignored event")
 	}
 }
 
