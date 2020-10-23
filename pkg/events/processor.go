@@ -44,14 +44,14 @@ type Event struct {
 func (p Processor) ProcessMessage(message *pubsub.Message) {
 	event, err := p.eventFromMessage(message)
 	if err != nil {
-		p.logger.Warn("could not unmarshal pubsub message", zap.Error(err))
+		p.logger.Warn("failed to unmarshal pubsub message", zap.Error(err))
 		report.Error(err, report.Scope{"context": "messageProcessing"})
 		return
 	}
 
 	apps, err := p.apps()
 	if err != nil {
-		event.logger.Error("could not look up tuber apps", zap.Error(err))
+		event.logger.Error("failed to look up tuber apps", zap.Error(err))
 		report.Error(err, event.errorScope.WithContext("tuber apps lookup"))
 		return
 	}
