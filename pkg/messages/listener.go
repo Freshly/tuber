@@ -13,6 +13,7 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Listener is a pubsub server that pipes messages off to its events.Processor
 type Listener struct {
 	ctx              context.Context
 	logger           *zap.Logger
@@ -23,6 +24,7 @@ type Listener struct {
 	processor        events.Processor
 }
 
+// NewListener is a constructor for Listener with field validation
 func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, subscriptionName string,
 	credentials []byte, clusterData *core.ClusterData, processor events.Processor) (*Listener, error) {
 	if logger == nil {
@@ -46,6 +48,7 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 	}, nil
 }
 
+// Listen starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
 func (l *Listener) Listen() error {
 	var client *pubsub.Client
 	var err error

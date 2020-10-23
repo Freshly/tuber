@@ -21,6 +21,7 @@ type Processor struct {
 	reviewAppsEnabled bool
 }
 
+// NewProcessor is a constructor for Processors so that the fields can be unexported
 func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool) Processor {
 	return Processor{
 		ctx:               ctx,
@@ -41,6 +42,7 @@ type Event struct {
 	errorScope report.Scope
 }
 
+// ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers deploys for matching apps
 func (p Processor) ProcessMessage(message *pubsub.Message) {
 	event, err := p.eventFromMessage(message)
 	if err != nil {
