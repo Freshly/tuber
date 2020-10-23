@@ -57,8 +57,18 @@ func (p Processor) ProcessMessage(message *pubsub.Message) {
 		report.Error(err, event.errorScope.WithContext("tuber apps lookup"))
 		return
 	}
+	event.logger.Debug("processing event: current tuber apps", zap.Any("apps", apps))
 
-	p.processEvent(event, apps)
+	matchFound := false
+	for _, app := range apps {
+		if app.ImageTag == event.Tag {
+			matchFound = true
+			p.deploy(event, &app)
+		}
+	}
+	if !matchFound {
+		event.logger.Info("ignored event")
+	}
 }
 
 func (p Processor) eventFromMessage(message *pubsub.Message) (*Event, error) {
@@ -80,22 +90,6 @@ func (p Processor) apps() ([]core.TuberApp, error) {
 
 	p.logger.Debug("listing source apps")
 	return core.TuberSourceApps()
-}
-
-func (p Processor) processEvent(event *Event, apps []core.TuberApp) {
-	event.logger.Debug("processing event")
-	event.logger.Debug("current tuber apps", zap.Any("apps", apps))
-
-	matchFound := false
-	for _, app := range apps {
-		if app.ImageTag == event.Tag {
-			matchFound = true
-			p.deploy(event, &app)
-		}
-	}
-	if !matchFound {
-		event.logger.Info("ignored event")
-	}
 }
 
 func (p Processor) deploy(event *Event, app *core.TuberApp) {
