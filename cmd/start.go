@@ -88,7 +88,7 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	if viper.GetBool("reviewapps-enabled") {
-		startReviewAppsServer(logger, creds)
+		go startReviewAppsServer(logger, creds)
 	}
 
 	err = listener.Listen()
