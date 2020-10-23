@@ -136,6 +136,7 @@ func (p Processor) deploy(event *Event, app *core.TuberApp) {
 
 	releaseIDs, err := core.ReleaseTubers(releaseYamls, app, event.Digest, p.clusterData)
 	if err != nil {
+		deployLogger.Warn("failed release", zap.Error(err))
 		report.Error(err, errorScope.WithContext("release"))
 		return
 	}
