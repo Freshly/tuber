@@ -32,12 +32,16 @@ type ErrorContext struct {
 	context string
 }
 
+func (e ErrorContext) Error() string {
+	return e.err.Error()
+}
+
 func (r releaser) releaseError(err error) error {
 	var context string
 	var scope = r.errorScope
 	var logger = r.logger
 
-	errorContext, ok := err.(*ErrorContext)
+	errorContext, ok := err.(ErrorContext)
 	if ok {
 		context = errorContext.context
 		if errorContext.scope != nil {
@@ -55,10 +59,6 @@ func (r releaser) releaseError(err error) error {
 	report.Error(err, scope)
 
 	return err
-}
-
-func (e ErrorContext) Error() string {
-	return e.err.Error()
 }
 
 type appState struct {
@@ -225,9 +225,14 @@ func (r releaser) apply(resources []k8sResource) ([]k8sResource, error) {
 	return applied, nil
 }
 
+type rolloutError struct {
+	err      error
+	resource k8sResource
+}
+
 func (r releaser) watch(appliedWorkloads []k8sResource) error {
 	var wg sync.WaitGroup
-	errors := make(chan error)
+	errors := make(chan rolloutError)
 	done := make(chan bool, len(appliedWorkloads))
 	for _, workload := range appliedWorkloads {
 		wg.Add(1)
@@ -238,7 +243,9 @@ func (r releaser) watch(appliedWorkloads []k8sResource) error {
 	case <-done:
 		return nil
 	case err := <-errors:
-		return err
+		scope := r.errorScope.AddScope(report.Scope{"resourceName": err.resource.Metadata.Name, "resourceKind": err.resource.Kind})
+		logger := r.logger.With(zap.String("resourceName", err.resource.Metadata.Name), zap.String("resourceKind", err.resource.Kind))
+		return ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch rollout"}
 	}
 }
 
@@ -249,11 +256,11 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 
 // TODO: add support for watching pods
 // TODO: add support for watching argo rollouts
-func (r releaser) goWatch(resource k8sResource, errors chan error, wg *sync.WaitGroup) {
+func (r releaser) goWatch(resource k8sResource, errors chan rolloutError, wg *sync.WaitGroup) {
 	if resource.supportsRollback() && !resource.isRollout() {
 		err := k8s.RolloutStatus(resource.Kind, resource.Metadata.Name, r.app.Name)
 		if err != nil {
-			errors <- err
+			errors <- rolloutError{err: err, resource: resource}
 		}
 	}
 	wg.Done()
@@ -286,6 +293,7 @@ func (r releaser) rollback(appliedResources []k8sResource, cachedResources []man
 	return
 }
 
+// TODO: add support for actual rollbacks
 func (r releaser) rollbackResource(applied k8sResource, cached managedResource) error {
 	err := k8s.Apply(cached.contents, r.app.Name)
 	if err != nil {
