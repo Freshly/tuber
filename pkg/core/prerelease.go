@@ -28,7 +28,7 @@ func RunPrerelease(tubers []string, app *TuberApp, digest string, clusterData *C
 			return err
 		}
 		prereleaser := prerelease{}
-		err = yaml.Unmarshal([]byte(interpolatedTuber), &prereleaser)
+		err = yaml.Unmarshal(interpolatedTuber, &prereleaser)
 		if err != nil {
 			return err
 		}

@@ -123,6 +123,13 @@ func Restart(resource string, namespace string, args ...string) (err error) {
 	return
 }
 
+// RolloutStatus waits and watches a rollout's progress
+func RolloutStatus(resource string, name string, namespace string, args ...string) error {
+	status := []string{"rollout", "status", resource, name, "-n", namespace, "--timeout", "30s"}
+	_, err := kubectl(append(status, args...)...)
+	return err
+}
+
 // Exists tells you if a given resource already exists. Errors if a get call fails for any reason other than Not Found
 func Exists(kind string, name string, namespace string, args ...string) (bool, error) {
 	get := []string{"get", kind, name, "-n", namespace}

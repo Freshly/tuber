@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
 	"tuber/pkg/report"
@@ -88,9 +87,8 @@ func (p Processor) deploy(event event, app *core.TuberApp) {
 		"imageTag": app.ImageTag,
 	})
 
-	deployLogger.Info("release starting")
+	deployLogger.Info("deploy starting")
 
-	startTime := time.Now()
 	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), p.creds)
 
 	if err != nil {
@@ -113,13 +111,6 @@ func (p Processor) deploy(event event, app *core.TuberApp) {
 		deployLogger.Info("prerelease complete")
 	}
 
-	releaseIDs, err := core.ReleaseTubers(releaseYamls, app, event.digest, p.clusterData)
-	if err != nil {
-		deployLogger.Warn("failed release", zap.Error(err))
-		report.Error(err, errorScope.WithContext("release"))
-		return
-	}
-	deployLogger.Info("release complete", zap.Strings("releaseIds", releaseIDs), zap.Duration("duration", time.Since(startTime)))
-
+	core.ReleaseTubers(deployLogger, errorScope, releaseYamls, app, event.digest, p.clusterData)
 	return
 }
