@@ -12,12 +12,12 @@ import (
 )
 
 type releaser struct {
-	logger     *zap.Logger
-	errorScope report.Scope
-	app        *TuberApp
-	digest     string
-	data       *ClusterData
-	tubers     []string
+	logger       *zap.Logger
+	errorScope   report.Scope
+	app          *TuberApp
+	digest       string
+	data         *ClusterData
+	releaseYamls []string
 }
 
 type ErrorContext struct {
@@ -58,20 +58,20 @@ func (r releaser) releaseError(err error) error {
 
 var nonGenericMetadata = []string{"annotations", "creationTimestamp", "namespace", "resourceVersion", "selfLink", "uid"}
 
-// ReleaseTubers interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
-// If you edit a resource manually, and a deploy fails, tuber will roll back to the previously tuberized state of the object, not to the state you manually specified.
-func ReleaseTubers(logger *zap.Logger, errorScope report.Scope, tubers []string, app *TuberApp, digest string, data *ClusterData) error {
+// Deploy interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
+// If you edit a resource manually, and a deploy fails, tuber will roll back to the previously deployed state of the object, not to the state you manually specified.
+func Deploy(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData) error {
 	return releaser{
-		logger:     logger,
-		errorScope: errorScope,
-		tubers:     tubers,
-		app:        app,
-		digest:     digest,
-		data:       data,
-	}.releaseTubers()
+		logger:       logger,
+		errorScope:   errorScope,
+		releaseYamls: releaseYamls,
+		app:          app,
+		digest:       digest,
+		data:         data,
+	}.deploy()
 }
 
-func (r releaser) releaseTubers() error {
+func (r releaser) deploy() error {
 	r.logger.Debug("releaser starting")
 
 	workloads, configs, err := r.resourcesToApply()
@@ -221,9 +221,9 @@ type parsedResource struct {
 
 func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 	var interpolated [][]byte
-	d := tuberData(r.digest, r.app, r.data)
-	for _, tuber := range r.tubers {
-		i, err := interpolate(tuber, d)
+	d := releaseData(r.digest, r.app, r.data)
+	for _, yaml := range r.releaseYamls {
+		i, err := interpolate(yaml, d)
 		interpolated = append(interpolated, i)
 		if err != nil {
 			return nil, nil, ErrorContext{err: err, context: "interpolation"}
@@ -400,25 +400,25 @@ func (r releaser) reconcileState(appliedWorkloads []appResource, appliedConfigs 
 		}
 	}
 
-	var appliedTuberResources []managedResource
+	var updatedState []managedResource
 	for _, resource := range appliedResources {
 		stateResource := managedResource{
 			Kind:    resource.kind,
 			Name:    resource.name,
 			Encoded: base64.StdEncoding.EncodeToString(resource.contents),
 		}
-		appliedTuberResources = append(appliedTuberResources, stateResource)
+		updatedState = append(updatedState, stateResource)
 	}
 
-	marshalled, err := json.Marshal(appState{Resources: appliedTuberResources})
+	marshalled, err := json.Marshal(appState{Resources: updatedState})
 	if err != nil {
-		return ErrorContext{err: err, context: "marshal new tuber state"}
+		return ErrorContext{err: err, context: "marshal new state"}
 	}
 
 	stateResource.Data["state"] = string(marshalled)
 	err = stateResource.Save(r.app.Name)
 	if err != nil {
-		return ErrorContext{err: err, context: "save new tuber state"}
+		return ErrorContext{err: err, context: "save new state"}
 	}
 	return nil
 }

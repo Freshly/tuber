@@ -38,7 +38,7 @@ type ClusterData struct {
 	DefaultHost    string
 }
 
-func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (data map[string]string) {
+func releaseData(digest string, app *TuberApp, clusterData *ClusterData) (data map[string]string) {
 	return map[string]string{
 		"tuberImage":            digest,
 		"clusterDefaultGateway": clusterData.DefaultGateway,
