@@ -113,7 +113,7 @@ func (p Processor) deploy(event event, app *core.TuberApp) {
 	}
 
 	startTime := time.Now()
-	err = core.Deploy(deployLogger, errorScope, releaseYamls, app, event.digest, p.clusterData)
+	err = core.Release(deployLogger, errorScope, releaseYamls, app, event.digest, p.clusterData)
 	if err != nil {
 		deployLogger.Info("release failed")
 		return

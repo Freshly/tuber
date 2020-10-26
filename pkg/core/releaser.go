@@ -58,9 +58,9 @@ func (r releaser) releaseError(err error) error {
 
 var nonGenericMetadata = []string{"annotations", "creationTimestamp", "namespace", "resourceVersion", "selfLink", "uid"}
 
-// Deploy interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
-// If you edit a resource manually, and a deploy fails, tuber will roll back to the previously deployed state of the object, not to the state you manually specified.
-func Deploy(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData) error {
+// Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
+// If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
+func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData) error {
 	return releaser{
 		logger:       logger,
 		errorScope:   errorScope,
@@ -68,10 +68,10 @@ func Deploy(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, 
 		app:          app,
 		digest:       digest,
 		data:         data,
-	}.deploy()
+	}.release()
 }
 
-func (r releaser) deploy() error {
+func (r releaser) release() error {
 	r.logger.Debug("releaser starting")
 
 	workloads, configs, err := r.resourcesToApply()
