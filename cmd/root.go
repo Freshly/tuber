@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 
+	"github.com/blendle/zapdriver"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -34,9 +35,9 @@ func createLogger() (*zap.Logger, error) {
 	var err error
 
 	if viper.GetBool("debug") {
-		logger, err = zap.NewDevelopment()
+		logger, err = zapdriver.NewDevelopment()
 	} else {
-		logger, err = zap.NewProduction()
+		logger, err = zapdriver.NewProduction()
 	}
 
 	return logger, err
