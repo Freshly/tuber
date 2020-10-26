@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
 	"tuber/pkg/report"
@@ -111,9 +112,12 @@ func (p Processor) deploy(event event, app *core.TuberApp) {
 		deployLogger.Info("prerelease complete")
 	}
 
+	startTime := time.Now()
 	err = core.ReleaseTubers(deployLogger, errorScope, releaseYamls, app, event.digest, p.clusterData)
 	if err != nil {
 		deployLogger.Info("release failed")
+		return
 	}
+	deployLogger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 	return
 }

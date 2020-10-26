@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"sync"
-	"time"
 	"tuber/pkg/k8s"
 	"tuber/pkg/report"
 
@@ -73,8 +72,7 @@ func ReleaseTubers(logger *zap.Logger, errorScope report.Scope, tubers []string,
 }
 
 func (r releaser) releaseTubers() error {
-	r.logger.Debug("release starting")
-	startTime := time.Now()
+	r.logger.Debug("releaser starting")
 
 	workloads, configs, err := r.resourcesToApply()
 	if err != nil {
@@ -96,21 +94,29 @@ func (r releaser) releaseTubers() error {
 	appliedWorkloads, err := r.apply(workloads)
 	if err != nil {
 		_ = r.releaseError(err)
-		r.rollback(appliedConfigs, cachedResources)
-		errors := r.watchRollback(r.rollback(appliedWorkloads, cachedResources))
-		for _, rollbackErr := range errors {
-			_ = r.releaseError(rollbackErr)
+		_, configRollbackErrors := r.rollback(appliedConfigs, cachedResources)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, cachedResources)
+		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
+			_ = r.releaseError(rollbackError)
+		}
+		watchErrors := r.watchRollback(rolledBackResources)
+		for _, watchError := range watchErrors {
+			_ = r.releaseError(watchError)
 		}
 		return err
 	}
 
 	err = r.watchWorkloads(appliedWorkloads)
 	if err != nil {
-		r.releaseError(err)
-		r.rollback(appliedConfigs, cachedResources)
-		errors := r.watchRollback(r.rollback(appliedWorkloads, cachedResources))
-		for _, rollbackErr := range errors {
-			_ = r.releaseError(rollbackErr)
+		_ = r.releaseError(err)
+		_, configRollbackErrors := r.rollback(appliedConfigs, cachedResources)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, cachedResources)
+		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
+			_ = r.releaseError(rollbackError)
+		}
+		watchErrors := r.watchRollback(rolledBackResources)
+		for _, watchError := range watchErrors {
+			_ = r.releaseError(watchError)
 		}
 		return err
 	}
@@ -120,7 +126,6 @@ func (r releaser) releaseTubers() error {
 		return r.releaseError(err)
 	}
 
-	r.logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 	return nil
 }
 
@@ -328,8 +333,9 @@ func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sy
 	wg.Done()
 }
 
-func (r releaser) rollback(appliedResources []appResource, cachedResources []appResource) []appResource {
+func (r releaser) rollback(appliedResources []appResource, cachedResources []appResource) ([]appResource, []error) {
 	var rolledBack []appResource
+	var errors []error
 	for _, applied := range appliedResources {
 		var inPreviousState bool
 		scope, logger := applied.scopes(r)
@@ -339,7 +345,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 				inPreviousState = true
 				err := r.rollbackResource(applied, cached)
 				if err != nil {
-					_ = r.releaseError(ErrorContext{err: err, context: "rollback", scope: scope, logger: logger})
+					errors = append(errors, r.releaseError(ErrorContext{err: err, context: "rollback", scope: scope, logger: logger}))
 					break
 				}
 				rolledBack = append(rolledBack, applied)
@@ -349,11 +355,11 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 		if !inPreviousState {
 			err := k8s.Delete(applied.kind, applied.name, r.app.Name)
 			if err != nil {
-				_ = r.releaseError(ErrorContext{err: err, context: "deleting newly created resource on error", scope: scope, logger: logger})
+				errors = append(errors, r.releaseError(ErrorContext{err: err, context: "deleting newly created resource on error", scope: scope, logger: logger}))
 			}
 		}
 	}
-	return rolledBack
+	return rolledBack, errors
 }
 
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
