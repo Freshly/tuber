@@ -36,9 +36,7 @@ func createLogger() (*zap.Logger, error) {
 	if viper.GetBool("debug") {
 		logger, err = zap.NewDevelopment()
 	} else {
-		config := zap.NewProductionConfig()
-		config.OutputPaths = []string{"stdout"}
-		logger, err = config.Build()
+		logger, err = zap.NewProduction()
 	}
 
 	return logger, err
