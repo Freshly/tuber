@@ -3,17 +3,13 @@ package core
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 	"tuber/pkg/k8s"
 	"tuber/pkg/report"
 
 	"github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 type releaser struct {
@@ -55,34 +51,18 @@ func (r releaser) releaseError(err error) error {
 		context = "unknown"
 	}
 
-	logger.Warn("failed release", zap.Error(err), zap.String("context", context))
+	logger.Warn("release error", zap.Error(err), zap.String("context", context))
 	report.Error(err, scope)
 
 	return err
-}
-
-type appState struct {
-	Resources []appResource `json:"resources"`
-}
-
-type appResource struct {
-	Kind    string `json:"kind"`
-	Name    string `json:"name"`
-	Encoded string `json:"encoded"`
-}
-
-type managedResource struct {
-	contents []byte
-	kind     string
-	name     string
 }
 
 var nonGenericMetadata = []string{"annotations", "creationTimestamp", "namespace", "resourceVersion", "selfLink", "uid"}
 
 // ReleaseTubers interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a deploy fails, tuber will roll back to the previously tuberized state of the object, not to the state you manually specified.
-func ReleaseTubers(logger *zap.Logger, errorScope report.Scope, tubers []string, app *TuberApp, digest string, data *ClusterData) {
-	releaser{
+func ReleaseTubers(logger *zap.Logger, errorScope report.Scope, tubers []string, app *TuberApp, digest string, data *ClusterData) error {
+	return releaser{
 		logger:     logger,
 		errorScope: errorScope,
 		tubers:     tubers,
@@ -108,24 +88,30 @@ func (r releaser) releaseTubers() error {
 
 	appliedConfigs, err := r.apply(configs)
 	if err != nil {
-		r.releaseError(err)
+		_ = r.releaseError(err)
 		r.rollback(appliedConfigs, cachedResources)
 		return err
 	}
 
 	appliedWorkloads, err := r.apply(workloads)
 	if err != nil {
-		r.releaseError(err)
+		_ = r.releaseError(err)
 		r.rollback(appliedConfigs, cachedResources)
-		r.rollback(appliedWorkloads, cachedResources)
+		errors := r.watchRollback(r.rollback(appliedWorkloads, cachedResources))
+		for _, rollbackErr := range errors {
+			_ = r.releaseError(rollbackErr)
+		}
 		return err
 	}
 
-	err = r.watch(appliedWorkloads)
+	err = r.watchWorkloads(appliedWorkloads)
 	if err != nil {
 		r.releaseError(err)
 		r.rollback(appliedConfigs, cachedResources)
-		r.rollback(appliedWorkloads, cachedResources)
+		errors := r.watchRollback(r.rollback(appliedWorkloads, cachedResources))
+		for _, rollbackErr := range errors {
+			_ = r.releaseError(rollbackErr)
+		}
 		return err
 	}
 
@@ -138,7 +124,45 @@ func (r releaser) releaseTubers() error {
 	return nil
 }
 
-func (r releaser) currentState() ([]managedResource, *k8s.ConfigResource, error) {
+type appState struct {
+	Resources []managedResource `json:"resources"`
+}
+
+type managedResource struct {
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	Encoded string `json:"encoded"`
+}
+
+type appResource struct {
+	contents []byte
+	kind     string
+	name     string
+}
+
+func (a appResource) isWorkload() bool {
+	return a.supportsRollback() || a.kind == "Pod"
+}
+
+func (a appResource) supportsRollback() bool {
+	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet" || a.isRollout()
+}
+
+func (a appResource) isRollout() bool {
+	return a.kind == "Rollout"
+}
+
+func (a appResource) canBeManaged() bool {
+	return a.kind != "Secret" && a.kind != "Role" && a.kind != "RoleBinding" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
+}
+
+func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {
+	scope := r.errorScope.AddScope(report.Scope{"resourceName": a.name, "resourceKind": a.kind})
+	logger := r.logger.With(zap.String("resourceName", a.name), zap.String("resourceKind", a.kind))
+	return scope, logger
+}
+
+func (r releaser) currentState() ([]appResource, *k8s.ConfigResource, error) {
 	stateName := "tuber-state-" + r.app.Name
 	exists, err := k8s.Exists("configMap", stateName, r.app.Name)
 
@@ -168,38 +192,54 @@ func (r releaser) currentState() ([]managedResource, *k8s.ConfigResource, error)
 		}
 	}
 
-	var genericized []managedResource
+	var genericized []appResource
 	for _, resource := range state.Resources {
 		contents, decodeErr := base64.StdEncoding.DecodeString(resource.Encoded)
 		if decodeErr != nil {
 			return nil, nil, ErrorContext{err: err, context: "decode contents"}
 		}
-		genericized = append(genericized, managedResource{contents: contents, kind: resource.Kind, name: resource.Name})
+		genericized = append(genericized, appResource{contents: contents, kind: resource.Kind, name: resource.Name})
 	}
 	return genericized, stateResource, nil
 }
 
-func (r releaser) resourcesToApply() ([]k8sResource, []k8sResource, error) {
-	var interpolated []string
+type metadata struct {
+	Name   string
+	Labels map[string]string
+}
+
+type parsedResource struct {
+	ApiVersion string
+	Kind       string
+	Metadata   metadata
+}
+
+func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
+	var interpolated [][]byte
 	d := tuberData(r.digest, r.app, r.data)
 	for _, tuber := range r.tubers {
 		i, err := interpolate(tuber, d)
-		interpolated = append(interpolated, string(i))
+		interpolated = append(interpolated, i)
 		if err != nil {
 			return nil, nil, ErrorContext{err: err, context: "interpolation"}
 		}
 	}
 
-	var workloads []k8sResource
-	var configs []k8sResource
+	var workloads []appResource
+	var configs []appResource
 
 	for _, resourceYaml := range interpolated {
-		var resource k8sResource
-		err := yaml.Unmarshal([]byte(resourceYaml), &resource)
+		var parsed parsedResource
+		err := yaml.Unmarshal(resourceYaml, &parsed)
 		if err != nil {
 			return nil, nil, ErrorContext{err: err, context: "inspecting raw resources for apply"}
 		}
-		resource.raw = resourceYaml
+
+		resource := appResource{
+			kind:     parsed.Kind,
+			name:     parsed.Metadata.Name,
+			contents: resourceYaml,
+		}
 
 		if resource.isWorkload() {
 			workloads = append(workloads, resource)
@@ -210,13 +250,12 @@ func (r releaser) resourcesToApply() ([]k8sResource, []k8sResource, error) {
 	return workloads, configs, nil
 }
 
-func (r releaser) apply(resources []k8sResource) ([]k8sResource, error) {
-	var applied []k8sResource
+func (r releaser) apply(resources []appResource) ([]appResource, error) {
+	var applied []appResource
 	for _, resource := range resources {
 		var err error
-		scope := r.errorScope.AddScope(report.Scope{"resourceName": resource.Metadata.Name, "resourceKind": resource.Kind})
-		logger := r.logger.With(zap.String("resourceName", resource.Metadata.Name), zap.String("resourceKind", resource.Kind))
-		err = k8s.Apply([]byte(resource.raw), r.app.Name)
+		scope, logger := resource.scopes(r)
+		err = k8s.Apply(resource.contents, r.app.Name)
 		if err != nil {
 			return applied, ErrorContext{err: err, scope: scope, logger: logger, context: "apply"}
 		}
@@ -227,13 +266,13 @@ func (r releaser) apply(resources []k8sResource) ([]k8sResource, error) {
 
 type rolloutError struct {
 	err      error
-	resource k8sResource
+	resource appResource
 }
 
-func (r releaser) watch(appliedWorkloads []k8sResource) error {
+func (r releaser) watchWorkloads(appliedWorkloads []appResource) error {
 	var wg sync.WaitGroup
 	errors := make(chan rolloutError)
-	done := make(chan bool, len(appliedWorkloads))
+	done := make(chan bool)
 	for _, workload := range appliedWorkloads {
 		wg.Add(1)
 		go r.goWatch(workload, errors, &wg)
@@ -243,10 +282,33 @@ func (r releaser) watch(appliedWorkloads []k8sResource) error {
 	case <-done:
 		return nil
 	case err := <-errors:
-		scope := r.errorScope.AddScope(report.Scope{"resourceName": err.resource.Metadata.Name, "resourceKind": err.resource.Kind})
-		logger := r.logger.With(zap.String("resourceName", err.resource.Metadata.Name), zap.String("resourceKind", err.resource.Kind))
-		return ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch rollout"}
+		scope, logger := err.resource.scopes(r)
+		return ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch workload"}
 	}
+}
+
+func (r releaser) watchRollback(appliedWorkloads []appResource) []error {
+	var wg sync.WaitGroup
+	errorChan := make(chan rolloutError)
+	done := make(chan bool)
+	for _, workload := range appliedWorkloads {
+		wg.Add(1)
+		go r.goWatch(workload, errorChan, &wg)
+	}
+	var errors []error
+
+	go goWait(&wg, done)
+	for range appliedWorkloads {
+		select {
+		case <-done:
+			return errors
+		case err := <-errorChan:
+			scope, logger := err.resource.scopes(r)
+			errors = append(errors, ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch rollback"})
+		}
+	}
+
+	return errors
 }
 
 func goWait(wg *sync.WaitGroup, done chan bool) {
@@ -256,9 +318,9 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 
 // TODO: add support for watching pods
 // TODO: add support for watching argo rollouts
-func (r releaser) goWatch(resource k8sResource, errors chan rolloutError, wg *sync.WaitGroup) {
+func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sync.WaitGroup) {
 	if resource.supportsRollback() && !resource.isRollout() {
-		err := k8s.RolloutStatus(resource.Kind, resource.Metadata.Name, r.app.Name)
+		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
 		}
@@ -266,55 +328,65 @@ func (r releaser) goWatch(resource k8sResource, errors chan rolloutError, wg *sy
 	wg.Done()
 }
 
-func (r releaser) rollback(appliedResources []k8sResource, cachedResources []managedResource) {
+func (r releaser) rollback(appliedResources []appResource, cachedResources []appResource) []appResource {
+	var rolledBack []appResource
 	for _, applied := range appliedResources {
 		var inPreviousState bool
-		scope := r.errorScope.AddScope(report.Scope{"resourceName": applied.Metadata.Name, "resourceKind": applied.Kind})
-		logger := r.logger.With(zap.String("resourceName", applied.Metadata.Name), zap.String("resourceKind", applied.Kind))
+		scope, logger := applied.scopes(r)
 
 		for _, cached := range cachedResources {
-			if applied.Kind == cached.kind && applied.Metadata.Name == cached.name {
+			if applied.kind == cached.kind && applied.name == cached.name {
 				inPreviousState = true
 				err := r.rollbackResource(applied, cached)
 				if err != nil {
 					_ = r.releaseError(ErrorContext{err: err, context: "rollback", scope: scope, logger: logger})
 					break
 				}
+				rolledBack = append(rolledBack, applied)
 				break
 			}
 		}
 		if !inPreviousState {
-			err := k8s.Delete(applied.Kind, applied.Metadata.Name, r.app.Name)
+			err := k8s.Delete(applied.kind, applied.name, r.app.Name)
 			if err != nil {
 				_ = r.releaseError(ErrorContext{err: err, context: "deleting newly created resource on error", scope: scope, logger: logger})
 			}
 		}
 	}
-	return
+	return rolledBack
 }
 
-// TODO: add support for actual rollbacks
-func (r releaser) rollbackResource(applied k8sResource, cached managedResource) error {
-	err := k8s.Apply(cached.contents, r.app.Name)
+func (r releaser) rollbackResource(applied appResource, cached appResource) error {
+	var err error
+	if applied.supportsRollback() {
+		if applied.isRollout() {
+			// TODO: add actual argo support
+			err = k8s.Apply(cached.contents, r.app.Name)
+		} else {
+			err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
+		}
+	} else {
+		err = k8s.Apply(cached.contents, r.app.Name)
+	}
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r releaser) reconcileState(appliedWorkloads []k8sResource, appliedConfigs []k8sResource, cachedResources []managedResource, stateResource *k8s.ConfigResource) error {
+func (r releaser) reconcileState(appliedWorkloads []appResource, appliedConfigs []appResource, cachedResources []appResource, stateResource *k8s.ConfigResource) error {
 	appliedResources := append(appliedWorkloads, appliedConfigs...)
 	for _, cached := range cachedResources {
 		var inPreviousState bool
 		for _, applied := range appliedResources {
-			if applied.Kind == cached.kind && applied.Metadata.Name == cached.name {
+			if applied.kind == cached.kind && applied.name == cached.name {
 				inPreviousState = true
 				break
 			}
 		}
 		if !inPreviousState {
-			scope := r.errorScope.AddScope(report.Scope{"resourceName": cached.name, "resourceKind": cached.kind})
-			logger := r.logger.With(zap.String("resourceName", cached.name), zap.String("resourceKind", cached.kind))
+			scope, logger := cached.scopes(r)
 			err := k8s.Delete(cached.kind, cached.name, r.app.Name)
 			if err != nil {
 				return ErrorContext{err: err, context: "delete resources removed from state", scope: scope, logger: logger}
@@ -322,12 +394,12 @@ func (r releaser) reconcileState(appliedWorkloads []k8sResource, appliedConfigs 
 		}
 	}
 
-	var appliedTuberResources []appResource
+	var appliedTuberResources []managedResource
 	for _, resource := range appliedResources {
-		stateResource := appResource{
-			Kind:    resource.Kind,
-			Name:    resource.Metadata.Name,
-			Encoded: base64.StdEncoding.EncodeToString([]byte(resource.raw)),
+		stateResource := managedResource{
+			Kind:    resource.kind,
+			Name:    resource.name,
+			Encoded: base64.StdEncoding.EncodeToString(resource.contents),
 		}
 		appliedTuberResources = append(appliedTuberResources, stateResource)
 	}
@@ -345,73 +417,30 @@ func (r releaser) reconcileState(appliedWorkloads []k8sResource, appliedConfigs 
 	return nil
 }
 
-// ClusterData is configurable, cluster-wide data available for yaml interpolation
-type ClusterData struct {
-	DefaultGateway string
-	DefaultHost    string
-}
-
-func tuberData(digest string, app *TuberApp, clusterData *ClusterData) (data map[string]string) {
-	return map[string]string{
-		"tuberImage":            digest,
-		"clusterDefaultGateway": clusterData.DefaultGateway,
-		"clusterDefaultHost":    clusterData.DefaultHost,
-		"tuberAppName":          app.Name,
-	}
-}
-
-type k8sResource struct {
-	ApiVersion string
-	Kind       string
-	Metadata   metadata
-	raw        string
-}
-
-type metadata struct {
-	Name   string
-	Labels map[string]string
-}
-
-func (r k8sResource) isWorkload() bool {
-	return r.supportsRollback() || r.Kind == "Pod"
-}
-
-func (r k8sResource) supportsRollback() bool {
-	return r.Kind == "Deployment" || r.Kind == "Daemonset" || r.Kind == "StatefulSet" || r.isRollout()
-}
-
-func (r k8sResource) isRollout() bool {
-	return r.Kind == "Rollout"
-}
-
-func (r k8sResource) canBeManaged() bool {
-	return r.Kind != "Secret" && r.Kind != "Role" && r.Kind != "RoleBinding" && r.Kind != "ClusterRole" && r.Kind != "ClusterRoleBinding"
-}
-
 // deprecated and unused, but a hopefully useful example of resource editing
-func addAnnotationToV1Deployment(resource []byte) (string, string, error) {
-	decode := scheme.Codecs.UniversalDeserializer().Decode
-
-	obj, versionKind, err := decode(resource, nil, nil)
-	if err != nil {
-		return "", "", err
-	}
-	if versionKind.Version != "v1" {
-		return "", "", fmt.Errorf("must use v1 deployments")
-	}
-
-	deployment := obj.(*v1.Deployment)
-	annotations := deployment.Spec.Template.ObjectMeta.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	releaseID := uuid.New().String()
-	annotations["tuber/releaseID"] = releaseID
-	deployment.Spec.Template.ObjectMeta.SetAnnotations(annotations)
-
-	annotated, err := yaml.Marshal(deployment)
-	if err != nil {
-		return "", "", err
-	}
-	return string(annotated), releaseID, nil
-}
+// func addAnnotationToV1Deployment(resource []byte) (string, string, error) {
+// 	decode := scheme.Codecs.UniversalDeserializer().Decode
+//
+// 	obj, versionKind, err := decode(resource, nil, nil)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
+// 	if versionKind.Version != "v1" {
+// 		return "", "", fmt.Errorf("must use v1 deployments")
+// 	}
+//
+// 	deployment := obj.(*v1.Deployment)
+// 	annotations := deployment.Spec.Template.ObjectMeta.GetAnnotations()
+// 	if annotations == nil {
+// 		annotations = map[string]string{}
+// 	}
+// 	releaseID := uuid.New().String()
+// 	annotations["tuber/releaseID"] = releaseID
+// 	deployment.Spec.Template.ObjectMeta.SetAnnotations(annotations)
+//
+// 	annotated, err := yaml.Marshal(deployment)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
+// 	return string(annotated), releaseID, nil
+// }

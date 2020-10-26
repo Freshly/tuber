@@ -111,6 +111,9 @@ func (p Processor) deploy(event event, app *core.TuberApp) {
 		deployLogger.Info("prerelease complete")
 	}
 
-	core.ReleaseTubers(deployLogger, errorScope, releaseYamls, app, event.digest, p.clusterData)
+	err = core.ReleaseTubers(deployLogger, errorScope, releaseYamls, app, event.digest, p.clusterData)
+	if err != nil {
+		deployLogger.Info("release failed")
+	}
 	return
 }

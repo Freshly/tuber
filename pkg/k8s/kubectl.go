@@ -124,8 +124,15 @@ func Restart(resource string, namespace string, args ...string) (err error) {
 }
 
 // RolloutStatus waits and watches a rollout's progress
-func RolloutStatus(resource string, name string, namespace string, args ...string) error {
-	status := []string{"rollout", "status", resource, name, "-n", namespace, "--timeout", "30s"}
+func RolloutStatus(kind string, name string, namespace string, args ...string) error {
+	status := []string{"rollout", "status", kind, name, "-n", namespace, "--timeout", "30s"}
+	_, err := kubectl(append(status, args...)...)
+	return err
+}
+
+// RolloutUndo runs undo on a rollout
+func RolloutUndo(kind string, name string, namespace string, args ...string) error {
+	status := []string{"rollout", "undo", kind, name, "-n", namespace}
 	_, err := kubectl(append(status, args...)...)
 	return err
 }
