@@ -38,7 +38,7 @@ func (a apiError) Error() string {
 type manifest struct {
 	Digest string
 	Layers []layer    `json:"layers"`
-	Errors []apiError `json:"report"`
+	Errors []apiError `json:"errors"`
 }
 
 type repository struct {
