@@ -78,7 +78,7 @@ func (r releaser) release() error {
 		return r.releaseError(err)
 	}
 
-	cachedResources, stateResource, err := r.currentState()
+	state, err := r.currentState()
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -86,15 +86,15 @@ func (r releaser) release() error {
 	appliedConfigs, err := r.apply(configs)
 	if err != nil {
 		_ = r.releaseError(err)
-		r.rollback(appliedConfigs, cachedResources)
+		r.rollback(appliedConfigs, state.resources)
 		return err
 	}
 
 	appliedWorkloads, err := r.apply(workloads)
 	if err != nil {
 		_ = r.releaseError(err)
-		_, configRollbackErrors := r.rollback(appliedConfigs, cachedResources)
-		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, cachedResources)
+		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
 		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
 			_ = r.releaseError(rollbackError)
 		}
@@ -108,8 +108,8 @@ func (r releaser) release() error {
 	err = r.watchWorkloads(appliedWorkloads)
 	if err != nil {
 		_ = r.releaseError(err)
-		_, configRollbackErrors := r.rollback(appliedConfigs, cachedResources)
-		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, cachedResources)
+		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
 		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
 			_ = r.releaseError(rollbackError)
 		}
@@ -120,7 +120,7 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.reconcileState(appliedWorkloads, appliedConfigs, cachedResources, stateResource)
+	err = r.reconcileState(state, appliedWorkloads, appliedConfigs)
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -128,8 +128,15 @@ func (r releaser) release() error {
 	return nil
 }
 
-type appState struct {
-	Resources []managedResource `json:"resources"`
+type state struct {
+	resources []appResource
+	raw       rawState
+	remote    *k8s.ConfigResource
+}
+
+type rawState struct {
+	Resources     managedResources `json:"resources"`
+	PreviousState managedResources `json:"previousState"`
 }
 
 type managedResource struct {
@@ -166,45 +173,70 @@ func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {
 	return scope, logger
 }
 
-func (r releaser) currentState() ([]appResource, *k8s.ConfigResource, error) {
+type appResources []appResource
+
+func (a appResources) encode() managedResources {
+	var encoded []managedResource
+	for _, resource := range a {
+		m := managedResource{
+			Kind:    resource.kind,
+			Name:    resource.name,
+			Encoded: base64.StdEncoding.EncodeToString(resource.contents),
+		}
+		encoded = append(encoded, m)
+	}
+	return encoded
+}
+
+type managedResources []managedResource
+
+func (m managedResources) decode() (appResources, error) {
+	var resources appResources
+	for _, managed := range m {
+		contents, err := base64.StdEncoding.DecodeString(managed.Encoded)
+		if err != nil {
+			return nil, err
+		}
+		resources = append(resources, appResource{contents: contents, kind: managed.Kind, name: managed.Name})
+	}
+	return resources, nil
+}
+
+func (r releaser) currentState() (*state, error) {
 	stateName := "tuber-state-" + r.app.Name
 	exists, err := k8s.Exists("configMap", stateName, r.app.Name)
 
 	if err != nil {
-		return nil, nil, ErrorContext{err: err, context: "state config exists check"}
+		return nil, ErrorContext{err: err, context: "state config exists check"}
 	}
 
 	if !exists {
 		err := k8s.Create(r.app.Name, "configmap", stateName, `--from-literal=state=`)
 		if err != nil {
-			return nil, nil, ErrorContext{err: err, context: "state config creation"}
+			return nil, ErrorContext{err: err, context: "state config creation"}
 		}
 	}
 
 	stateResource, err := k8s.GetConfigResource(stateName, r.app.Name, "ConfigMap")
 	if err != nil {
-		return nil, nil, ErrorContext{err: err, context: "get state config"}
+		return nil, ErrorContext{err: err, context: "get state config"}
 	}
 
-	rawState := stateResource.Data["state"]
+	rawStateData := stateResource.Data["state"]
 
-	var state appState
-	if rawState != "" {
-		jsonErr := json.Unmarshal([]byte(rawState), &state)
-		if jsonErr != nil {
-			return nil, nil, ErrorContext{err: err, context: "parse state"}
+	var stateData rawState
+	if rawStateData != "" {
+		err := json.Unmarshal([]byte(rawStateData), &stateData)
+		if err != nil {
+			return nil, ErrorContext{err: err, context: "parse state"}
 		}
 	}
 
-	var currentResources []appResource
-	for _, resource := range state.Resources {
-		contents, decodeErr := base64.StdEncoding.DecodeString(resource.Encoded)
-		if decodeErr != nil {
-			return nil, nil, ErrorContext{err: err, context: "decode contents"}
-		}
-		currentResources = append(currentResources, appResource{contents: contents, kind: resource.Kind, name: resource.Name})
+	resources, err := stateData.Resources.decode()
+	if err != nil {
+		return nil, ErrorContext{err: err, context: "decode state"}
 	}
-	return currentResources, stateResource, nil
+	return &state{resources: resources, raw: stateData, remote: stateResource}, nil
 }
 
 type metadata struct {
@@ -382,9 +414,9 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 	return nil
 }
 
-func (r releaser) reconcileState(appliedWorkloads []appResource, appliedConfigs []appResource, cachedResources []appResource, stateResource *k8s.ConfigResource) error {
-	appliedResources := append(appliedWorkloads, appliedConfigs...)
-	for _, cached := range cachedResources {
+func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, appliedConfigs []appResource) error {
+	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
+	for _, cached := range state.resources {
 		var inPreviousState bool
 		for _, applied := range appliedResources {
 			if applied.kind == cached.kind && applied.name == cached.name {
@@ -401,23 +433,13 @@ func (r releaser) reconcileState(appliedWorkloads []appResource, appliedConfigs 
 		}
 	}
 
-	var updatedState []managedResource
-	for _, resource := range appliedResources {
-		stateResource := managedResource{
-			Kind:    resource.kind,
-			Name:    resource.name,
-			Encoded: base64.StdEncoding.EncodeToString(resource.contents),
-		}
-		updatedState = append(updatedState, stateResource)
-	}
-
-	marshalled, err := json.Marshal(appState{Resources: updatedState})
+	marshalled, err := json.Marshal(rawState{Resources: appliedResources.encode(), PreviousState: state.raw.Resources})
 	if err != nil {
 		return ErrorContext{err: err, context: "marshal new state"}
 	}
 
-	stateResource.Data["state"] = string(marshalled)
-	err = stateResource.Save(r.app.Name)
+	state.remote.Data["state"] = string(marshalled)
+	err = state.remote.Save(r.app.Name)
 	if err != nil {
 		return ErrorContext{err: err, context: "save new state"}
 	}
