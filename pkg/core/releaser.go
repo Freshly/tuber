@@ -212,7 +212,7 @@ type metadata struct {
 }
 
 type parsedResource struct {
-	ApiVersion string
+	APIVersion string
 	Kind       string
 	Metadata   metadata
 }
@@ -256,9 +256,8 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 func (r releaser) apply(resources []appResource) ([]appResource, error) {
 	var applied []appResource
 	for _, resource := range resources {
-		var err error
 		scope, logger := resource.scopes(r)
-		err = k8s.Apply(resource.contents, r.app.Name)
+		err := k8s.Apply(resource.contents, r.app.Name)
 		if err != nil {
 			return applied, ErrorContext{err: err, scope: scope, logger: logger, context: "apply"}
 		}
