@@ -369,6 +369,7 @@ func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sy
 func (r releaser) rollback(appliedResources []appResource, cachedResources []appResource) ([]appResource, []error) {
 	var rolledBack []appResource
 	var errors []error
+	var emptyState = len(appliedResources) == 0
 	for _, applied := range appliedResources {
 		var inPreviousState bool
 		scope, logger := applied.scopes(r)
@@ -385,7 +386,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 				break
 			}
 		}
-		if !inPreviousState {
+		if !inPreviousState && !emptyState {
 			err := k8s.Delete(applied.kind, applied.name, r.app.Name)
 			if err != nil {
 				errors = append(errors, r.releaseError(ErrorContext{err: err, context: "deleting newly created resource on error", scope: scope, logger: logger}))
