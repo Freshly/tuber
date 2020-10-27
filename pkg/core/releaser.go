@@ -187,7 +187,7 @@ func (r releaser) currentState() ([]appResource, *k8s.ConfigResource, error) {
 
 	rawState := stateResource.Data["state"]
 
-	var state *appState
+	var state appState
 	if rawState != "" {
 		jsonErr := json.Unmarshal([]byte(rawState), &state)
 		if jsonErr != nil {
@@ -195,15 +195,15 @@ func (r releaser) currentState() ([]appResource, *k8s.ConfigResource, error) {
 		}
 	}
 
-	var genericized []appResource
+	var currentResources []appResource
 	for _, resource := range state.Resources {
 		contents, decodeErr := base64.StdEncoding.DecodeString(resource.Encoded)
 		if decodeErr != nil {
 			return nil, nil, ErrorContext{err: err, context: "decode contents"}
 		}
-		genericized = append(genericized, appResource{contents: contents, kind: resource.Kind, name: resource.Name})
+		currentResources = append(currentResources, appResource{contents: contents, kind: resource.Kind, name: resource.Name})
 	}
-	return genericized, stateResource, nil
+	return currentResources, stateResource, nil
 }
 
 type metadata struct {
