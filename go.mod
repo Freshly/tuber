@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/pubsub v1.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/getsentry/sentry-go v0.4.0
-	github.com/goccy/go-yaml v1.2.0
+	github.com/goccy/go-yaml v1.8.3
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/google/uuid v1.1.1

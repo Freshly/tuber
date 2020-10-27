@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 	"sync"
 	"tuber/pkg/k8s"
 	"tuber/pkg/report"
@@ -212,9 +213,9 @@ type metadata struct {
 }
 
 type parsedResource struct {
-	APIVersion string
-	Kind       string
-	Metadata   metadata
+	APIVersion string   `yaml:"apiVersion"`
+	Kind       string   `yaml:"kind"`
+	Metadata   metadata `yaml:"metadata"`
 }
 
 func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
@@ -222,7 +223,10 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 	d := releaseData(r.digest, r.app, r.data)
 	for _, yaml := range r.releaseYamls {
 		i, err := interpolate(yaml, d)
-		interpolated = append(interpolated, i)
+		split := strings.Split(string(i), "\n---\n")
+		for _, s := range split {
+			interpolated = append(interpolated, []byte(s))
+		}
 		if err != nil {
 			return nil, nil, ErrorContext{err: err, context: "interpolation"}
 		}
