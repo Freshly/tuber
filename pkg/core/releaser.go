@@ -369,7 +369,7 @@ func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sy
 func (r releaser) rollback(appliedResources []appResource, cachedResources []appResource) ([]appResource, []error) {
 	var rolledBack []appResource
 	var errors []error
-	var emptyState = len(appliedResources) == 0
+	var emptyState = len(cachedResources) == 0
 	for _, applied := range appliedResources {
 		var inPreviousState bool
 		scope, logger := applied.scopes(r)
