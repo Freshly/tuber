@@ -149,6 +149,7 @@ type appResource struct {
 	contents []byte
 	kind     string
 	name     string
+	labels   map[string]interface{}
 }
 
 func (a appResource) isWorkload() bool {
@@ -278,6 +279,7 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 			kind:     parsed.Kind,
 			name:     parsed.Metadata.Name,
 			contents: resourceYaml,
+			labels:   parsed.Metadata.Labels,
 		}
 
 		if resource.isWorkload() {
@@ -357,13 +359,26 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 // TODO: add support for watching pods
 // TODO: add support for watching argo rollouts
 func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sync.WaitGroup) {
-	if resource.supportsRollback() && !resource.isRollout() {
-		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name)
+	defer wg.Done()
+	if !resource.supportsRollback() {
+		return
+	}
+
+	var timeout string
+	if t, ok := resource.labels["tuber/rolloutTimeout"].(string); ok && timeout != "" {
+		timeout = t
+	} else {
+		timeout = "5m"
+	}
+
+	if resource.isRollout() {
+		return
+	} else {
+		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
 		}
 	}
-	wg.Done()
 }
 
 func (r releaser) rollback(appliedResources []appResource, cachedResources []appResource) ([]appResource, []error) {
