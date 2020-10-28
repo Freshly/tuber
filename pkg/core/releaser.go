@@ -357,10 +357,17 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 // TODO: add support for watching pods
 // TODO: add support for watching argo rollouts
 func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sync.WaitGroup) {
-	if resource.supportsRollback() && !resource.isRollout() {
-		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name)
-		if err != nil {
-			errors <- rolloutError{err: err, resource: resource}
+	if resource.supportsRollback() {
+		if resource.isRollout() {
+			err := k8s.WatchArgoRollout(resource.name, r.app.Name)
+			if err != nil {
+				errors <- rolloutError{err: err, resource: resource}
+			}
+		} else {
+			err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name)
+			if err != nil {
+				errors <- rolloutError{err: err, resource: resource}
+			}
 		}
 	}
 	wg.Done()

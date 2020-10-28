@@ -1,0 +1,46 @@
+package k8s
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
+	"github.com/argoproj/argo-rollouts/pkg/kubectl-argo-rollouts/info"
+)
+
+func WatchArgoRollout(name string, namespace string) error {
+	timeout := time.Now().Add(time.Minute * 5)
+	for {
+		if time.Now().After(timeout) {
+			return fmt.Errorf("timeout waiting for healthy rollout")
+		}
+		time.Sleep(5 * time.Second)
+		ready, err := argoRolloutStatus(name, namespace)
+		if err != nil {
+			return err
+		}
+		if ready {
+			return nil
+		}
+	}
+}
+
+func argoRolloutStatus(name string, namespace string) (bool, error) {
+	out, err := Get("rollout", "potatoes-rollout", "potatoes-rollout", "-o", "json")
+	if err != nil {
+		return false, err
+	}
+
+	var rollout v1alpha1.Rollout
+	json.Unmarshal(out, &rollout)
+
+	status, message := info.RolloutStatusString(&rollout)
+	if status == "Healthy" {
+		return true, nil
+	} else if status == "Progressing" {
+		return false, nil
+	} else {
+		return false, fmt.Errorf("unhealthy rollout status: %s, message: %s", status, message)
+	}
+}
