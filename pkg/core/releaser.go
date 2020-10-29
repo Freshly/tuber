@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"sync"
+	"time"
 	"tuber/pkg/k8s"
 	"tuber/pkg/report"
 
@@ -51,7 +52,7 @@ func (r releaser) releaseError(err error) error {
 		context = "unknown"
 	}
 
-	logger.Warn("release error", zap.Error(err), zap.String("context", context))
+	logger.Error("release error", zap.Error(err), zap.String("context", context))
 	report.Error(err, scope)
 
 	return err
@@ -146,10 +147,11 @@ type managedResource struct {
 }
 
 type appResource struct {
-	contents []byte
-	kind     string
-	name     string
-	labels   map[string]interface{}
+	contents        []byte
+	kind            string
+	name            string
+	timeout         time.Duration
+	rollbackTimeout time.Duration
 }
 
 func (a appResource) isWorkload() bool {
@@ -241,8 +243,8 @@ func (r releaser) currentState() (*state, error) {
 }
 
 type metadata struct {
-	Name   string
-	Labels map[string]string
+	Name   string                 `yaml:"name"`
+	Labels map[string]interface{} `yaml:"labels"`
 }
 
 type parsedResource struct {
@@ -272,14 +274,36 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 		var parsed parsedResource
 		err := yaml.Unmarshal(resourceYaml, &parsed)
 		if err != nil {
-			return nil, nil, ErrorContext{err: err, context: "inspecting raw resources for apply"}
+			return nil, nil, ErrorContext{err: err, context: "unmarshalling raw resources for apply"}
+		}
+
+		scope := r.errorScope.AddScope(report.Scope{"resourceName": parsed.Metadata.Name, "resourceKind": parsed.Kind})
+		logger := r.logger.With(zap.String("resourceName", parsed.Metadata.Name), zap.String("resourceKind", parsed.Kind))
+
+		var timeout time.Duration
+		if t, ok := parsed.Metadata.Labels["tuber/rolloutTimeout"].(string); ok && t != "" {
+			d, err := time.ParseDuration(t)
+			if err != nil {
+				return nil, nil, ErrorContext{err: err, context: "invalid timeout", scope: scope, logger: logger}
+			}
+			timeout = d
+		}
+
+		var rollbackTimeout time.Duration
+		if t, ok := parsed.Metadata.Labels["tuber/rollbackTimeout"].(string); ok && t != "" {
+			d, err := time.ParseDuration(t)
+			if err != nil {
+				return nil, nil, ErrorContext{err: err, context: "invalid rollback timeout", scope: scope, logger: logger}
+			}
+			rollbackTimeout = d
 		}
 
 		resource := appResource{
-			kind:     parsed.Kind,
-			name:     parsed.Metadata.Name,
-			contents: resourceYaml,
-			labels:   parsed.Metadata.Labels,
+			kind:            parsed.Kind,
+			name:            parsed.Metadata.Name,
+			contents:        resourceYaml,
+			timeout:         timeout,
+			rollbackTimeout: rollbackTimeout,
 		}
 
 		if resource.isWorkload() {
@@ -315,7 +339,11 @@ func (r releaser) watchWorkloads(appliedWorkloads []appResource) error {
 	done := make(chan bool)
 	for _, workload := range appliedWorkloads {
 		wg.Add(1)
-		go r.goWatch(workload, errors, &wg)
+		var timeout time.Duration
+		if workload.timeout == 0 {
+			timeout = 5 * time.Minute
+		}
+		go r.goWatch(workload, timeout, errors, &wg)
 	}
 	go goWait(&wg, done)
 	select {
@@ -333,7 +361,11 @@ func (r releaser) watchRollback(appliedWorkloads []appResource) []error {
 	done := make(chan bool)
 	for _, workload := range appliedWorkloads {
 		wg.Add(1)
-		go r.goWatch(workload, errorChan, &wg)
+		var timeout time.Duration
+		if workload.rollbackTimeout == 0 {
+			timeout = 5 * time.Minute
+		}
+		go r.goWatch(workload, timeout, errorChan, &wg)
 	}
 	var errors []error
 
@@ -358,17 +390,10 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 
 // TODO: add support for watching pods
 // TODO: add support for watching argo rollouts
-func (r releaser) goWatch(resource appResource, errors chan rolloutError, wg *sync.WaitGroup) {
+func (r releaser) goWatch(resource appResource, timeout time.Duration, errors chan rolloutError, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !resource.supportsRollback() {
 		return
-	}
-
-	var timeout string
-	if t, ok := resource.labels["tuber/rolloutTimeout"].(string); ok && timeout != "" {
-		timeout = t
-	} else {
-		timeout = "5m"
 	}
 
 	if resource.isRollout() {
