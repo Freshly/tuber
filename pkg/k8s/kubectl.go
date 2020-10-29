@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -124,8 +125,8 @@ func Restart(resource string, namespace string, args ...string) (err error) {
 }
 
 // RolloutStatus waits and watches a rollout's progress
-func RolloutStatus(kind string, name string, namespace string, args ...string) error {
-	status := []string{"rollout", "status", kind, name, "-n", namespace, "--timeout", "60s"}
+func RolloutStatus(kind string, name string, namespace string, timeout time.Duration, args ...string) error {
+	status := []string{"rollout", "status", kind, name, "-n", namespace, "--timeout", timeout.String()}
 	_, err := kubectl(append(status, args...)...)
 	return err
 }

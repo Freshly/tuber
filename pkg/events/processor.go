@@ -93,7 +93,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), p.creds)
 
 	if err != nil {
-		logger.Warn("failed to find tuber layer", zap.Error(err))
+		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
 		return
 	}
@@ -105,7 +105,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 		if err != nil {
 			report.Error(err, errorScope.WithContext("prerelease"))
-			logger.Warn("failed prerelease", zap.Error(err))
+			logger.Error("failed prerelease", zap.Error(err))
 			return
 		}
 
@@ -115,7 +115,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	startTime := time.Now()
 	err = core.Release(logger, errorScope, releaseYamls, app, event.digest, p.clusterData)
 	if err != nil {
-		logger.Info("release failed")
+		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
 		return
 	}
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
