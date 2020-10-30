@@ -27,7 +27,7 @@ func WatchArgoRollout(name string, namespace string, duration time.Duration) err
 }
 
 func argoRolloutStatus(name string, namespace string) (bool, error) {
-	out, err := Get("rollout", name, "-n", namespace, "-o", "json")
+	out, err := Get("rollout", name, namespace, "-o", "json")
 	if err != nil {
 		return false, err
 	}
