@@ -43,6 +43,9 @@ func argoRolloutStatus(name string, namespace string) (bool, error) {
 		return true, nil
 	} else if status == "Progressing" {
 		return false, nil
+	} else if status == "Paused" {
+		// Pauses should only appear in overlapping deploys or manual actions, so proceeding as usual with the rest of the resources should be fine.
+		return true, nil
 	} else {
 		return false, fmt.Errorf("unhealthy rollout status: %s, message: %s", status, message)
 	}
