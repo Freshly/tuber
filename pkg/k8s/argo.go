@@ -47,3 +47,12 @@ func argoRolloutStatus(name string, namespace string) (bool, error) {
 		return false, fmt.Errorf("unhealthy rollout status: %s, message: %s", status, message)
 	}
 }
+
+// pulled from pkg/kubectl-argo-rollouts/cmd/abort/abort.go
+const (
+	abortPatch = `{"status":{"abort":true}}`
+)
+
+func AbortArgoRollout(name string, namespace string) error {
+	return Patch("rollout", name, namespace, abortPatch)
+}
