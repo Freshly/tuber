@@ -443,7 +443,7 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 	var err error
 	if applied.supportsRollback() {
 		if applied.isRollout() {
-			// the abort step is only necessary to preserve the old revision, only errors the cached apply are an issue.
+			// the abort step is only necessary to preserve the old revision, only errors on the cached apply are an issue.
 			_ = k8s.AbortArgoRollout(applied.name, r.app.Name)
 			err = k8s.Apply(cached.contents, r.app.Name)
 		} else {
