@@ -9,13 +9,13 @@ import (
 	"github.com/argoproj/argo-rollouts/pkg/kubectl-argo-rollouts/info"
 )
 
-func WatchArgoRollout(name string, namespace string) error {
-	timeout := time.Now().Add(time.Minute * 5)
+func WatchArgoRollout(name string, namespace string, duration time.Duration) error {
+	timeout := time.Now().Add(duration)
 	for {
 		if time.Now().After(timeout) {
 			return fmt.Errorf("timeout waiting for healthy rollout")
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		ready, err := argoRolloutStatus(name, namespace)
 		if err != nil {
 			return err
@@ -27,13 +27,16 @@ func WatchArgoRollout(name string, namespace string) error {
 }
 
 func argoRolloutStatus(name string, namespace string) (bool, error) {
-	out, err := Get("rollout", "potatoes-rollout", "potatoes-rollout", "-o", "json")
+	out, err := Get("rollout", name, "-n", namespace, "-o", "json")
 	if err != nil {
 		return false, err
 	}
 
 	var rollout v1alpha1.Rollout
-	json.Unmarshal(out, &rollout)
+	err = json.Unmarshal(out, &rollout)
+	if err != nil {
+		return false, err
+	}
 
 	status, message := info.RolloutStatusString(&rollout)
 	if status == "Healthy" {
