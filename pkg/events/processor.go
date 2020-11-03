@@ -113,7 +113,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	}
 
 	startTime := time.Now()
-	err = core.Release(logger, errorScope, releaseYamls, app, event.digest, p.clusterData)
+	err = core.Release(logger, errorScope, releaseYamls, app, event.digest, p.clusterData, app.ReviewApp)
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
 		return

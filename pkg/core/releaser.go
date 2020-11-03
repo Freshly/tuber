@@ -14,12 +14,13 @@ import (
 )
 
 type releaser struct {
-	logger       *zap.Logger
-	errorScope   report.Scope
-	app          *TuberApp
-	digest       string
-	data         *ClusterData
-	releaseYamls []string
+	logger           *zap.Logger
+	errorScope       report.Scope
+	app              *TuberApp
+	digest           string
+	data             *ClusterData
+	releaseYamls     []string
+	immediateRollout bool
 }
 
 type ErrorContext struct {
@@ -60,14 +61,15 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData) error {
+func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData, immediateRollout bool) error {
 	return releaser{
-		logger:       logger,
-		errorScope:   errorScope,
-		releaseYamls: releaseYamls,
-		app:          app,
-		digest:       digest,
-		data:         data,
+		logger:           logger,
+		errorScope:       errorScope,
+		releaseYamls:     releaseYamls,
+		app:              app,
+		digest:           digest,
+		data:             data,
+		immediateRollout: immediateRollout,
 	}.release()
 }
 
@@ -104,6 +106,17 @@ func (r releaser) release() error {
 			_ = r.releaseError(watchError)
 		}
 		return err
+	}
+
+	if r.immediateRollout {
+		for _, workload := range appliedWorkloads {
+			if workload.isRollout() {
+				err := k8s.ImmediateArgoRollout(workload.name, r.app.Name)
+				if err != nil {
+					_ = r.releaseError(err)
+				}
+			}
+		}
 	}
 
 	err = r.watchWorkloads(appliedWorkloads)
