@@ -475,9 +475,17 @@ func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, a
 		}
 		if !inPreviousState {
 			scope, logger := cached.scopes(r)
-			err := k8s.Delete(cached.kind, cached.name, r.app.Name)
+			exists, err := k8s.Exists(cached.kind, cached.name, r.app.Name)
+
 			if err != nil {
-				return ErrorContext{err: err, context: "delete resources removed from state", scope: scope, logger: logger}
+				return ErrorContext{err: err, context: "exists check resource removed from state", scope: scope, logger: logger}
+			}
+
+			if exists {
+				err := k8s.Delete(cached.kind, cached.name, r.app.Name)
+				if err != nil {
+					return ErrorContext{err: err, context: "delete resource removed from state", scope: scope, logger: logger}
+				}
 			}
 		}
 	}
