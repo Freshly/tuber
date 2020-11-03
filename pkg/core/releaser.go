@@ -342,6 +342,8 @@ func (r releaser) watchWorkloads(appliedWorkloads []appResource) error {
 		var timeout time.Duration
 		if workload.timeout == 0 {
 			timeout = 5 * time.Minute
+		} else {
+			timeout = workload.timeout
 		}
 		go r.goWatch(workload, timeout, errors, &wg)
 	}
@@ -364,6 +366,8 @@ func (r releaser) watchRollback(appliedWorkloads []appResource) []error {
 		var timeout time.Duration
 		if workload.rollbackTimeout == 0 {
 			timeout = 5 * time.Minute
+		} else {
+			timeout = workload.timeout
 		}
 		go r.goWatch(workload, timeout, errorChan, &wg)
 	}
