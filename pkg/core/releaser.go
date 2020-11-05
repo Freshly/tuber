@@ -159,11 +159,11 @@ func (a appResource) isWorkload() bool {
 }
 
 func (a appResource) supportsRollback() bool {
-	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet" || a.isRollout()
+	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet" || a.isCanary()
 }
 
-func (a appResource) isRollout() bool {
-	return a.kind == "Rollout"
+func (a appResource) isCanary() bool {
+	return a.kind == "Canary"
 }
 
 func (a appResource) canBeManaged() bool {
@@ -214,9 +214,9 @@ func (r releaser) currentState() (*state, error) {
 	}
 
 	if !exists {
-		err := k8s.Create(r.app.Name, "configmap", stateName, `--from-literal=state=`)
-		if err != nil {
-			return nil, ErrorContext{err: err, context: "state config creation"}
+		createErr := k8s.Create(r.app.Name, "configmap", stateName, `--from-literal=state=`)
+		if createErr != nil {
+			return nil, ErrorContext{err: createErr, context: "state config creation"}
 		}
 	}
 
@@ -229,9 +229,9 @@ func (r releaser) currentState() (*state, error) {
 
 	var stateData rawState
 	if rawStateData != "" {
-		err := json.Unmarshal([]byte(rawStateData), &stateData)
-		if err != nil {
-			return nil, ErrorContext{err: err, context: "parse state"}
+		unmarshalErr := json.Unmarshal([]byte(rawStateData), &stateData)
+		if unmarshalErr != nil {
+			return nil, ErrorContext{err: unmarshalErr, context: "parse state"}
 		}
 	}
 
@@ -282,20 +282,20 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 
 		var timeout time.Duration
 		if t, ok := parsed.Metadata.Labels["tuber/rolloutTimeout"].(string); ok && t != "" {
-			d, err := time.ParseDuration(t)
-			if err != nil {
-				return nil, nil, ErrorContext{err: err, context: "invalid timeout", scope: scope, logger: logger}
+			duration, parseErr := time.ParseDuration(t)
+			if parseErr != nil {
+				return nil, nil, ErrorContext{err: parseErr, context: "invalid timeout", scope: scope, logger: logger}
 			}
-			timeout = d
+			timeout = duration
 		}
 
 		var rollbackTimeout time.Duration
 		if t, ok := parsed.Metadata.Labels["tuber/rollbackTimeout"].(string); ok && t != "" {
-			d, err := time.ParseDuration(t)
-			if err != nil {
-				return nil, nil, ErrorContext{err: err, context: "invalid rollback timeout", scope: scope, logger: logger}
+			duration, parseErr := time.ParseDuration(t)
+			if parseErr != nil {
+				return nil, nil, ErrorContext{err: parseErr, context: "invalid rollback timeout", scope: scope, logger: logger}
 			}
-			rollbackTimeout = d
+			rollbackTimeout = duration
 		}
 
 		resource := appResource{
@@ -389,14 +389,13 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 }
 
 // TODO: add support for watching pods
-// TODO: add support for watching argo rollouts
 func (r releaser) goWatch(resource appResource, timeout time.Duration, errors chan rolloutError, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !resource.supportsRollback() {
 		return
 	}
 
-	if resource.isRollout() {
+	if resource.isCanary() {
 		return
 	} else {
 		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
@@ -439,8 +438,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
 	var err error
 	if applied.supportsRollback() {
-		if applied.isRollout() {
-			// TODO: add actual argo support
+		if applied.isCanary() {
 			err = k8s.Apply(cached.contents, r.app.Name)
 		} else {
 			err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
@@ -457,6 +455,13 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 
 func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, appliedConfigs []appResource) error {
 	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
+
+	type stateResource struct {
+		Metadata struct {
+			OwnerReferences []map[string]interface{}
+		}
+	}
+
 	for _, cached := range state.resources {
 		var inPreviousState bool
 		for _, applied := range appliedResources {
@@ -467,15 +472,22 @@ func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, a
 		}
 		if !inPreviousState {
 			scope, logger := cached.scopes(r)
-			exists, err := k8s.Exists(cached.kind, cached.name, r.app.Name)
-
+			out, err := k8s.Get(cached.kind, cached.name, r.app.Name, "-o", "yaml")
 			if err != nil {
-				return ErrorContext{err: err, context: "exists check resource removed from state", scope: scope, logger: logger}
+				if _, ok := err.(k8s.NotFoundError); !ok {
+					return ErrorContext{err: err, context: "exists check resource removed from state", scope: scope, logger: logger}
+				}
 			}
 
-			if exists {
-				err := k8s.Delete(cached.kind, cached.name, r.app.Name)
-				if err != nil {
+			var parsed stateResource
+			err = yaml.Unmarshal(out, &parsed)
+			if err != nil {
+				return ErrorContext{err: err, context: "parse resource removed from state", scope: scope, logger: logger}
+			}
+
+			if parsed.Metadata.OwnerReferences != nil {
+				deleteErr := k8s.Delete(cached.kind, cached.name, r.app.Name)
+				if deleteErr != nil {
 					return ErrorContext{err: err, context: "delete resource removed from state", scope: scope, logger: logger}
 				}
 			}
