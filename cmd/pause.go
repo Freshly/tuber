@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"tuber/pkg/k8s"
+	"tuber/pkg/core"
 
 	"github.com/spf13/cobra"
 )
@@ -14,20 +14,7 @@ var pauseCmd = &cobra.Command{
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
-
-		exists, err := k8s.Exists("configmap", "tuber-app-pauses", "tuber")
-		if err != nil {
-			return err
-		}
-
-		if !exists {
-			err = k8s.Create("tuber", "configmap", "tuber-app-pauses")
-			if err != nil {
-				return err
-			}
-		}
-
-		return k8s.PatchConfigMap("tuber-app-pauses", "tuber", appName, "true")
+		return core.PauseDeployments(appName)
 	},
 }
 
