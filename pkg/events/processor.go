@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"sync"
 	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
@@ -17,6 +18,8 @@ type Processor struct {
 	creds             []byte
 	clusterData       *core.ClusterData
 	reviewAppsEnabled bool
+	locks             map[string]*sync.Mutex
+	ll                *sync.Mutex
 }
 
 // NewProcessor is a constructor for Processors so that the fields can be unexported
@@ -53,13 +56,27 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	}
 	event.logger.Debug("filtering event against current tuber apps", zap.Any("apps", apps))
 
+	p.ll.Lock()
+	if _, ok := p.locks[event.tag]; !ok {
+		p.locks[event.tag] = &sync.Mutex{}
+	}
+	p.ll.Unlock()
+
 	matchFound := false
+
+	// We have to lock the mutex here because we have to unlock the mutex at the end of the for loop,
+	// after all of the apps matching the event.tag have deployed.
+	mu := p.locks[event.tag]
+	mu.Lock()
+
 	for _, app := range apps {
 		if app.ImageTag == event.tag {
 			matchFound = true
 			p.startRelease(event, &app)
 		}
 	}
+	mu.Unlock()
+
 	if !matchFound {
 		event.logger.Debug("ignored event")
 	}
