@@ -18,7 +18,7 @@ type Processor struct {
 	creds             []byte
 	clusterData       *core.ClusterData
 	reviewAppsEnabled bool
-	locks             map[string]*sync.Mutex
+	locks             *map[string]*sync.Mutex
 	ll                *sync.Mutex
 }
 
