@@ -2,8 +2,8 @@ package core
 
 import "tuber/pkg/k8s"
 
-// IsPaused checks the tuber-app-pauses configmap for the presence of the given app
-func IsPaused(appName string) (bool, error) {
+// ReleasesPaused checks the tuber-app-pauses configmap for the presence of the given app
+func ReleasesPaused(appName string) (bool, error) {
 	config, err := k8s.GetConfigResource("tuber-app-pauses", "tuber", "ConfigMap")
 	if err != nil {
 		return false, err

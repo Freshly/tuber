@@ -56,17 +56,18 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	matchFound := false
 	for _, app := range apps {
 		if app.ImageTag == event.tag {
-			paused, err := core.IsPaused(app.Name)
+			matchFound = true
+
+			paused, err := core.ReleasesPaused(app.Name)
 			if err != nil {
 				event.logger.Error("failed to check for paused state", zap.Error(err))
 			}
 
 			if paused {
-				event.logger.Warn("app deployments paused; skipping")
+				event.logger.Warn("app deployments paused; skipping", zap.Bool("paused", true))
 				continue
 			}
 
-			matchFound = true
 			p.startRelease(event, &app)
 		}
 	}
