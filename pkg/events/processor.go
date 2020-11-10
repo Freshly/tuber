@@ -65,19 +65,17 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	p.ll.Unlock()
 
 	matchFound := false
-
-	// We have to lock the mutex here because we have to unlock the mutex at the end of the for loop,
-	// after all of the apps matching the event.tag have deployed.
-	mu := p.locks[event.tag]
-	mu.Lock()
-
 	for _, app := range apps {
 		if app.ImageTag == event.tag {
 			matchFound = true
+
+			mu := p.locks[event.tag]
+			mu.Lock()
+
 			p.startRelease(event, &app)
+			mu.Unlock()
 		}
 	}
-	mu.Unlock()
 
 	if !matchFound {
 		event.logger.Debug("ignored event")
