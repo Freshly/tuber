@@ -30,6 +30,8 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, cluster
 		creds:             creds,
 		clusterData:       clusterData,
 		reviewAppsEnabled: reviewAppsEnabled,
+		ll:                &sync.Mutex{},
+		locks:             make(map[string]*sync.Mutex),
 	}
 }
 
