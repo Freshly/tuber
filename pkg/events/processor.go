@@ -24,6 +24,8 @@ type Processor struct {
 
 // NewProcessor is a constructor for Processors so that the fields can be unexported
 func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool) Processor {
+	locks := make(map[string]*sync.Mutex)
+
 	return Processor{
 		ctx:               ctx,
 		logger:            logger,
@@ -31,7 +33,7 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, cluster
 		clusterData:       clusterData,
 		reviewAppsEnabled: reviewAppsEnabled,
 		ll:                &sync.Mutex{},
-		locks:             make(map[string]*sync.Mutex),
+		locks:             &locks,
 	}
 }
 
@@ -59,22 +61,27 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	event.logger.Debug("filtering event against current tuber apps", zap.Any("apps", apps))
 
 	p.ll.Lock()
-	if _, ok := p.locks[event.tag]; !ok {
-		p.locks[event.tag] = &sync.Mutex{}
+	if _, ok := (*p.locks)[event.tag]; !ok {
+		(*p.locks)[event.tag] = &sync.Mutex{}
 	}
 	p.ll.Unlock()
 
 	matchFound := false
+	var deployments []*core.TuberApp
 	for _, app := range apps {
 		if app.ImageTag == event.tag {
 			matchFound = true
-
-			mu := p.locks[event.tag]
-			mu.Lock()
-
-			p.startRelease(event, &app)
-			mu.Unlock()
+			deployments = append(deployments, &app)
 		}
+	}
+
+	if len(deployments) > 0 {
+		mu := (*p.locks)[event.tag]
+		mu.Lock()
+		for _, app := range deployments {
+			p.startRelease(event, app)
+		}
+		mu.Unlock()
 	}
 
 	if !matchFound {
