@@ -64,7 +64,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 			}
 
 			if paused {
-				event.logger.Warn("app deployments paused; skipping", zap.Bool("paused", true))
+				event.logger.Warn("app deployments paused; skipping", zap.String("appName", app.Name))
 				continue
 			}
 
