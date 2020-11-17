@@ -59,11 +59,11 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	event.logger.Debug("filtering event against current tuber apps", zap.Any("apps", apps))
 
 	matchFound := false
-	var deployments []*core.TuberApp
+	var deployments []core.TuberApp
 	for _, app := range apps {
 		if app.ImageTag == event.tag {
 			matchFound = true
-			deployments = append(deployments, &app)
+			deployments = append(deployments, app)
 		}
 	}
 
@@ -76,7 +76,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 		cond := (*p.locks)[event.tag]
 		cond.L.Lock()
 		for _, app := range deployments {
-			p.startRelease(event, app)
+			p.startRelease(event, &app)
 		}
 		cond.L.Unlock()
 		cond.Signal()
