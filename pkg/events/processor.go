@@ -67,11 +67,11 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 
 			paused, err := core.ReleasesPaused(app.Name)
 			if err != nil {
-				event.logger.Error("failed to check for paused state", zap.Error(err))
+				event.logger.Error("failed to check for paused state; deploying", zap.Error(err))
 			}
 
 			if paused {
-				event.logger.Warn("app deployments paused; skipping", zap.String("appName", app.Name))
+				event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
 				continue
 			}
 
