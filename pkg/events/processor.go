@@ -60,9 +60,21 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 
 	matchFound := false
 	var deployments []core.TuberApp
+
 	for _, app := range apps {
 		if app.ImageTag == event.tag {
 			matchFound = true
+
+			paused, err := core.ReleasesPaused(app.Name)
+			if err != nil {
+				event.logger.Error("failed to check for paused state", zap.Error(err))
+			}
+
+			if paused {
+				event.logger.Warn("app deployments paused; skipping", zap.String("appName", app.Name))
+				continue
+			}
+
 			deployments = append(deployments, app)
 		}
 	}
@@ -113,7 +125,6 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	logger.Info("release starting")
 
 	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), p.creds)
-
 	if err != nil {
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
@@ -124,7 +135,6 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 		logger.Info("prerelease starting")
 
 		err = core.RunPrerelease(prereleaseYamls, app, event.digest, p.clusterData)
-
 		if err != nil {
 			report.Error(err, errorScope.WithContext("prerelease"))
 			logger.Error("failed prerelease", zap.Error(err))
