@@ -39,7 +39,15 @@ func fetch(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	prerelease, yamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), creds)
+	location := app.GetRepositoryLocation()
+
+	sha, err := containers.GetLatestSHA(location, creds)
+
+	if err != nil {
+		return err
+	}
+
+	prerelease, yamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), sha, creds)
 	yamls = append(yamls, prerelease...)
 
 	if err == nil {

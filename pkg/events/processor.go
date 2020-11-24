@@ -2,6 +2,8 @@ package events
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
@@ -35,15 +37,28 @@ type event struct {
 	tag        string
 	logger     *zap.Logger
 	errorScope report.Scope
+	sha        string
 }
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers releases for matching apps
 func (p Processor) ProcessMessage(digest string, tag string) {
+	logger := p.logger.With(zap.String("tag", tag), zap.String("digest", digest))
+	scope := report.Scope{"tag": tag, "digest": digest}
+	split := strings.Split(digest, "@")
+	if len(split) != 2 {
+		err := fmt.Errorf("event digest split length not 2")
+		logger.Error("failed to process event", zap.Error(err))
+		report.Error(err, scope.WithContext("event processing"))
+		return
+	}
+	sha := split[1]
+
 	event := event{
 		digest:     digest,
 		tag:        tag,
-		logger:     p.logger.With(zap.String("tag", tag), zap.String("digest", digest)),
-		errorScope: report.Scope{"tag": tag, "digest": digest},
+		logger:     logger,
+		errorScope: scope,
+		sha:        sha,
 	}
 	apps, err := p.apps()
 	if err != nil {
@@ -101,7 +116,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 	logger.Info("release starting")
 
-	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), p.creds)
+	prereleaseYamls, releaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), event.sha, p.creds)
 	if err != nil {
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
