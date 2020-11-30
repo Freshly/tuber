@@ -47,13 +47,13 @@ func createTuberDirectory() error {
 }
 
 func createDeploymentYAML(appName string) error {
-	templateData := map[string]string{}
+	templateData := map[string]interface{}{}
 
 	return writeYAML(data.Deployment, templateData)
 }
 
 func createServiceYAML(appName string, serviceType string) error {
-	templateData := map[string]string{
+	templateData := map[string]interface{}{
 		"serviceType": serviceType,
 	}
 
@@ -61,7 +61,7 @@ func createServiceYAML(appName string, serviceType string) error {
 }
 
 func createVirtualServiceYAML(appName string, routePrefix string) error {
-	templateData := map[string]string{
+	templateData := map[string]interface{}{
 		"routePrefix": routePrefix,
 	}
 
@@ -82,7 +82,7 @@ func modDockerFile() error {
 	return nil
 }
 
-func writeYAML(app data.TuberYaml, templateData map[string]string) error {
+func writeYAML(app data.TuberYaml, templateData map[string]interface{}) error {
 	interpolated, err := interpolate(string(app.Contents), templateData)
 	if err != nil {
 		return err

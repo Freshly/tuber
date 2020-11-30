@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ type releaser struct {
 	digest       string
 	data         *ClusterData
 	releaseYamls []string
+	releaseID    string
 }
 
 type ErrorContext struct {
@@ -34,6 +36,10 @@ func (e ErrorContext) Error() string {
 }
 
 func (r releaser) releaseError(err error) error {
+	if err == nil {
+		return err
+	}
+
 	var context string
 	var scope = r.errorScope
 	var logger = r.logger
@@ -60,7 +66,7 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData) error {
+func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData, releaseID string) error {
 	return releaser{
 		logger:       logger,
 		errorScope:   errorScope,
@@ -68,13 +74,70 @@ func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string,
 		app:          app,
 		digest:       digest,
 		data:         data,
+		releaseID:    releaseID,
 	}.release()
+}
+
+func (r releaser) identifyCanaryTargets(workloads []appResource) ([]appResource, error) {
+	var canaries []appResource
+	for _, resource := range workloads {
+		if resource.isCanary() {
+			canaries = append(canaries, resource)
+		}
+	}
+
+	type canaryResource struct {
+		Spec struct {
+			TargetRef struct {
+				Name string `yaml:"name"`
+				Kind string `yaml:"kind"`
+			} `yaml:"targetRef"`
+		} `yaml:"spec"`
+	}
+
+	var updatedWorkloads []appResource
+	if len(canaries) > 0 {
+		for _, canary := range canaries {
+			var unmarshalled canaryResource
+			var targetResource appResource
+			err := yaml.Unmarshal(canary.contents, &unmarshalled)
+			if err != nil {
+				return nil, err
+			}
+			targetRef := unmarshalled.Spec.TargetRef
+			var matched bool
+			var w []appResource
+			for _, resource := range workloads {
+				if resource.name == canary.name && resource.kind == canary.kind {
+					continue
+				}
+				if resource.name == targetRef.Name && resource.kind == targetRef.Kind {
+					matched = true
+					resource.isCanaryTarget = true
+					targetResource = resource
+				}
+				w = append(w, resource)
+			}
+			if !matched {
+				return nil, fmt.Errorf("no canary target found for canary %s", canary.name)
+			}
+			canary.target = &targetResource
+			w = append(w, canary)
+			updatedWorkloads = w
+		}
+	}
+	return updatedWorkloads, nil
 }
 
 func (r releaser) release() error {
 	r.logger.Debug("releaser starting")
 
 	workloads, configs, err := r.resourcesToApply()
+	if err != nil {
+		return r.releaseError(err)
+	}
+
+	workloads, err = r.identifyCanaryTargets(workloads)
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -129,6 +192,35 @@ func (r releaser) release() error {
 	return nil
 }
 
+func (r releaser) waitForPhase(resource appResource, desiredStatus string, timeout time.Duration, errorStatuses ...string) error {
+	if timeout == 0 {
+		timeout = 5 * time.Minute
+	}
+	deadline := time.Now().Add(timeout)
+	scope, logger := resource.scopes(r)
+
+	for {
+		if time.Now().After(deadline) {
+			return ErrorContext{err: fmt.Errorf("timeout waiting for %s", desiredStatus), context: "waiting for " + desiredStatus, scope: scope, logger: logger}
+		}
+		out, err := k8s.Get(resource.kind, resource.name, r.app.Name, `-o=jsonpath="{.status.phase}"`)
+		if err != nil {
+			return ErrorContext{err: err, context: "get while waiting for " + desiredStatus, scope: scope, logger: logger}
+		}
+		currentStatus := strings.Trim(string(out), `"`)
+		if currentStatus == desiredStatus {
+			break
+		}
+		for _, status := range errorStatuses {
+			if currentStatus == status {
+				return fmt.Errorf("error status found: %s", status)
+			}
+		}
+		time.Sleep(10 * time.Second)
+	}
+	return nil
+}
+
 type state struct {
 	resources []appResource
 	raw       rawState
@@ -152,6 +244,8 @@ type appResource struct {
 	name            string
 	timeout         time.Duration
 	rollbackTimeout time.Duration
+	isCanaryTarget  bool
+	target          *appResource
 }
 
 func (a appResource) isWorkload() bool {
@@ -167,7 +261,7 @@ func (a appResource) isCanary() bool {
 }
 
 func (a appResource) canBeManaged() bool {
-	return a.kind != "Secret" && a.kind != "Role" && a.kind != "RoleBinding" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
+	return a.kind != "Secret" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
 }
 
 func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {
@@ -255,7 +349,7 @@ type parsedResource struct {
 
 func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 	var interpolated [][]byte
-	d := releaseData(r.digest, r.app, r.data)
+	d := releaseData(r.digest, r.app, r.data, r.releaseID)
 	for _, yaml := range r.releaseYamls {
 		i, err := interpolate(yaml, d)
 		split := strings.Split(string(i), "\n---\n")
@@ -365,7 +459,7 @@ func (r releaser) watchRollback(appliedWorkloads []appResource) []error {
 		if workload.rollbackTimeout == 0 {
 			timeout = 5 * time.Minute
 		}
-		go r.goWatch(workload, timeout, errorChan, &wg)
+		go r.goWatchRollback(workload, timeout, errorChan, &wg)
 	}
 	var errors []error
 
@@ -396,7 +490,53 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 	}
 
 	if resource.isCanary() {
+		out, err := k8s.Get(resource.kind, resource.name, r.app.Name, `-o=jsonpath="{.status.phase}"`)
+		if err != nil {
+			errors <- rolloutError{err: err, resource: resource}
+			return
+		}
+
+		currentStatus := strings.Trim(string(out), `"`)
+		if currentStatus == "Initializing" {
+			err = r.waitForPhase(resource, "Initialized", resource.timeout, "Failed")
+		} else if currentStatus == "Failed" {
+			err = r.waitForPhase(resource, "Progressing", resource.timeout)
+			if err != nil {
+				errors <- rolloutError{err: err, resource: resource}
+				return
+			}
+			err = r.waitForPhase(resource, "Succeeded", resource.timeout, "Failed")
+		} else {
+			err = r.waitForPhase(resource, "Progressing", resource.timeout, "Failed")
+			if err != nil {
+				errors <- rolloutError{err: err, resource: resource}
+				return
+			}
+			err = r.waitForPhase(resource, "Succeeded", resource.timeout, "Failed")
+		}
+		if err != nil {
+			errors <- rolloutError{err: err, resource: resource}
+		}
+	} else {
+		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
+		if err != nil {
+			errors <- rolloutError{err: err, resource: resource}
+		}
+	}
+}
+
+// whatever flagger. whatever.
+func (r releaser) goWatchRollback(resource appResource, timeout time.Duration, errors chan rolloutError, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if !resource.supportsRollback() {
 		return
+	}
+
+	if resource.isCanary() {
+		err := r.rollbackAndWatchCanary(resource)
+		if err != nil {
+			errors <- rolloutError{err: err, resource: resource}
+		}
 	} else {
 		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 		if err != nil {
@@ -436,19 +576,86 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 }
 
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
-	var err error
-	if applied.supportsRollback() {
-		if applied.isCanary() {
-			err = k8s.Apply(cached.contents, r.app.Name)
-		} else {
-			err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
-		}
-	} else {
-		err = k8s.Apply(cached.contents, r.app.Name)
+	if applied.isCanaryTarget {
+		return nil
 	}
 
+	if applied.supportsRollback() {
+		if applied.isCanary() {
+			return nil
+		} else {
+			return k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
+		}
+	} else {
+		return k8s.Apply(cached.contents, r.app.Name)
+	}
+	return nil
+}
+
+func (r releaser) rollbackAndWatchCanary(canary appResource) error {
+	out, err := k8s.Get(canary.kind, canary.name, r.app.Name, `-o=jsonpath="{.status.phase}"`)
 	if err != nil {
-		return err
+		return ErrorContext{err: err, context: "get while rolling back "}
+	}
+	currentStatus := strings.Trim(string(out), `"`)
+	if currentStatus == "Succeeded" {
+		// patch doesn't work and i don't know why. try these locally and they work fine, but kubectl doesn't like it at runtime.
+		// err := k8s.Patch(canary.kind, canary.name, r.app.Name, `'[{"op": "add", "path": "/spec/skipAnalysis", "value":true}]'`, "--type=json")
+		// err := k8s.Patch(canary.kind, canary.name, r.app.Name, "'{\"spec\": {\"skipAnalysis\": true}}'", "--type=merge")
+		// so instead we're doing this shit
+		ugh := r.app
+		ugh.ReviewApp = true
+		d := releaseData(r.digest, ugh, r.data, r.releaseID)
+		var reinterpolatedCanary []byte
+		for _, yam := range r.releaseYamls {
+			i, err := interpolate(yam, d)
+			if err != nil {
+				return err
+			}
+			split := strings.Split(string(i), "\n---\n")
+			for _, s := range split {
+				var parsed parsedResource
+				err := yaml.Unmarshal([]byte(s), &parsed)
+				if err != nil {
+					return err
+				}
+				if parsed.Metadata.Name == canary.name && parsed.Kind == canary.kind {
+					reinterpolatedCanary = []byte(s)
+					break
+				}
+			}
+			if string(reinterpolatedCanary) != "" {
+				break
+			}
+		}
+		if string(reinterpolatedCanary) == "" {
+			return fmt.Errorf("flagger workaround reinterpolated canary fail")
+		}
+
+		err := k8s.Apply(reinterpolatedCanary, r.app.Name)
+		if err != nil {
+			return err
+		}
+
+		err = k8s.RolloutUndo(canary.target.kind, canary.target.name, r.app.Name)
+		if err != nil {
+			return err
+		}
+	} else if currentStatus != "Failed" {
+		err := k8s.PatchConfigMap("flagpole", "flagpole", r.app.Name, "true")
+		if err != nil {
+			return err
+		}
+
+		err = r.waitForPhase(canary, "Failed", canary.rollbackTimeout)
+		if err != nil {
+			return err
+		}
+
+		err = k8s.RemoveConfigMapEntry("flagpole", "flagpole", r.app.Name)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -506,31 +713,3 @@ func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, a
 	}
 	return nil
 }
-
-// deprecated and unused, but a hopefully useful example of resource editing
-// func addAnnotationToV1Deployment(resource []byte) (string, string, error) {
-// 	decode := scheme.Codecs.UniversalDeserializer().Decode
-//
-// 	obj, versionKind, err := decode(resource, nil, nil)
-// 	if err != nil {
-// 		return "", "", err
-// 	}
-// 	if versionKind.Version != "v1" {
-// 		return "", "", fmt.Errorf("must use v1 deployments")
-// 	}
-//
-// 	deployment := obj.(*v1.Deployment)
-// 	annotations := deployment.Spec.Template.ObjectMeta.GetAnnotations()
-// 	if annotations == nil {
-// 		annotations = map[string]string{}
-// 	}
-// 	releaseID := uuid.New().String()
-// 	annotations["tuber/releaseID"] = releaseID
-// 	deployment.Spec.Template.ObjectMeta.SetAnnotations(annotations)
-//
-// 	annotated, err := yaml.Marshal(deployment)
-// 	if err != nil {
-// 		return "", "", err
-// 	}
-// 	return string(annotated), releaseID, nil
-// }

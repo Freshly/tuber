@@ -16,7 +16,7 @@ func NewAppSetup(appName string, istio bool) error {
 		istioEnabled = "disabled"
 	}
 
-	data := map[string]string{
+	data := map[string]interface{}{
 		"namespace":    appName,
 		"istioEnabled": istioEnabled,
 	}

@@ -9,6 +9,7 @@ import (
 	"tuber/pkg/core"
 	"tuber/pkg/report"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -123,10 +124,12 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 		return
 	}
 
+	releaseID := uuid.New().String()
+
 	if len(prereleaseYamls) > 0 {
 		logger.Info("prerelease starting")
 
-		err = core.RunPrerelease(prereleaseYamls, app, event.digest, p.clusterData)
+		err = core.RunPrerelease(prereleaseYamls, app, event.digest, p.clusterData, releaseID)
 		if err != nil {
 			report.Error(err, errorScope.WithContext("prerelease"))
 			logger.Error("failed prerelease", zap.Error(err))
@@ -137,7 +140,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	}
 
 	startTime := time.Now()
-	err = core.Release(logger, errorScope, releaseYamls, app, event.digest, p.clusterData)
+	err = core.Release(logger, errorScope, releaseYamls, app, event.digest, p.clusterData, releaseID)
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
 		return

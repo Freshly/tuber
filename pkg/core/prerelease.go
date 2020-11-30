@@ -21,9 +21,9 @@ type Metadata struct {
 
 // RunPrerelease takes an array of pods, that are designed to be single use command runners
 // that have access to the new code being released.
-func RunPrerelease(tubers []string, app *TuberApp, digest string, clusterData *ClusterData) error {
+func RunPrerelease(tubers []string, app *TuberApp, digest string, clusterData *ClusterData, releaseID string) error {
 	for _, tuber := range tubers {
-		interpolatedTuber, err := interpolate(tuber, releaseData(digest, app, clusterData))
+		interpolatedTuber, err := interpolate(tuber, releaseData(digest, app, clusterData, releaseID))
 		if err != nil {
 			return err
 		}
