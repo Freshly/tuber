@@ -65,16 +65,6 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 		if app.ImageTag == event.tag {
 			matchFound = true
 
-			paused, err := core.ReleasesPaused(app.Name)
-			if err != nil {
-				event.logger.Error("failed to check for paused state; deploying", zap.Error(err))
-			}
-
-			if paused {
-				event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
-				continue
-			}
-
 			deployments = append(deployments, app)
 		}
 	}
@@ -88,6 +78,15 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 		cond := (*p.locks)[event.tag]
 		cond.L.Lock()
 		for _, app := range deployments {
+			paused, err := core.ReleasesPaused(app.Name)
+			if err != nil {
+				event.logger.Error("failed to check for paused state; deploying", zap.Error(err))
+			}
+
+			if paused {
+				event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
+				continue
+			}
 			p.startRelease(event, &app)
 		}
 		cond.L.Unlock()
