@@ -70,27 +70,30 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	}
 
 	if len(deployments) > 0 {
-		if _, ok := (*p.locks)[event.tag]; !ok {
-			var mutex sync.Mutex
-			(*p.locks)[event.tag] = sync.NewCond(&mutex)
-		}
+		for _, ta := range deployments {
+			go func(app *core.TuberApp) {
+				if _, ok := (*p.locks)[app.Name]; !ok {
+					var mutex sync.Mutex
+					(*p.locks)[app.Name] = sync.NewCond(&mutex)
+				}
 
-		cond := (*p.locks)[event.tag]
-		cond.L.Lock()
-		for _, app := range deployments {
-			paused, err := core.ReleasesPaused(app.Name)
-			if err != nil {
-				event.logger.Error("failed to check for paused state; deploying", zap.Error(err))
-			}
+				cond := (*p.locks)[app.Name]
+				cond.L.Lock()
 
-			if paused {
-				event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
-				continue
-			}
-			p.startRelease(event, &app)
+				paused, err := core.ReleasesPaused(app.Name)
+				if err != nil {
+					event.logger.Error("failed to check for paused state; deploying", zap.Error(err))
+				}
+
+				if paused {
+					event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
+					return
+				}
+				p.startRelease(event, app)
+				cond.L.Unlock()
+				cond.Signal()
+			}(&ta)
 		}
-		cond.L.Unlock()
-		cond.Signal()
 	}
 
 	if !matchFound {
