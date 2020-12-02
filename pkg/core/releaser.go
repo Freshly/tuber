@@ -159,15 +159,11 @@ func (a appResource) isWorkload() bool {
 }
 
 func (a appResource) supportsRollback() bool {
-	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet" || a.isCanary()
-}
-
-func (a appResource) isCanary() bool {
-	return a.kind == "Canary"
+	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet"
 }
 
 func (a appResource) canBeManaged() bool {
-	return a.kind != "Secret" && a.kind != "Role" && a.kind != "RoleBinding" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
+	return a.kind != "Secret" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
 }
 
 func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {
@@ -395,13 +391,9 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 		return
 	}
 
-	if resource.isCanary() {
-		return
-	} else {
-		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
-		if err != nil {
-			errors <- rolloutError{err: err, resource: resource}
-		}
+	err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
+	if err != nil {
+		errors <- rolloutError{err: err, resource: resource}
 	}
 }
 
@@ -438,11 +430,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
 	var err error
 	if applied.supportsRollback() {
-		if applied.isCanary() {
-			err = k8s.Apply(cached.contents, r.app.Name)
-		} else {
-			err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
-		}
+		err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
 	} else {
 		err = k8s.Apply(cached.contents, r.app.Name)
 	}
