@@ -59,18 +59,11 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	event.logger.Debug("filtering event against current tuber apps", zap.Any("apps", apps))
 
 	matchFound := false
-	var deployments []core.TuberApp
 
-	for _, app := range apps {
-		if app.ImageTag == event.tag {
+	for _, a := range apps {
+		if a.ImageTag == event.tag {
 			matchFound = true
 
-			deployments = append(deployments, app)
-		}
-	}
-
-	if len(deployments) > 0 {
-		for _, ta := range deployments {
 			go func(app *core.TuberApp) {
 				if _, ok := (*p.locks)[app.Name]; !ok {
 					var mutex sync.Mutex
@@ -92,7 +85,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 				p.startRelease(event, app)
 				cond.L.Unlock()
 				cond.Signal()
-			}(&ta)
+			}(&a)
 		}
 	}
 
