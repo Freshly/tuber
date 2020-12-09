@@ -167,7 +167,7 @@ func (a appResource) isCanary() bool {
 }
 
 func (a appResource) canBeManaged() bool {
-	return a.kind != "Secret" && a.kind != "Role" && a.kind != "RoleBinding" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
+	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet"
 }
 
 func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {

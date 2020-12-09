@@ -48,7 +48,7 @@ type repository struct {
 }
 
 // GetTuberLayer downloads yamls for an image
-func GetTuberLayer(location RepositoryLocation, creds []byte) (prereleaseYamls []string, releaseYamls []string, err error) {
+func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) (prereleaseYamls []string, releaseYamls []string, err error) {
 	authToken, err := gcloud.GetAccessToken(creds)
 	if err != nil {
 		return
@@ -60,7 +60,7 @@ func GetTuberLayer(location RepositoryLocation, creds []byte) (prereleaseYamls [
 		return
 	}
 
-	prereleaseYamls, releaseYamls, err = repo.findLayer(location.Tag)
+	prereleaseYamls, releaseYamls, err = repo.findLayer(sha)
 	return
 }
 
