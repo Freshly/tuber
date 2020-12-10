@@ -5,64 +5,47 @@ import (
 	"strings"
 	"time"
 	"tuber/pkg/k8s"
-
-	"github.com/goccy/go-yaml"
 )
-
-type prerelease struct {
-	Kind     string
-	Metadata Metadata
-}
-
-// Metadata exported for the yaml unmarshaller
-type Metadata struct {
-	Name string
-}
 
 // RunPrerelease takes an array of pods, that are designed to be single use command runners
 // that have access to the new code being released.
-func RunPrerelease(tubers []string, app *TuberApp, digest string, clusterData *ClusterData) error {
-	for _, tuber := range tubers {
-		interpolatedTuber, err := interpolate(tuber, releaseData(digest, app, clusterData))
-		if err != nil {
-			return err
-		}
-		prereleaser := prerelease{}
-		err = yaml.Unmarshal(interpolatedTuber, &prereleaser)
-		if err != nil {
-			return err
+func RunPrerelease(resources []appResource, app *TuberApp) error {
+	for _, resource := range resources {
+		if resource.kind != "Pod" {
+			return fmt.Errorf("prerelease resources must be Pods, received %s", resource.kind)
 		}
 
-		if prereleaser.Kind != "Pod" {
-			return fmt.Errorf("prerelease resources must be Pods, received %s", prereleaser.Kind)
-		}
-
-		err = k8s.Apply(interpolatedTuber, app.Name)
+		err := k8s.Apply(resource.contents, app.Name)
 		if err != nil {
 			return err
 		}
 
-		err = waitForPhase(prereleaser.Metadata.Name, "pod", app)
+		err = waitForPhase(resource.name, "pod", app, resource.timeout)
 		if err != nil {
-			deleteErr := k8s.Delete("pod", prereleaser.Metadata.Name, app.Name)
+			deleteErr := k8s.Delete("pod", resource.name, app.Name)
 			if deleteErr != nil {
 				return fmt.Errorf(err.Error() + "\n also failed delete:" + deleteErr.Error())
 			}
 			return deleteErr
 		}
 
-		return k8s.Delete("pod", prereleaser.Metadata.Name, app.Name)
+		return k8s.Delete("pod", resource.name, app.Name)
 	}
 	return fmt.Errorf("unhandled prerelease run exit")
 }
 
-func waitForPhase(name string, kind string, app *TuberApp) error {
+func waitForPhase(name string, kind string, app *TuberApp, resourceTimeout time.Duration) error {
 	phaseTemplate := fmt.Sprintf(`go-template="%s"`, "{{.status.phase}}")
 	failureTemplate := fmt.Sprintf(
 		`go-template="%s"`,
 		"{{range .status.containerStatuses}}{{.state.terminated.message}}{{end}}",
 	)
-	timeout := time.Now().Add(time.Minute * 10)
+	var timeout time.Time
+	if resourceTimeout == 0 {
+		timeout = time.Now().Add(time.Minute * 10)
+	} else {
+		timeout = time.Now().Add(resourceTimeout)
+	}
 
 	for {
 		if time.Now().After(timeout) {

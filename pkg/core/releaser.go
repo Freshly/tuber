@@ -3,6 +3,8 @@ package core
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -14,12 +16,14 @@ import (
 )
 
 type releaser struct {
-	logger       *zap.Logger
-	errorScope   report.Scope
-	app          *TuberApp
-	digest       string
-	data         *ClusterData
-	releaseYamls []string
+	logger           *zap.Logger
+	errorScope       report.Scope
+	app              *TuberApp
+	digest           string
+	data             *ClusterData
+	releaseYamls     []string
+	prereleaseYamls  []string
+	postreleaseYamls []string
 }
 
 type ErrorContext struct {
@@ -60,21 +64,23 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(logger *zap.Logger, errorScope report.Scope, releaseYamls []string, app *TuberApp, digest string, data *ClusterData) error {
+func Release(prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, logger *zap.Logger, errorScope report.Scope, app *TuberApp, digest string, data *ClusterData) error {
 	return releaser{
-		logger:       logger,
-		errorScope:   errorScope,
-		releaseYamls: releaseYamls,
-		app:          app,
-		digest:       digest,
-		data:         data,
+		logger:           logger,
+		errorScope:       errorScope,
+		releaseYamls:     releaseYamls,
+		prereleaseYamls:  prereleaseYamls,
+		postreleaseYamls: postreleaseYamls,
+		app:              app,
+		digest:           digest,
+		data:             data,
 	}.release()
 }
 
 func (r releaser) release() error {
 	r.logger.Debug("releaser starting")
 
-	workloads, configs, err := r.resourcesToApply()
+	prereleaseResources, configs, workloads, postreleaseResources, err := r.resourcesToApply()
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -82,6 +88,17 @@ func (r releaser) release() error {
 	state, err := r.currentState()
 	if err != nil {
 		return r.releaseError(err)
+	}
+
+	if len(prereleaseResources) > 0 {
+		r.logger.Debug("prerelease starting")
+
+		err = RunPrerelease(prereleaseResources, r.app)
+		if err != nil {
+			return ErrorContext{context: "prerelease", err: err}
+		}
+
+		r.logger.Debug("prerelease complete")
 	}
 
 	appliedConfigs, err := r.apply(configs)
@@ -121,6 +138,37 @@ func (r releaser) release() error {
 		return err
 	}
 
+	appliedPostreleaseResources, err := r.apply(postreleaseResources)
+	if err != nil {
+		_ = r.releaseError(err)
+		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
+		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
+			_ = r.releaseError(rollbackError)
+		}
+		watchErrors := r.watchRollback(rolledBackResources)
+		for _, watchError := range watchErrors {
+			_ = r.releaseError(watchError)
+		}
+		return err
+	}
+
+	err = r.watchWorkloads(appliedPostreleaseResources)
+	if err != nil {
+		_ = r.releaseError(err)
+		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
+		rolledBackPostreleaseResources, postreleaseRollbackErrors := r.rollback(appliedPostreleaseResources, state.resources)
+		for _, rollbackError := range append(configRollbackErrors, append(workloadRollbackErrors, postreleaseRollbackErrors...)...) {
+			_ = r.releaseError(rollbackError)
+		}
+		watchErrors := r.watchRollback(append(rolledBackResources, rolledBackPostreleaseResources...))
+		for _, watchError := range watchErrors {
+			_ = r.releaseError(watchError)
+		}
+		return err
+	}
+
 	err = r.reconcileState(state, appliedWorkloads, appliedConfigs)
 	if err != nil {
 		return r.releaseError(err)
@@ -152,6 +200,8 @@ type appResource struct {
 	name            string
 	timeout         time.Duration
 	rollbackTimeout time.Duration
+	watchUrl        string
+	watchDuration   time.Duration
 }
 
 func (a appResource) isWorkload() bool {
@@ -239,8 +289,8 @@ func (r releaser) currentState() (*state, error) {
 }
 
 type metadata struct {
-	Name   string                 `yaml:"name"`
-	Labels map[string]interface{} `yaml:"labels"`
+	Name        string                 `yaml:"name"`
+	Annotations map[string]interface{} `yaml:"annotations"`
 }
 
 type parsedResource struct {
@@ -249,49 +299,91 @@ type parsedResource struct {
 	Metadata   metadata `yaml:"metadata"`
 }
 
-func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
-	var interpolated [][]byte
+func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResource, []appResource, error) {
 	d := releaseData(r.digest, r.app, r.data)
-	for _, yaml := range r.releaseYamls {
-		i, err := interpolate(yaml, d)
-		split := strings.Split(string(i), "\n---\n")
-		for _, s := range split {
-			interpolated = append(interpolated, []byte(s))
-		}
-		if err != nil {
-			return nil, nil, ErrorContext{err: err, context: "interpolation"}
-		}
+
+	prereleaseResources, err := r.yamlToAppResource(r.prereleaseYamls, d)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	releaseResources, err := r.yamlToAppResource(r.releaseYamls, d)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	postreleaseResources, err := r.yamlToAppResource(r.postreleaseYamls, d)
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
 
 	var workloads []appResource
 	var configs []appResource
 
+	for _, releaseResource := range releaseResources {
+		if releaseResource.isWorkload() {
+			workloads = append(workloads, releaseResource)
+		} else if releaseResource.canBeManaged() {
+			configs = append(configs, releaseResource)
+		}
+	}
+	return prereleaseResources, configs, workloads, postreleaseResources, nil
+}
+
+func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (appResources, error) {
+	var interpolated [][]byte
+	for _, yaml := range yamls {
+		i, err := interpolate(yaml, data)
+		split := strings.Split(string(i), "\n---\n")
+		for _, s := range split {
+			interpolated = append(interpolated, []byte(s))
+		}
+		if err != nil {
+			return nil, ErrorContext{err: err, context: "interpolation"}
+		}
+	}
+
+	var resources appResources
 	for _, resourceYaml := range interpolated {
 		var parsed parsedResource
 		err := yaml.Unmarshal(resourceYaml, &parsed)
 		if err != nil {
-			return nil, nil, ErrorContext{err: err, context: "unmarshalling raw resources for apply"}
+			return nil, ErrorContext{err: err, context: "unmarshalling raw resources for apply"}
 		}
 
 		scope := r.errorScope.AddScope(report.Scope{"resourceName": parsed.Metadata.Name, "resourceKind": parsed.Kind})
 		logger := r.logger.With(zap.String("resourceName", parsed.Metadata.Name), zap.String("resourceKind", parsed.Kind))
 
 		var timeout time.Duration
-		if t, ok := parsed.Metadata.Labels["tuber/rolloutTimeout"].(string); ok && t != "" {
+		if t, ok := parsed.Metadata.Annotations["tuber/rolloutTimeout"].(string); ok && t != "" {
 			duration, parseErr := time.ParseDuration(t)
 			if parseErr != nil {
-				return nil, nil, ErrorContext{err: parseErr, context: "invalid timeout", scope: scope, logger: logger}
+				return nil, ErrorContext{err: parseErr, context: "invalid timeout", scope: scope, logger: logger}
 			}
 			timeout = duration
 		}
 
 		var rollbackTimeout time.Duration
-		if t, ok := parsed.Metadata.Labels["tuber/rollbackTimeout"].(string); ok && t != "" {
+		if t, ok := parsed.Metadata.Annotations["tuber/rollbackTimeout"].(string); ok && t != "" {
 			duration, parseErr := time.ParseDuration(t)
 			if parseErr != nil {
-				return nil, nil, ErrorContext{err: parseErr, context: "invalid rollback timeout", scope: scope, logger: logger}
+				return nil, ErrorContext{err: parseErr, context: "invalid rollback timeout", scope: scope, logger: logger}
 			}
 			rollbackTimeout = duration
+		}
+
+		var watchUrl string
+		if t, ok := parsed.Metadata.Annotations["tuber/watchUrl"].(string); ok && t != "" {
+			watchUrl = t
+		}
+
+		var watchDuration time.Duration
+		if t, ok := parsed.Metadata.Annotations["tuber/watchDuration"].(string); ok && t != "" {
+			duration, parseErr := time.ParseDuration(t)
+			if parseErr != nil {
+				return nil, ErrorContext{err: parseErr, context: "invalid watch duration", scope: scope, logger: logger}
+			}
+			watchDuration = duration
 		}
 
 		resource := appResource{
@@ -300,15 +392,13 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, error) {
 			contents:        resourceYaml,
 			timeout:         timeout,
 			rollbackTimeout: rollbackTimeout,
+			watchUrl:        watchUrl,
+			watchDuration:   watchDuration,
 		}
 
-		if resource.isWorkload() {
-			workloads = append(workloads, resource)
-		} else if resource.canBeManaged() {
-			configs = append(configs, resource)
-		}
+		resources = append(resources, resource)
 	}
-	return workloads, configs, nil
+	return resources, nil
 }
 
 func (r releaser) apply(resources []appResource) ([]appResource, error) {
@@ -361,7 +451,7 @@ func (r releaser) watchRollback(appliedWorkloads []appResource) []error {
 		if workload.rollbackTimeout == 0 {
 			timeout = 5 * time.Minute
 		}
-		go r.goWatch(workload, timeout, errorChan, &wg)
+		go r.goWatchRollback(workload, timeout, errorChan, &wg)
 	}
 	var errors []error
 
@@ -384,13 +474,53 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 	done <- true
 }
 
-// TODO: add support for watching pods
 func (r releaser) goWatch(resource appResource, timeout time.Duration, errors chan rolloutError, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !resource.supportsRollback() {
 		return
 	}
 
+	if resource.watchUrl == "" || r.app.ReviewApp {
+		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
+		if err != nil {
+			errors <- rolloutError{err: err, resource: resource}
+		}
+	} else {
+		go func() {
+			err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
+			if err != nil {
+				errors <- rolloutError{err: err, resource: resource}
+			}
+		}()
+		err := r.monitorUrl(resource)
+		if err != nil {
+			errors <- rolloutError{err: err, resource: resource}
+		}
+	}
+}
+
+func (r releaser) monitorUrl(resource appResource) error {
+	timeout := time.Now().Add(resource.watchDuration)
+	for {
+		if time.Now().After(timeout) {
+			return nil
+		}
+		resp, err := http.Get(resource.watchUrl)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("non-success status received from monitor url")
+		}
+		time.Sleep(30 * time.Second)
+	}
+}
+
+func (r releaser) goWatchRollback(resource appResource, timeout time.Duration, errors chan rolloutError, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if !resource.supportsRollback() {
+		return
+	}
 	err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 	if err != nil {
 		errors <- rolloutError{err: err, resource: resource}
@@ -417,6 +547,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 				break
 			}
 		}
+
 		if !inPreviousState && !emptyState {
 			err := k8s.Delete(applied.kind, applied.name, r.app.Name)
 			if err != nil {
@@ -494,31 +625,3 @@ func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, a
 	}
 	return nil
 }
-
-// deprecated and unused, but a hopefully useful example of resource editing
-// func addAnnotationToV1Deployment(resource []byte) (string, string, error) {
-// 	decode := scheme.Codecs.UniversalDeserializer().Decode
-//
-// 	obj, versionKind, err := decode(resource, nil, nil)
-// 	if err != nil {
-// 		return "", "", err
-// 	}
-// 	if versionKind.Version != "v1" {
-// 		return "", "", fmt.Errorf("must use v1 deployments")
-// 	}
-//
-// 	deployment := obj.(*v1.Deployment)
-// 	annotations := deployment.Spec.Template.ObjectMeta.GetAnnotations()
-// 	if annotations == nil {
-// 		annotations = map[string]string{}
-// 	}
-// 	releaseID := uuid.New().String()
-// 	annotations["tuber/releaseID"] = releaseID
-// 	deployment.Spec.Template.ObjectMeta.SetAnnotations(annotations)
-//
-// 	annotated, err := yaml.Marshal(deployment)
-// 	if err != nil {
-// 		return "", "", err
-// 	}
-// 	return string(annotated), releaseID, nil
-// }

@@ -48,20 +48,19 @@ type repository struct {
 }
 
 // GetTuberLayer downloads yamls for an image
-func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) (prereleaseYamls []string, releaseYamls []string, err error) {
+func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) ([]string, []string, []string, error) {
 	authToken, err := gcloud.GetAccessToken(creds)
 	if err != nil {
-		return
+		return nil, nil, nil, err
 	}
 
 	reg := newRegistry(location.Host, authToken)
 	repo, err := reg.getRepository(location.Path)
 	if err != nil {
-		return
+		return nil, nil, nil, err
 	}
 
-	prereleaseYamls, releaseYamls, err = repo.findLayer(sha)
-	return
+	return repo.findLayer(sha)
 }
 
 func GetLatestSHA(location RepositoryLocation, creds []byte) (sha string, err error) {
@@ -144,7 +143,7 @@ func (r *repository) getLayers(tag string) (layers []layer, err error) {
 	return manifest.Layers, nil
 }
 
-func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, releaseYamls []string, err error) {
+func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, err error) {
 	layer := layerObj.Digest
 
 	requestURL := fmt.Sprintf(
@@ -157,7 +156,7 @@ func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, r
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
-		return
+		return nil, nil, nil, err
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.token))
@@ -165,21 +164,28 @@ func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, r
 	res, err := client.Do(req)
 
 	if err != nil {
-		return
+		return nil, nil, nil, err
 	}
 
-	prereleaseYamls, releaseYamls, err = convertResponse(res)
-	return
+	prereleaseYamls, releaseYamls, postreleaseYamls, err = convertResponse(res)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return prereleaseYamls, releaseYamls, postreleaseYamls, nil
 }
 
-func convertResponse(response *http.Response) (prereleaseYamls []string, releaseYamls []string, err error) {
+func convertResponse(response *http.Response) ([]string, []string, []string, error) {
 	gzipped, err := gzip.NewReader(response.Body)
 
 	if err != nil {
-		return
+		return nil, nil, nil, err
 	}
 
 	archive := tar.NewReader(gzipped)
+
+	var prereleaseYamls []string
+	var releaseYamls []string
+	var postreleaseYamls []string
 
 	for {
 		var header *tar.Header
@@ -187,11 +193,11 @@ func convertResponse(response *http.Response) (prereleaseYamls []string, release
 
 		if err == io.EOF {
 			err = nil
-			return
+			return nil, nil, nil, err
 		}
 
 		if err != nil {
-			return
+			return nil, nil, nil, err
 		}
 
 		if !strings.HasPrefix(header.Name, ".tuber") {
@@ -206,19 +212,22 @@ func convertResponse(response *http.Response) (prereleaseYamls []string, release
 		bytes, err = ioutil.ReadAll(archive)
 
 		if err != nil {
-			return
+			return nil, nil, nil, err
 		}
 
 		if strings.HasPrefix(header.Name, ".tuber/prerelease/") {
 			prereleaseYamls = append(prereleaseYamls, string(bytes))
+		} else if strings.HasPrefix(header.Name, ".tuber/postrelease/") {
+			postreleaseYamls = append(postreleaseYamls, string(bytes))
 		} else {
 			releaseYamls = append(releaseYamls, string(bytes))
 		}
 	}
+	return prereleaseYamls, releaseYamls, postreleaseYamls, nil
 }
 
 // findLayer finds the .tuber layer containing deploy info for Tuber
-func (r *repository) findLayer(tag string) (prereleaseYamls []string, releaseYamls []string, err error) {
+func (r *repository) findLayer(tag string) (prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, err error) {
 	layers, err := r.getLayers(tag)
 
 	if err != nil {
@@ -230,14 +239,14 @@ func (r *repository) findLayer(tag string) (prereleaseYamls []string, releaseYam
 			continue
 		}
 
-		prereleaseYamls, releaseYamls, err = r.downloadLayer(&layer)
+		prereleaseYamls, releaseYamls, postreleaseYamls, err = r.downloadLayer(&layer)
 
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		if len(releaseYamls) != 0 {
-			return prereleaseYamls, releaseYamls, nil
+			return prereleaseYamls, releaseYamls, postreleaseYamls, nil
 		}
 	}
 
