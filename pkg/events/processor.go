@@ -76,11 +76,15 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 
 	matchFound := false
 
+	wg := sync.WaitGroup{}
+
 	for _, a := range apps {
 		if a.ImageTag == event.tag {
 			matchFound = true
+			wg.Add(1)
 
-			go func(app *core.TuberApp) {
+			go func(app core.TuberApp, waitgroup *sync.WaitGroup) {
+				defer waitgroup.Done()
 				if _, ok := (*p.locks)[app.Name]; !ok {
 					var mutex sync.Mutex
 					(*p.locks)[app.Name] = sync.NewCond(&mutex)
@@ -91,22 +95,25 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 
 				paused, err := core.ReleasesPaused(app.Name)
 				if err != nil {
-					event.logger.Error("failed to check for paused state; deploying", zap.Error(err))
+					event.logger.Error("failed to check for paused state", zap.Error(err))
+					return
 				}
 
 				if paused {
 					event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
 					return
 				}
-				p.startRelease(event, app)
+				p.startRelease(event, &app)
 				cond.L.Unlock()
 				cond.Signal()
-			}(&a)
+			}(a, &wg)
 		}
 	}
 
 	if !matchFound {
 		event.logger.Debug("ignored event")
+	} else {
+		wg.Wait()
 	}
 }
 
