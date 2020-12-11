@@ -83,8 +83,8 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 			matchFound = true
 			wg.Add(1)
 
-			go func(app core.TuberApp, waitgroup *sync.WaitGroup) {
-				defer waitgroup.Done()
+			go func(app core.TuberApp) {
+				defer wg.Done()
 				if _, ok := (*p.locks)[app.Name]; !ok {
 					var mutex sync.Mutex
 					(*p.locks)[app.Name] = sync.NewCond(&mutex)
@@ -106,7 +106,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 				p.startRelease(event, &app)
 				cond.L.Unlock()
 				cond.Signal()
-			}(a, &wg)
+			}(a)
 		}
 	}
 
