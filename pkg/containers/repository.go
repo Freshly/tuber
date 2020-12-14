@@ -48,19 +48,20 @@ type repository struct {
 }
 
 // GetTuberLayer downloads yamls for an image
-func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) ([]string, []string, []string, error) {
+func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) (prereleaseYamls []string, releaseYamls []string, postReleaseYamls []string, err error) {
 	authToken, err := gcloud.GetAccessToken(creds)
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
 	reg := newRegistry(location.Host, authToken)
 	repo, err := reg.getRepository(location.Path)
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
-	return repo.findLayer(sha)
+	prereleaseYamls, releaseYamls, postReleaseYamls, err = repo.findLayer(sha)
+	return
 }
 
 func GetLatestSHA(location RepositoryLocation, creds []byte) (sha string, err error) {
@@ -156,7 +157,7 @@ func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, r
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.token))
@@ -164,28 +165,21 @@ func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, r
 	res, err := client.Do(req)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
 	prereleaseYamls, releaseYamls, postreleaseYamls, err = convertResponse(res)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return prereleaseYamls, releaseYamls, postreleaseYamls, nil
+	return
 }
 
-func convertResponse(response *http.Response) ([]string, []string, []string, error) {
+func convertResponse(response *http.Response) (prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, err error) {
 	gzipped, err := gzip.NewReader(response.Body)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
 	archive := tar.NewReader(gzipped)
-
-	var prereleaseYamls []string
-	var releaseYamls []string
-	var postreleaseYamls []string
 
 	for {
 		var header *tar.Header
@@ -193,11 +187,11 @@ func convertResponse(response *http.Response) ([]string, []string, []string, err
 
 		if err == io.EOF {
 			err = nil
-			return nil, nil, nil, err
+			return
 		}
 
 		if err != nil {
-			return nil, nil, nil, err
+			return
 		}
 
 		if !strings.HasPrefix(header.Name, ".tuber") {
@@ -212,7 +206,7 @@ func convertResponse(response *http.Response) ([]string, []string, []string, err
 		bytes, err = ioutil.ReadAll(archive)
 
 		if err != nil {
-			return nil, nil, nil, err
+			return
 		}
 
 		if strings.HasPrefix(header.Name, ".tuber/prerelease/") {
@@ -223,7 +217,6 @@ func convertResponse(response *http.Response) ([]string, []string, []string, err
 			releaseYamls = append(releaseYamls, string(bytes))
 		}
 	}
-	return prereleaseYamls, releaseYamls, postreleaseYamls, nil
 }
 
 // findLayer finds the .tuber layer containing deploy info for Tuber
