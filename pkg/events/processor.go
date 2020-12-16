@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 	"tuber/pkg/containers"
 	"tuber/pkg/core"
@@ -19,16 +20,20 @@ type Processor struct {
 	creds             []byte
 	clusterData       *core.ClusterData
 	reviewAppsEnabled bool
+	locks             *map[string]*sync.Cond
 }
 
 // NewProcessor is a constructor for Processors so that the fields can be unexported
 func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool) Processor {
+	l := make(map[string]*sync.Cond)
+
 	return Processor{
 		ctx:               ctx,
 		logger:            logger,
 		creds:             creds,
 		clusterData:       clusterData,
 		reviewAppsEnabled: reviewAppsEnabled,
+		locks:             &l,
 	}
 }
 
@@ -60,6 +65,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 		errorScope: scope,
 		sha:        sha,
 	}
+
 	apps, err := p.apps()
 	if err != nil {
 		event.logger.Error("failed to look up tuber apps", zap.Error(err))
@@ -69,25 +75,45 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	event.logger.Debug("filtering event against current tuber apps", zap.Any("apps", apps))
 
 	matchFound := false
-	for _, app := range apps {
-		if app.ImageTag == event.tag {
+
+	wg := sync.WaitGroup{}
+
+	for _, a := range apps {
+		if a.ImageTag == event.tag {
 			matchFound = true
+			wg.Add(1)
 
-			paused, err := core.ReleasesPaused(app.Name)
-			if err != nil {
-				event.logger.Error("failed to check for paused state", zap.Error(err))
-			}
+			go func(app core.TuberApp) {
+				defer wg.Done()
+				if _, ok := (*p.locks)[app.Name]; !ok {
+					var mutex sync.Mutex
+					(*p.locks)[app.Name] = sync.NewCond(&mutex)
+				}
 
-			if paused {
-				event.logger.Warn("app deployments paused; skipping", zap.String("appName", app.Name))
-				continue
-			}
+				cond := (*p.locks)[app.Name]
+				cond.L.Lock()
 
-			p.startRelease(event, &app)
+				paused, err := core.ReleasesPaused(app.Name)
+				if err != nil {
+					event.logger.Error("failed to check for paused state", zap.Error(err))
+					return
+				}
+
+				if paused {
+					event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
+					return
+				}
+				p.startRelease(event, &app)
+				cond.L.Unlock()
+				cond.Signal()
+			}(a)
 		}
 	}
+
 	if !matchFound {
 		event.logger.Debug("ignored event")
+	} else {
+		wg.Wait()
 	}
 }
 
@@ -115,6 +141,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	})
 
 	logger.Info("release starting")
+  
 	prereleaseYamls, releaseYamls, postreleaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), event.sha, p.creds)
 	if err != nil {
 		logger.Error("failed to find tuber layer", zap.Error(err))

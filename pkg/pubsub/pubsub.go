@@ -87,7 +87,7 @@ func (l *Listener) Start() error {
 			report.Error(err, report.Scope{"context": "messageProcessing"})
 			return
 		}
-		go l.processor.ProcessMessage(message.Digest, message.Tag)
+		l.processor.ProcessMessage(message.Digest, message.Tag)
 	})
 
 	if err != nil {
