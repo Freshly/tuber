@@ -141,8 +141,8 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 	})
 
 	logger.Info("release starting")
-  
-	prereleaseYamls, releaseYamls, postreleaseYamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), event.sha, p.creds)
+
+	yamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), event.sha, p.creds)
 	if err != nil {
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
@@ -151,9 +151,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 	startTime := time.Now()
 	err = core.Release(
-		prereleaseYamls,
-		releaseYamls,
-		postreleaseYamls,
+		yamls,
 		logger,
 		errorScope,
 		app,

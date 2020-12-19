@@ -47,21 +47,26 @@ type repository struct {
 	token    string
 }
 
+type AppYamls struct {
+	Prerelease  []string
+	Release     []string
+	PostRelease []string
+}
+
 // GetTuberLayer downloads yamls for an image
-func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) (prereleaseYamls []string, releaseYamls []string, postReleaseYamls []string, err error) {
+func GetTuberLayer(location RepositoryLocation, sha string, creds []byte) (AppYamls, error) {
 	authToken, err := gcloud.GetAccessToken(creds)
 	if err != nil {
-		return
+		return AppYamls{}, nil
 	}
 
 	reg := newRegistry(location.Host, authToken)
 	repo, err := reg.getRepository(location.Path)
 	if err != nil {
-		return
+		return AppYamls{}, nil
 	}
 
-	prereleaseYamls, releaseYamls, postReleaseYamls, err = repo.findLayer(sha)
-	return
+	return repo.findLayer(sha)
 }
 
 func GetLatestSHA(location RepositoryLocation, creds []byte) (sha string, err error) {
@@ -144,7 +149,7 @@ func (r *repository) getLayers(tag string) (layers []layer, err error) {
 	return manifest.Layers, nil
 }
 
-func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, err error) {
+func (r *repository) downloadLayer(layerObj *layer) (AppYamls, error) {
 	layer := layerObj.Digest
 
 	requestURL := fmt.Sprintf(
@@ -157,7 +162,7 @@ func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, r
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", requestURL, nil)
 	if err != nil {
-		return
+		return AppYamls{}, nil
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.token))
@@ -165,33 +170,34 @@ func (r *repository) downloadLayer(layerObj *layer) (prereleaseYamls []string, r
 	res, err := client.Do(req)
 
 	if err != nil {
-		return
+		return AppYamls{}, nil
 	}
 
-	prereleaseYamls, releaseYamls, postreleaseYamls, err = convertResponse(res)
-	return
+	return convertResponse(res)
 }
 
-func convertResponse(response *http.Response) (prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, err error) {
-	gzipped, err := gzip.NewReader(response.Body)
+func convertResponse(response *http.Response) (AppYamls, error) {
+	var yamls AppYamls
 
+	gzipped, err := gzip.NewReader(response.Body)
 	if err != nil {
-		return
+		return yamls, nil
 	}
 
 	archive := tar.NewReader(gzipped)
 
 	for {
 		var header *tar.Header
-		header, err = archive.Next()
 
+		header, err = archive.Next()
+		// hitting the end of the file is also the expected exit
 		if err == io.EOF {
 			err = nil
-			return
+			return yamls, nil
 		}
 
 		if err != nil {
-			return
+			return yamls, nil
 		}
 
 		if !strings.HasPrefix(header.Name, ".tuber") {
@@ -204,27 +210,26 @@ func convertResponse(response *http.Response) (prereleaseYamls []string, release
 
 		var bytes []byte
 		bytes, err = ioutil.ReadAll(archive)
-
 		if err != nil {
-			return
+			return yamls, nil
 		}
 
 		if strings.HasPrefix(header.Name, ".tuber/prerelease/") {
-			prereleaseYamls = append(prereleaseYamls, string(bytes))
+			yamls.Prerelease = append(yamls.Prerelease, string(bytes))
 		} else if strings.HasPrefix(header.Name, ".tuber/postrelease/") {
-			postreleaseYamls = append(postreleaseYamls, string(bytes))
+			yamls.PostRelease = append(yamls.PostRelease, string(bytes))
 		} else {
-			releaseYamls = append(releaseYamls, string(bytes))
+			yamls.Release = append(yamls.Release, string(bytes))
 		}
 	}
 }
 
 // findLayer finds the .tuber layer containing deploy info for Tuber
-func (r *repository) findLayer(tag string) (prereleaseYamls []string, releaseYamls []string, postreleaseYamls []string, err error) {
+func (r *repository) findLayer(tag string) (AppYamls, error) {
 	layers, err := r.getLayers(tag)
 
 	if err != nil {
-		return
+		return AppYamls{}, err
 	}
 
 	for _, layer := range layers {
@@ -232,17 +237,16 @@ func (r *repository) findLayer(tag string) (prereleaseYamls []string, releaseYam
 			continue
 		}
 
-		prereleaseYamls, releaseYamls, postreleaseYamls, err = r.downloadLayer(&layer)
+		yamls, err := r.downloadLayer(&layer)
 
 		if err != nil {
-			return nil, nil, nil, err
+			return AppYamls{}, err
 		}
 
-		if len(releaseYamls) != 0 {
-			return prereleaseYamls, releaseYamls, postreleaseYamls, nil
+		if len(yamls.Release) != 0 {
+			return yamls, nil
 		}
 	}
 
-	err = fmt.Errorf("no tuber layer found")
-	return
+	return AppYamls{}, fmt.Errorf("no tuber layer found")
 }
