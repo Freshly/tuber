@@ -178,25 +178,26 @@ func (r *repository) downloadLayer(layerObj *layer) (AppYamls, error) {
 
 func convertResponse(response *http.Response) (AppYamls, error) {
 	var yamls AppYamls
-	gzipped, err := gzip.NewReader(response.Body)
 
+	gzipped, err := gzip.NewReader(response.Body)
 	if err != nil {
-		return AppYamls{}, nil
+		return yamls, nil
 	}
 
 	archive := tar.NewReader(gzipped)
 
 	for {
 		var header *tar.Header
-		header, err = archive.Next()
 
+		header, err = archive.Next()
+		// hitting the end of the file is also the expected exit
 		if err == io.EOF {
 			err = nil
-			return AppYamls{}, nil
+			return yamls, nil
 		}
 
 		if err != nil {
-			return AppYamls{}, nil
+			return yamls, nil
 		}
 
 		if !strings.HasPrefix(header.Name, ".tuber") {
@@ -209,9 +210,8 @@ func convertResponse(response *http.Response) (AppYamls, error) {
 
 		var bytes []byte
 		bytes, err = ioutil.ReadAll(archive)
-
 		if err != nil {
-			return AppYamls{}, nil
+			return yamls, nil
 		}
 
 		if strings.HasPrefix(header.Name, ".tuber/prerelease/") {
@@ -222,7 +222,6 @@ func convertResponse(response *http.Response) (AppYamls, error) {
 			yamls.Release = append(yamls.Release, string(bytes))
 		}
 	}
-	return yamls, nil
 }
 
 // findLayer finds the .tuber layer containing deploy info for Tuber
