@@ -40,10 +40,8 @@ func waitForPhase(name string, kind string, app *TuberApp, resourceTimeout time.
 		`go-template="%s"`,
 		"{{range .status.containerStatuses}}{{.state.terminated.message}}{{end}}",
 	)
-	var timeout time.Time
-	if resourceTimeout == 0 {
-		timeout = time.Now().Add(time.Minute * 10)
-	} else {
+	timeout := time.Now().Add(time.Minute * 10)
+	if resourceTimeout > 0 {
 		timeout = time.Now().Add(resourceTimeout)
 	}
 
