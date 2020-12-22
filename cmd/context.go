@@ -15,18 +15,20 @@ var contextCmd = &cobra.Command{
 }
 
 func currentContext(*cobra.Command, []string) error {
-	config, err := getTuberConfig()
-	if err != nil {
-		return err
-	}
-
 	currentCluster, err := k8s.CurrentCluster()
 	if err != nil {
 		return err
 	}
 
+	config, err := getTuberConfig()
+	if err != nil {
+		fmt.Println(currentCluster)
+		return nil
+	}
+
 	if config == nil {
-		return fmt.Errorf("tuber config empty, run `tuber config`")
+		fmt.Println(currentCluster)
+		return nil
 	}
 
 	cluster := config.FindByName(currentCluster)
