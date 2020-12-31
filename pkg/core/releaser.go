@@ -210,15 +210,11 @@ func (a appResource) isWorkload() bool {
 }
 
 func (a appResource) supportsRollback() bool {
-	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet" || a.isCanary()
-}
-
-func (a appResource) isCanary() bool {
-	return a.kind == "Canary"
+	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet"
 }
 
 func (a appResource) canBeManaged() bool {
-	return a.kind == "Deployment" || a.kind == "Daemonset" || a.kind == "StatefulSet"
+	return a.kind != "Secret" && a.kind != "ClusterRole" && a.kind != "ClusterRoleBinding"
 }
 
 func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {
@@ -332,7 +328,21 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResourc
 			configs = append(configs, releaseResource)
 		}
 	}
-	return prereleaseResources, configs, workloads, postreleaseResources, nil
+
+	var filteredPrereleasers []appResource
+	for _, prereleaser := range prereleaseResources {
+		if prereleaser.canBeManaged() {
+			filteredPrereleasers = append(filteredPrereleasers, prereleaser)
+		}
+	}
+	var filteredPostreleasers []appResource
+	for _, postreleaser := range postreleaseResources {
+		if postreleaser.canBeManaged() {
+			filteredPostreleasers = append(filteredPostreleasers, postreleaser)
+		}
+	}
+
+	return filteredPrereleasers, configs, workloads, filteredPostreleasers, nil
 }
 
 func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (appResources, error) {
@@ -566,11 +576,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
 	var err error
 	if applied.supportsRollback() {
-		if applied.isCanary() {
-			err = k8s.Apply(cached.contents, r.app.Name)
-		} else {
-			err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
-		}
+		err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
 	} else {
 		err = k8s.Apply(cached.contents, r.app.Name)
 	}
