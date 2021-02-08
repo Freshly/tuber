@@ -3,9 +3,9 @@ package reviewapps
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"tuber/pkg/proto"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -52,15 +52,5 @@ func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppR
 }
 
 func reviewAppName(appName, branch string) string {
-	randStr := uuid.New().String()[0:8]
-
-	if len(branch) > 8 {
-		branch = branch[0:8]
-	}
-
-	if len(appName) > 8 {
-		appName = appName[0:8]
-	}
-
-	return fmt.Sprintf("%s-%s-%s", appName, branch, randStr)
+	return fmt.Sprintf("%s-%s", url.QueryEscape(appName), url.QueryEscape(branch))
 }

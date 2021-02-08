@@ -35,6 +35,15 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 func CreateReviewApp(branch string, appName string, token string, credentials []byte, projectName string, l *zap.Logger, ctx context.Context) error {
 	reviewAppName := reviewAppName(appName, branch)
 
+	list, err := core.TuberReviewApps()
+	if err != nil {
+		return err
+	}
+	_, err = list.FindApp(reviewAppName)
+	if err == nil {
+		return fmt.Errorf("review app already exists")
+	}
+
 	logger := l.With(
 		zap.String("appName", appName),
 		zap.String("reviewAppName", reviewAppName),
