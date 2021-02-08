@@ -20,7 +20,7 @@ type Server struct {
 
 // CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppRequest) (*proto.CreateReviewAppResponse, error) {
-	err := CreateReviewApp(in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName, s.Logger, ctx)
+	err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName)
 
 	if err != nil {
 		return &proto.CreateReviewAppResponse{
@@ -40,7 +40,7 @@ func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppR
 		zap.String("appName", in.AppName),
 	)
 
-	err := DeleteReviewApp(reviewAppName, s.Credentials, s.ProjectName, ctx)
+	err := DeleteReviewApp(ctx, reviewAppName, s.Credentials, s.ProjectName)
 
 	if err != nil {
 		logger.Error("error deleting review app " + reviewAppName + ": " + err.Error())

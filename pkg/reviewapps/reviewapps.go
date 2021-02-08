@@ -32,7 +32,7 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(branch string, appName string, token string, credentials []byte, projectName string, l *zap.Logger, ctx context.Context) error {
+func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName string, token string, credentials []byte, projectName string) error {
 	reviewAppName := reviewAppName(appName, branch)
 
 	list, err := core.TuberReviewApps()
@@ -125,7 +125,7 @@ func CreateReviewApp(branch string, appName string, token string, credentials []
 	return nil
 }
 
-func DeleteReviewApp(reviewAppName string, credentials []byte, projectName string, ctx context.Context) error {
+func DeleteReviewApp(ctx context.Context, reviewAppName string, credentials []byte, projectName string) error {
 	err := core.DestroyTuberApp(reviewAppName)
 	if err != nil {
 		return err
