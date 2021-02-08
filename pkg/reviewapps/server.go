@@ -3,7 +3,6 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/core"
 	"tuber/pkg/proto"
 
 	"github.com/google/uuid"
@@ -12,7 +11,6 @@ import (
 
 // Server is the ReviewApp GRPC service
 type Server struct {
-	ReviewAppsEnabled  bool
 	ClusterDefaultHost string
 	ProjectName        string
 	Credentials        []byte
@@ -22,96 +20,9 @@ type Server struct {
 
 // CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppRequest) (*proto.CreateReviewAppResponse, error) {
-	if s.ReviewAppsEnabled == false {
-		return &proto.CreateReviewAppResponse{
-			Error: "review apps are not enabled for this cluster",
-		}, nil
-	}
+	err := CreateReviewApp(in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName, s.Logger, ctx)
 
-	reviewAppName := reviewAppName(in.AppName, in.Branch)
-
-	logger := s.Logger.With(
-		zap.String("appName", in.AppName),
-		zap.String("reviewAppName", reviewAppName),
-		zap.String("branch", in.Branch),
-	)
-
-	logger.Info("creating review app")
-
-	logger.Info("checking permissions")
-	permitted, err := canCreate(logger, in.AppName, in.Token)
 	if err != nil {
-		return nil, err
-	}
-
-	if !permitted {
-		return &proto.CreateReviewAppResponse{
-			Error: "not permitted to create a review app",
-		}, nil
-	}
-
-	sourceApp, err := core.FindApp(in.AppName)
-	if err != nil {
-		return &proto.CreateReviewAppResponse{
-			Error: fmt.Sprintf("can't find source app. is %s managed by tuber?", in.AppName),
-		}, nil
-	}
-
-	logger.Info("creating review app resources")
-
-	err = NewReviewAppSetup(in.AppName, reviewAppName)
-	if err != nil {
-		logger.Error("error creating review app resources; tearing down", zap.Error(err))
-
-		teardownErr := core.DestroyTuberApp(reviewAppName)
-		if teardownErr != nil {
-			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
-			return nil, teardownErr
-		}
-
-		return &proto.CreateReviewAppResponse{
-			Error: err.Error(),
-		}, nil
-	}
-
-	logger.Info("creating app entry for review app")
-
-	err = core.AddReviewAppConfig(reviewAppName, sourceApp.Repo, in.Branch)
-	if err != nil {
-		teardownErr := core.DestroyTuberApp(reviewAppName)
-		if teardownErr != nil {
-			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
-			return nil, teardownErr
-		}
-
-		return nil, err
-	}
-
-	logger.Info("creating and running review app trigger")
-
-	err = CreateAndRunTrigger(ctx, s.Credentials, sourceApp.Repo, s.ProjectName, reviewAppName, in.Branch)
-	if err != nil {
-		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
-
-		triggerCleanupErr := deleteReviewAppTrigger(ctx, s.Credentials, s.ProjectName, reviewAppName)
-		teardownErr := core.DestroyTuberApp(reviewAppName)
-		cleanupConfigErr := core.RemoveReviewAppConfig(reviewAppName)
-
-		if teardownErr != nil {
-			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
-			return nil, teardownErr
-		}
-
-		if cleanupConfigErr != nil {
-			logger.Error("error removing config entry for app", zap.Error(cleanupConfigErr))
-			return nil, cleanupConfigErr
-		}
-
-		if triggerCleanupErr != nil {
-			logger.Error("error removing trigger", zap.Error(triggerCleanupErr))
-			return nil, triggerCleanupErr
-		}
-
 		return &proto.CreateReviewAppResponse{
 			Error: err.Error(),
 		}, nil
@@ -123,27 +34,21 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 }
 
 func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppRequest) (*proto.DeleteReviewAppResponse, error) {
-	res := &proto.DeleteReviewAppResponse{}
 	reviewAppName := in.GetAppName()
 
 	logger := s.Logger.With(
 		zap.String("appName", in.AppName),
 	)
 
-	err := core.DestroyTuberApp(reviewAppName)
+	err := DeleteReviewApp(reviewAppName, s.Credentials, s.ProjectName, ctx)
+
 	if err != nil {
-		logger.Error("error deleting tuber app", zap.Error(err))
-		return nil, err
+		logger.Error("error deleting review app " + reviewAppName + ": " + err.Error())
+		return &proto.DeleteReviewAppResponse{Error: err.Error()}, nil
 	}
 
-	err = core.RemoveReviewAppConfig(reviewAppName)
-	if err != nil {
-		logger.Error("error deleting tuber review map app config entry item row", zap.Error(err))
-	}
-
-	err = deleteReviewAppTrigger(ctx, s.Credentials, s.ProjectName, reviewAppName)
-
-	return res, nil
+	logger.Info("deleted review app: " + reviewAppName)
+	return &proto.DeleteReviewAppResponse{}, nil
 }
 
 func reviewAppName(appName, branch string) string {
