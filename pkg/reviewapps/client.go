@@ -11,10 +11,7 @@ import (
 
 // NewClient returns a GRPC client
 func NewClient(url string) (proto.TuberClient, *grpc.ClientConn, error) {
-	config := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	conn, err := grpc.Dial(url+":443", grpc.WithTransportCredentials(credentials.NewTLS(config)))
+	conn, err := grpc.Dial(url+":443", grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 
 	if err != nil {
 		return nil, nil, fmt.Errorf("grpc client: %s", err)
