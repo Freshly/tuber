@@ -8,14 +8,16 @@ import (
 )
 
 func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
+	if appName == "tuber" {
+		return false, nil
+	}
+
 	exists, err := appExists(appName)
-	if err != nil {
+	if err != nil || !exists {
 		return false, err
 	}
 
-	canDeploy := k8s.CanDeploy(appName, token)
-
-	return appName != "tuber" && canDeploy && exists, nil
+	return k8s.CanDeploy(appName, token), nil
 }
 
 func appExists(appName string) (bool, error) {
