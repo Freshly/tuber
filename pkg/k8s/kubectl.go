@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	shellescape "gopkg.in/alessio/shellescape.v1"
 )
 
 func runKubectl(cmd *exec.Cmd) ([]byte, error) {
@@ -206,7 +207,11 @@ func UseCluster(cluster string) error {
 
 // CanDeploy determines if the current user can create a deployment
 func CanDeploy(appName, token string) bool {
-	t := fmt.Sprintf("--token=%s", token)
+	if token == "" {
+		return false
+	}
+
+	t := fmt.Sprintf("--token=%s", shellescape.Quote(token))
 
 	out, err := kubectl([]string{"auth", "can-i", "create", "deployments", "-n", appName, t}...)
 	if err != nil {
