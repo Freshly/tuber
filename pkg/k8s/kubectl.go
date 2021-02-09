@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	shellescape "gopkg.in/alessio/shellescape.v1"
+	"gopkg.in/alessio/shellescape.v1"
 )
 
 func runKubectl(cmd *exec.Cmd) ([]byte, error) {
