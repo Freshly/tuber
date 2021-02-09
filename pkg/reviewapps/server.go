@@ -40,19 +40,17 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 }
 
 func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppRequest) (*proto.DeleteReviewAppResponse, error) {
-	reviewAppName := in.GetAppName()
-
 	logger := s.Logger.With(
 		zap.String("appName", in.AppName),
 	)
 
-	err := DeleteReviewApp(ctx, reviewAppName, s.Credentials, s.ProjectName)
+	err := DeleteReviewApp(ctx, in.AppName, s.Credentials, s.ProjectName)
 
 	if err != nil {
-		logger.Error("error deleting review app " + reviewAppName + ": " + err.Error())
+		logger.Error("error deleting review app " + in.AppName + ": " + err.Error())
 		return &proto.DeleteReviewAppResponse{Error: err.Error()}, nil
 	}
 
-	logger.Info("deleted review app: " + reviewAppName)
+	logger.Info("deleted review app: " + in.AppName)
 	return &proto.DeleteReviewAppResponse{}, nil
 }
