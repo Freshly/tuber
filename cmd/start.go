@@ -106,14 +106,6 @@ func start(cmd *cobra.Command, args []string) {
 func startReviewAppsServer(logger *zap.Logger, creds []byte) {
 	logger = logger.With(zap.String("action", "grpc"))
 
-	defaultHost := viper.GetString("cluster-default-host")
-	if defaultHost == "" {
-		err := fmt.Errorf("no cluster default host configured")
-		logger.Error("grpc server failed to start: no cluster default host configured")
-		report.Error(err, report.Scope{"during": "grpc server startup"})
-		panic(err)
-	}
-
 	projectName := viper.GetString("review-apps-triggers-project-name")
 	if projectName == "" {
 		err := fmt.Errorf("no reviewapps project name configured")
@@ -123,7 +115,7 @@ func startReviewAppsServer(logger *zap.Logger, creds []byte) {
 	}
 
 	srv := reviewapps.Server{
-		ClusterDefaultHost: defaultHost,
+		ClusterDefaultHost: viper.GetString("cluster-default-host"),
 		ProjectName:        projectName,
 		Logger:             logger,
 		Credentials:        creds,

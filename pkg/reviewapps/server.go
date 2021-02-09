@@ -3,7 +3,6 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"tuber/pkg/proto"
 
 	"go.uber.org/zap"
@@ -20,7 +19,7 @@ type Server struct {
 
 // CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppRequest) (*proto.CreateReviewAppResponse, error) {
-	err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName)
+	appName, err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName)
 
 	if err != nil {
 		return &proto.CreateReviewAppResponse{
@@ -28,8 +27,15 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		}, nil
 	}
 
+	var host string
+	if s.ClusterDefaultHost == "" {
+		host = appName
+	} else {
+		host = fmt.Sprintf("https://%s.%s/", reviewAppName, s.ClusterDefaultHost)
+	}
+
 	return &proto.CreateReviewAppResponse{
-		Hostname: fmt.Sprintf("https://%s.%s/", reviewAppName, s.ClusterDefaultHost),
+		Hostname: host,
 	}, nil
 }
 
@@ -49,8 +55,4 @@ func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppR
 
 	logger.Info("deleted review app: " + reviewAppName)
 	return &proto.DeleteReviewAppResponse{}, nil
-}
-
-func reviewAppName(appName, branch string) string {
-	return fmt.Sprintf("%s-%s", url.QueryEscape(appName), url.QueryEscape(branch))
 }
