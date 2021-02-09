@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"gopkg.in/alessio/shellescape.v1"
 )
 
 func runKubectl(cmd *exec.Cmd) ([]byte, error) {
@@ -211,7 +210,7 @@ func CanDeploy(appName, token string) bool {
 		return false
 	}
 
-	t := fmt.Sprintf("--token=%s", shellescape.Quote(token))
+	t := fmt.Sprintf("--token=%s", token)
 
 	out, err := kubectl([]string{"auth", "can-i", "create", "deployments", "-n", appName, t}...)
 	if err != nil {
