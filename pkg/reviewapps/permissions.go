@@ -1,6 +1,7 @@
 package reviewapps
 
 import (
+	"fmt"
 	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
-	if appName == "tuber" {
+	if appName == "tuber" || token == "" {
 		return false, nil
 	}
 
@@ -17,7 +18,12 @@ func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
 		return false, err
 	}
 
-	return k8s.CanDeploy(appName, token), nil
+	canDeploy, err := k8s.CanDeploy(appName, fmt.Sprintf("--token=%s", token))
+	if err != nil {
+		return false, err
+	}
+
+	return canDeploy, nil
 }
 
 func appExists(appName string) (bool, error) {

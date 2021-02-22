@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"tuber/pkg/core"
 	"tuber/pkg/k8s"
 	"tuber/pkg/proto"
 	"tuber/pkg/reviewapps"
@@ -50,6 +51,19 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer conn.Close()
+
+	_, err = core.FindApp(sourceAppName)
+	if err != nil {
+		return fmt.Errorf("source app not found")
+	}
+
+	canDeploy, err := k8s.CanDeploy(sourceAppName)
+	if err != nil {
+		return err
+	}
+	if !canDeploy {
+		return fmt.Errorf("not permitted to create a review app from %s", sourceAppName)
+	}
 
 	config, err := k8s.GetConfig()
 	if err != nil {

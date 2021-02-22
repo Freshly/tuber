@@ -60,7 +60,7 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 	}
 
 	if !permitted {
-		return "", fmt.Errorf("not permitted to create a review app")
+		return "", fmt.Errorf("not permitted to create a review app from %s", appName)
 	}
 
 	sourceApp, err := core.FindApp(appName)
