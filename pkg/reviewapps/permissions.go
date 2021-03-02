@@ -18,12 +18,7 @@ func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
 		return false, err
 	}
 
-	canDeploy, err := k8s.CanDeploy(appName, fmt.Sprintf("--token=%s", token))
-	if err != nil {
-		return false, err
-	}
-
-	return canDeploy, nil
+	return k8s.CanDeploy(appName, fmt.Sprintf("--token=%s", token))
 }
 
 func appExists(appName string) (bool, error) {
