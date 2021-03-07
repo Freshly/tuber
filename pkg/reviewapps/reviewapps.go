@@ -127,7 +127,12 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 }
 
 func DeleteReviewApp(ctx context.Context, reviewAppName string, credentials []byte, projectName string) error {
-	err := core.DestroyTuberApp(reviewAppName)
+	_, err := core.FindReviewApp(reviewAppName)
+	if err != nil {
+		return fmt.Errorf("review app not found")
+	}
+
+	err = core.DestroyTuberApp(reviewAppName)
 	if err != nil {
 		return err
 	}
