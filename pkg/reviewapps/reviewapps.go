@@ -98,7 +98,7 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 
 	logger.Info("creating and running review app trigger")
 
-	err = CreateAndRunTrigger(ctx, credentials, sourceApp.Repo, projectName, reviewAppName, branch)
+	err = CreateAndRunTrigger(ctx, logger, credentials, sourceApp.Repo, projectName, reviewAppName, branch)
 	if err != nil {
 		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
 
