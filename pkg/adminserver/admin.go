@@ -46,7 +46,7 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 
 	branch := r.FormValue("branch")
 	appName := r.FormValue("appname")
-	reviewAppName, err := reviewapps.CreateReviewApp(context.Background(), &zap.Logger{}, branch, appName, creds, projectName)
+	reviewAppName, err := reviewapps.CreateReviewApp(context.Background(), logger, branch, appName, creds, projectName)
 	var result string
 	if err == nil {
 		result = fmt.Sprintf("https://%s.%s/", reviewAppName, viper.GetString("cluster-default-host"))
