@@ -1,27 +1,30 @@
 package cmd
 
 import (
-	"fmt"
-	"net/http"
+	"tuber/pkg/adminserver"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var adminserverCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "adminserver",
 	Short:        "starts the admin http server for review apps and maybe other stuff who knows",
-	RunE:         adminserver,
+	Run:          startAdminServer,
 }
 
-func adminserver(cmd *cobra.Command, args []string) error {
-	http.HandleFunc("/tuber", helloServer)
-	http.ListenAndServe(":3000", nil)
-	return nil
-}
+func startAdminServer(cmd *cobra.Command, args []string) {
+	projectName := viper.GetString("review-apps-triggers-project-name")
+	if projectName == "" {
+		panic("need a review apps triggers project name")
+	}
 
-func helloServer(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<h1>hello im tuber</h1>")
+	creds, err := credentials()
+	if err != nil {
+		panic(err)
+	}
+	adminserver.Start(projectName, creds)
 }
 
 func init() {
