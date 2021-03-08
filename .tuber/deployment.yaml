@@ -10,14 +10,12 @@ spec:
       app: tuber
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/inject: "false"
       labels:
         app: tuber
     spec:
       serviceAccountName: tuber
       containers:
-      - image: {{ .tuberImage }}
+      - image: "{{ .tuberImage }}"
         name: tuber
         volumeMounts:
           - name: tuber-credentials

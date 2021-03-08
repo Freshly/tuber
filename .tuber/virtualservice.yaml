@@ -4,9 +4,9 @@ metadata:
   name: tuber
 spec:
   hosts:
-  - "tuber.{{.clusterDefaultHost}}"
+    - "tuber.{{.clusterDefaultHost}}"
   gateways:
-  - "{{.clusterDefaultGateway}}"
+    - "{{.clusterDefaultGateway}}"
   http:
   - route:
     - destination:

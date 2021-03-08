@@ -25,6 +25,8 @@ var workload string
 func clusterData() (*core.ClusterData, error) {
 	defaultGateway := viper.GetString("cluster-default-gateway")
 	defaultHost := viper.GetString("cluster-default-host")
+	adminGateway := viper.GetString("cluster-admin-gateway")
+	adminHost := viper.GetString("cluster-admin-host")
 	if defaultGateway == "" || defaultHost == "" {
 		config, err := k8s.GetSecret("tuber", "tuber-env")
 		if err != nil {
@@ -36,11 +38,19 @@ func clusterData() (*core.ClusterData, error) {
 		if defaultHost == "" {
 			defaultHost = config.Data["TUBER_CLUSTER_DEFAULT_HOST"]
 		}
+		if adminGateway == "" {
+			adminGateway = config.Data["TUBER_CLUSTER_ADMIN_GATEWAY"]
+		}
+		if adminHost == "" {
+			adminHost = config.Data["TUBER_CLUSTER_ADMIN_HOST"]
+		}
 	}
 
 	data := &core.ClusterData{
 		DefaultGateway: defaultGateway,
 		DefaultHost:    defaultHost,
+		AdminGateway:   adminGateway,
+		AdminHost:      adminHost,
 	}
 
 	return data, nil

@@ -1,0 +1,64 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: tuber
+  namespace: tuber
+spec:
+  hosts:
+    - "{{.clusterAdminHost}}"
+  gateways:
+    - "{{.clusterAdminGateway}}"
+  http:
+    - match:
+        - uri:
+            prefix: /freshly_services.PaymentService
+      route:
+        - destination:
+            host: {{.tuberAppName}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tuber-admin
+  namespace: tuber
+spec:
+  ports:
+    - port: 3000
+      name: http
+  selector:
+    app: tuber-admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tuber-admin
+  namespace: tuber
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tuber-admin
+  template:
+    metadata:
+      labels:
+        app: tuber-admin
+    spec:
+      serviceAccountName: tuber
+      containers:
+        - image: "{{ .tuberImage }}"
+          name: tuber
+          volumeMounts:
+            - name: tuber-credentials
+              readOnly: true
+              mountPath: "/etc/tuber-credentials"
+          envFrom:
+            - secretRef:
+                name: tuber-env
+          command:
+            - "app/tuber"
+            - "adminserver"
+            - "-y"
+      volumes:
+        - name: tuber-credentials
+          secret:
+            secretName: tuber-credentials.json
