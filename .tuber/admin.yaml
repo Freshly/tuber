@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: tuber
+  name: tuber-admin
   namespace: tuber
 spec:
   hosts:
@@ -11,10 +11,10 @@ spec:
   http:
     - match:
         - uri:
-            prefix: /freshly_services.PaymentService
+            prefix: /tuber
       route:
         - destination:
-            host: {{.tuberAppName}}
+            host: tuber-admin
 ---
 apiVersion: v1
 kind: Service
