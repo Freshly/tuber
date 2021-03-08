@@ -45,7 +45,7 @@ var reviewAppsCache *appsCache
 var reviewMutex sync.Mutex
 
 func (a appsCache) isExpired() bool {
-	return sourceAppsCache.expiry.Before(time.Now())
+	return a.expiry.Before(time.Now())
 }
 
 func refreshSourceAppsCache(apps []TuberApp) {
