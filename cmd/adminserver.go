@@ -15,6 +15,13 @@ var adminserverCmd = &cobra.Command{
 }
 
 func startAdminServer(cmd *cobra.Command, args []string) {
+	logger, err := createLogger()
+	defer logger.Sync()
+
+	if err != nil {
+		panic(err)
+	}
+
 	projectName := viper.GetString("review-apps-triggers-project-name")
 	if projectName == "" {
 		panic("need a review apps triggers project name")
@@ -24,7 +31,7 @@ func startAdminServer(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	adminserver.Start(projectName, creds)
+	adminserver.Start(projectName, creds, logger)
 }
 
 func init() {

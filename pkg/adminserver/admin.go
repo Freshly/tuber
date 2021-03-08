@@ -27,10 +27,12 @@ var dashboardPage = `<p>create a review app from this branch:</p>
 
 var projectName string
 var creds []byte
+var logger *zap.Logger
 
-func Start(p string, c []byte) {
+func Start(p string, c []byte, l *zap.Logger) {
 	projectName = p
 	creds = c
+	logger = l
 	http.HandleFunc("/tuber", dashboard)
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
@@ -46,7 +48,7 @@ func dashboard(w http.ResponseWriter, r *http.Request) {
 	appName := r.FormValue("appname")
 	reviewAppName, err := reviewapps.CreateReviewApp(context.Background(), &zap.Logger{}, branch, appName, creds, projectName)
 	var result string
-	if err != nil {
+	if err == nil {
 		result = fmt.Sprintf("https://%s.%s/", reviewAppName, viper.GetString("cluster-default-host"))
 	} else {
 		result = err.Error()
