@@ -55,7 +55,8 @@ spec:
             - secretRef:
                 name: tuber-env
           command:
-            - "app/tuber"
+            - "/app/tuber"
+          args:
             - "adminserver"
             - "-y"
       volumes:
