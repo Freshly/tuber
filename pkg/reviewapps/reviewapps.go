@@ -52,7 +52,6 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 	)
 
 	logger.Info("creating review app")
-
 	sourceApp, err := core.FindApp(appName)
 	if err != nil {
 		return "", fmt.Errorf("can't find source app. is %s managed by tuber", appName)
