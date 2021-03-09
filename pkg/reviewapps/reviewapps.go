@@ -34,7 +34,7 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 }
 
 func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName string, token string, credentials []byte, projectName string) (string, error) {
-	reviewAppName := reviewAppName(appName, branch)
+	reviewAppName := ReviewAppName(appName, branch)
 
 	list, err := core.TuberReviewApps()
 	if err != nil {
@@ -98,7 +98,7 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 
 	logger.Info("creating and running review app trigger")
 
-	err = CreateAndRunTrigger(ctx, credentials, sourceApp.Repo, projectName, reviewAppName, branch)
+	err = CreateAndRunTrigger(ctx, logger, credentials, sourceApp.Repo, projectName, reviewAppName, branch)
 	if err != nil {
 		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
 
@@ -127,7 +127,12 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 }
 
 func DeleteReviewApp(ctx context.Context, reviewAppName string, credentials []byte, projectName string) error {
-	err := core.DestroyTuberApp(reviewAppName)
+	_, err := core.FindReviewApp(reviewAppName)
+	if err != nil {
+		return fmt.Errorf("review app not found")
+	}
+
+	err = core.DestroyTuberApp(reviewAppName)
 	if err != nil {
 		return err
 	}
@@ -140,7 +145,7 @@ func DeleteReviewApp(ctx context.Context, reviewAppName string, credentials []by
 	return deleteReviewAppTrigger(ctx, credentials, projectName, reviewAppName)
 }
 
-func reviewAppName(appName string, branch string) string {
+func ReviewAppName(appName string, branch string) string {
 	return fmt.Sprintf("%s-%s", url.QueryEscape(appName), url.QueryEscape(branch))
 }
 

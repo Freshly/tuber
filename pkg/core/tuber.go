@@ -109,6 +109,16 @@ func FindApp(name string) (foundApp *TuberApp, err error) {
 	return apps.FindApp(name)
 }
 
+func FindReviewApp(name string) (foundApp *TuberApp, err error) {
+	apps, err := TuberReviewApps()
+
+	if err != nil {
+		return
+	}
+
+	return apps.FindApp(name)
+}
+
 // TuberSourceApps returns a list of Tuber apps
 func TuberSourceApps() (AppList, error) {
 	sourceAppsMutex.Lock()

@@ -31,7 +31,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 	if s.ClusterDefaultHost == "" {
 		host = appName
 	} else {
-		host = fmt.Sprintf("https://%s.%s/", reviewAppName, s.ClusterDefaultHost)
+		host = fmt.Sprintf("https://%s.%s/", appName, s.ClusterDefaultHost)
 	}
 
 	return &proto.CreateReviewAppResponse{
