@@ -34,7 +34,7 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 }
 
 func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
-	reviewAppName := reviewAppName(appName, branch)
+	reviewAppName := ReviewAppName(appName, branch)
 
 	list, err := core.TuberReviewApps()
 	if err != nil {
@@ -135,7 +135,7 @@ func DeleteReviewApp(ctx context.Context, reviewAppName string, credentials []by
 	return deleteReviewAppTrigger(ctx, credentials, projectName, reviewAppName)
 }
 
-func reviewAppName(appName string, branch string) string {
+func ReviewAppName(appName string, branch string) string {
 	return fmt.Sprintf("%s-%s", url.QueryEscape(appName), url.QueryEscape(branch))
 }
 

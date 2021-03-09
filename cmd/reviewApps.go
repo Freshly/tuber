@@ -19,16 +19,16 @@ var reviewAppsCmd = &cobra.Command{
 var reviewAppsCreateCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "create [source app name] [branch name]",
-	Short:        "",
+	Short:        "Create a temporary application deployed alongside the source application for a given branch, copying its rolebindings and env",
 	Args:         cobra.ExactArgs(2),
 	RunE:         create,
 }
 
 var reviewAppsDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "delete [review app name]",
-	Short:        "",
-	Args:         cobra.ExactArgs(1),
+	Use:          "delete [source app name] [branch]",
+	Short:        "Delete a review app",
+	Args:         cobra.ExactArgs(2),
 	RunE:         delete,
 }
 
@@ -92,7 +92,9 @@ func create(cmd *cobra.Command, args []string) error {
 }
 
 func delete(cmd *cobra.Command, args []string) error {
-	reviewAppName := args[0]
+	sourceAppName := args[0]
+	branch := args[1]
+	reviewAppName := reviewapps.ReviewAppName(sourceAppName, branch)
 
 	tuberConf, err := getTuberConfig()
 	if err != nil {
