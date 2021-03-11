@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"tuber/pkg/k8s"
 
-	"github.com/davecgh/go-spew/spew"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
 )
 
-const tuberReposConfig = "tuber-repos"
-const tuberReviewTriggersConfig = "tuber-review-triggers"
+const TuberReposConfig = "tuber-repos"
+const TuberReviewTriggersConfig = "tuber-review-triggers"
 
 // CreateAndRunTrigger creates a cloud build trigger for the review app
 func CreateAndRunTrigger(ctx context.Context, logger *zap.Logger, creds []byte, sourceRepo string, project string, targetAppName string, branch string) error {
-	config, err := k8s.GetConfigResource(tuberReposConfig, "tuber", "configmap")
+	config, err := k8s.GetConfigResource(TuberReposConfig, "tuber", "configmap")
 	if err != nil {
 		return err
 	}
@@ -56,7 +55,7 @@ func CreateAndRunTrigger(ctx context.Context, logger *zap.Logger, creds []byte, 
 		return fmt.Errorf("create trigger: %w", err)
 	}
 
-	err = k8s.PatchConfigMap(tuberReviewTriggersConfig, "tuber", targetAppName, triggerCreateResult.Id)
+	err = k8s.PatchConfigMap(TuberReviewTriggersConfig, "tuber", targetAppName, triggerCreateResult.Id)
 	if err != nil {
 		return err
 	}
@@ -72,12 +71,10 @@ func CreateAndRunTrigger(ctx context.Context, logger *zap.Logger, creds []byte, 
 }
 
 func deleteReviewAppTrigger(ctx context.Context, creds []byte, project string, reviewAppName string) error {
-	config, err := k8s.GetConfigResource(tuberReviewTriggersConfig, "tuber", "configmap")
+	config, err := k8s.GetConfigResource(TuberReviewTriggersConfig, "tuber", "configmap")
 	if err != nil {
 		return err
 	}
-
-	spew.Dump(config.Data)
 
 	triggerID := config.Data[reviewAppName]
 
@@ -94,5 +91,5 @@ func deleteReviewAppTrigger(ctx context.Context, creds []byte, project string, r
 		return err
 	}
 
-	return k8s.RemoveConfigMapEntry(tuberReviewTriggersConfig, "tuber", reviewAppName)
+	return k8s.RemoveConfigMapEntry(TuberReviewTriggersConfig, "tuber", reviewAppName)
 }

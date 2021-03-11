@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"tuber/pkg/adminserver"
 
 	"github.com/spf13/cobra"
@@ -15,6 +16,9 @@ var adminserverCmd = &cobra.Command{
 }
 
 func startAdminServer(cmd *cobra.Command, args []string) {
+	var ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+
 	logger, err := createLogger()
 	defer logger.Sync()
 
@@ -22,8 +26,8 @@ func startAdminServer(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	projectName := viper.GetString("review-apps-triggers-project-name")
-	if projectName == "" {
+	triggersProjectName := viper.GetString("review-apps-triggers-project-name")
+	if triggersProjectName == "" {
 		panic("need a review apps triggers project name")
 	}
 
@@ -31,7 +35,10 @@ func startAdminServer(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
-	adminserver.Start(projectName, creds, logger)
+	err = adminserver.Start(ctx, logger, triggersProjectName, creds, viper.GetBool("reviewapps-enabled"), viper.GetString("cluster-default-host"))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func init() {
