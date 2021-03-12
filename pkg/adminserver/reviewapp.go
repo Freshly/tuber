@@ -83,10 +83,11 @@ func (r reviewApp) handle(w http.ResponseWriter, request *http.Request) {
 	reviewAppName := vars[r.nameKey]
 	tmpl := template.Must(template.New("").Parse(r.raw))
 	data := &r.data
+	defer tmpl.Execute(w, data)
+
 	data.Name = reviewAppName
 	data.SourceAppName = sourceAppName
 	data.Link = dumbLink(reviewAppName, r.clusterDefaultHost)
-	defer tmpl.Execute(w, data)
 
 	if !r.reviewAppsEnabled {
 		w.WriteHeader(http.StatusNotFound)

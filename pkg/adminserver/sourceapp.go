@@ -71,7 +71,7 @@ type ReviewApp struct {
 	Branch string
 }
 
-func (s sourceApp) path() string { return fmt.Sprintf("/apps/{%s}", s.nameKey) }
+func (s sourceApp) path() string { return fmt.Sprintf("/%s/{%s}", s.appsPath, s.nameKey) }
 
 func (s sourceApp) setup(reviewAppsEnabled bool, clusterDefaultHost string) handler {
 	s.reviewAppsEnabled = reviewAppsEnabled
@@ -84,15 +84,15 @@ func (s sourceApp) handle(w http.ResponseWriter, r *http.Request) {
 	name := vars[s.nameKey]
 	tmpl := template.Must(template.New("").Parse(s.raw))
 	data := &s.data
+	defer tmpl.Execute(w, data)
+
 	data.Name = name
 	data.ReviewAppsEnabled = s.reviewAppsEnabled
 	data.Link = dumbLink(name, s.clusterDefaultHost)
-
 	data.ReviewAppCreationPath = r.URL.Path + "/" + createReviewAppHandler().creationPath
 	data.ReviewAppShowPath = r.URL.Path + "/" + reviewAppHandler().pathPrefix
-	reviewAppCreationErr := r.URL.Query().Get(createReviewAppHandler().errorParam)
 
-	defer tmpl.Execute(w, data)
+	reviewAppCreationErr := r.URL.Query().Get(createReviewAppHandler().errorParam)
 
 	if reviewAppCreationErr != "" {
 		data.Error = reviewAppCreationErr
