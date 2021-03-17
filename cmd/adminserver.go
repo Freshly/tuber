@@ -20,11 +20,11 @@ func startAdminServer(cmd *cobra.Command, args []string) {
 	defer cancel()
 
 	logger, err := createLogger()
-	defer logger.Sync()
-
 	if err != nil {
 		panic(err)
 	}
+
+	defer logger.Sync()
 
 	triggersProjectName := viper.GetString("review-apps-triggers-project-name")
 	if triggersProjectName == "" {

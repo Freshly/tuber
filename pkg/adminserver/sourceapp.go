@@ -22,7 +22,7 @@ func sourceAppHandler() sourceApp {
 	<br>
 	<h2>Create a review app</h2>
 	<form method="POST" action="{{.ReviewAppCreationPath}}">
-		<input type="hidden"name="appname" value="{{.Name}}">
+		<input type="hidden" name="appname" value="{{.Name}}">
 		<span>Branch name:</span><input type="text" name="branch">
 		<input type="submit" value="Submit">
 	</form>

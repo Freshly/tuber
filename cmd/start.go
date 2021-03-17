@@ -43,11 +43,11 @@ func bindShutdown(logger *zap.Logger, cancel func()) {
 
 func start(cmd *cobra.Command, args []string) {
 	logger, err := createLogger()
-	defer logger.Sync()
-
 	if err != nil {
 		panic(err)
 	}
+
+	defer logger.Sync()
 
 	initErrorReporters()
 	scope := report.Scope{"during": "startup"}
