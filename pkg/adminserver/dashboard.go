@@ -1,7 +1,6 @@
 package adminserver
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"sort"
@@ -47,7 +46,6 @@ type SourceApp struct {
 }
 
 func (d dashboard) handle(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r)
 	tmpl := template.Must(template.New("").Parse(d.raw))
 	data := &d.data
 	defer tmpl.Execute(w, data)
