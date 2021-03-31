@@ -22,7 +22,7 @@ changelog:
     - '^docs:'
     - '^test:'
 brews:
-  - github:
+  - tap:
       owner: Freshly
       name: homebrew-taps
     folder: Formula

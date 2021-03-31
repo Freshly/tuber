@@ -31,3 +31,18 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 	interpolated = buf.Bytes()
 	return
 }
+
+// ClusterData is configurable, cluster-wide data available for yaml interpolation
+type ClusterData struct {
+	DefaultGateway string
+	DefaultHost    string
+}
+
+func releaseData(digest string, app *TuberApp, clusterData *ClusterData) (data map[string]string) {
+	return map[string]string{
+		"tuberImage":            digest,
+		"clusterDefaultGateway": clusterData.DefaultGateway,
+		"clusterDefaultHost":    clusterData.DefaultHost,
+		"tuberAppName":          app.Name,
+	}
+}

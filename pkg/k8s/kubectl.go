@@ -2,10 +2,10 @@ package k8s
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -123,6 +123,20 @@ func Restart(resource string, namespace string, args ...string) (err error) {
 	return
 }
 
+// RolloutStatus waits and watches a rollout's progress
+func RolloutStatus(kind string, name string, namespace string, timeout time.Duration, args ...string) error {
+	status := []string{"rollout", "status", kind, name, "-n", namespace, "--timeout", timeout.String()}
+	_, err := kubectl(append(status, args...)...)
+	return err
+}
+
+// RolloutUndo runs undo on a rollout
+func RolloutUndo(kind string, name string, namespace string, args ...string) error {
+	status := []string{"rollout", "undo", kind, name, "-n", namespace}
+	_, err := kubectl(append(status, args...)...)
+	return err
+}
+
 // Exists tells you if a given resource already exists. Errors if a get call fails for any reason other than Not Found
 func Exists(kind string, name string, namespace string, args ...string) (bool, error) {
 	get := []string{"get", kind, name, "-n", namespace}
@@ -190,15 +204,14 @@ func UseCluster(cluster string) error {
 }
 
 // CanDeploy determines if the current user can create a deployment
-func CanDeploy(appName, token string) bool {
-	t := fmt.Sprintf("--token=%s", token)
-
-	out, err := kubectl([]string{"auth", "can-i", "create", "deployments", "-n", appName, t}...)
+func CanDeploy(namespace string, args ...string) (bool, error) {
+	canDeploy := []string{"auth", "can-i", "create", "deployments", "-n", namespace}
+	out, err := kubectl(append(canDeploy, args...)...)
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	return strings.Trim(string(out), "\r\n") == "yes"
+	return strings.Trim(string(out), "\r\n") == "yes", nil
 }
 
 // CurrentCluster the current configured kubectl cluster

@@ -15,12 +15,13 @@ const tuberReviewApps = "tuber-review-apps"
 
 // TuberApp type for Tuber app
 type TuberApp struct {
-	Tag      string
-	ImageTag string
-	Repo     string
-	RepoPath string
-	RepoHost string
-	Name     string
+	Tag       string
+	ImageTag  string
+	Repo      string
+	RepoPath  string
+	RepoHost  string
+	Name      string
+	ReviewApp bool
 }
 
 // GetRepositoryLocation returns a RepositoryLocation struct for a given Tuber App
@@ -57,30 +58,29 @@ func refreshReviewAppsCache(apps []TuberApp) {
 	reviewAppsCache = &appsCache{apps: apps, expiry: expiry}
 }
 
-// getTuberApps retrieves data to be stored in sourceAppsCache.
-// always use TuberSourceApps function, never this one directly
-func getTuberApps(mapname string) (apps []TuberApp, err error) {
-	config, err := k8s.GetConfigResource(mapname, "tuber", "ConfigMap")
-
-	if err != nil {
-		return
-	}
-
-	for name, imageTag := range config.Data {
+func toTuberApps(data map[string]string, reviewApps bool) ([]TuberApp, error) {
+	var apps []TuberApp
+	for name, imageTag := range data {
 		split := strings.SplitN(imageTag, ":", 2)
-		repoSplit := strings.SplitN(split[0], "/", 2)
+		if len(split) != 2 {
+			return nil, fmt.Errorf("error parsing tuber app %s", name)
+		}
 
+		repoSplit := strings.SplitN(split[0], "/", 2)
+		if len(repoSplit) != 2 {
+			return nil, fmt.Errorf("error parsing tuber app %s", name)
+		}
 		apps = append(apps, TuberApp{
-			Name:     name,
-			ImageTag: imageTag,
-			Tag:      split[1],
-			Repo:     split[0],
-			RepoPath: repoSplit[1],
-			RepoHost: repoSplit[0],
+			Name:      name,
+			ImageTag:  imageTag,
+			Tag:       split[1],
+			Repo:      split[0],
+			RepoPath:  repoSplit[1],
+			RepoHost:  repoSplit[0],
+			ReviewApp: reviewApps,
 		})
 	}
-
-	return
+	return apps, nil
 }
 
 // AppList is a slice of TuberApp structs
@@ -109,38 +109,58 @@ func FindApp(name string) (foundApp *TuberApp, err error) {
 	return apps.FindApp(name)
 }
 
+func FindReviewApp(name string) (foundApp *TuberApp, err error) {
+	apps, err := TuberReviewApps()
+
+	if err != nil {
+		return
+	}
+
+	return apps.FindApp(name)
+}
+
 // TuberSourceApps returns a list of Tuber apps
-func TuberSourceApps() (apps AppList, err error) {
+func TuberSourceApps() (AppList, error) {
 	sourceAppsMutex.Lock()
 	defer sourceAppsMutex.Unlock()
 	if sourceAppsCache == nil || sourceAppsCache.isExpired() {
-		apps, err = getTuberApps(tuberSourceApps)
-
-		if err == nil {
-			refreshSourceAppsCache(apps)
+		config, err := k8s.GetConfigResource(tuberSourceApps, "tuber", "ConfigMap")
+		if err != nil {
+			return nil, err
 		}
-		return
+
+		apps, err := toTuberApps(config.Data, false)
+
+		if err != nil {
+			return nil, err
+		}
+
+		refreshSourceAppsCache(apps)
+		return apps, nil
 	}
 
-	apps = sourceAppsCache.apps
-	return
+	return sourceAppsCache.apps, nil
 }
 
 // TuberReviewApps returns a list of Tuber apps
-func TuberReviewApps() (apps AppList, err error) {
+func TuberReviewApps() (AppList, error) {
 	reviewMutex.Lock()
 	defer reviewMutex.Unlock()
 	if reviewAppsCache == nil || reviewAppsCache.isExpired() {
-		apps, err = getTuberApps(tuberReviewApps)
-
-		if err == nil {
-			refreshReviewAppsCache(apps)
+		config, err := k8s.GetConfigResource(tuberReviewApps, "tuber", "ConfigMap")
+		if err != nil {
+			return nil, err
 		}
-		return
+		apps, err := toTuberApps(config.Data, true)
+		if err != nil {
+			return nil, err
+		}
+
+		refreshReviewAppsCache(apps)
+		return apps, nil
 	}
 
-	apps = reviewAppsCache.apps
-	return
+	return reviewAppsCache.apps, nil
 }
 
 func SourceAndReviewApps() (AppList, error) {
