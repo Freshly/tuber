@@ -3,16 +3,14 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/core"
-	"tuber/pkg/proto"
 
-	"github.com/google/uuid"
+	"github.com/freshly/tuber/pkg/proto"
+
 	"go.uber.org/zap"
 )
 
 // Server is the ReviewApp GRPC service
 type Server struct {
-	ReviewAppsEnabled  bool
 	ClusterDefaultHost string
 	ProjectName        string
 	Credentials        []byte
@@ -22,140 +20,38 @@ type Server struct {
 
 // CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppRequest) (*proto.CreateReviewAppResponse, error) {
-	if s.ReviewAppsEnabled == false {
-		return &proto.CreateReviewAppResponse{
-			Error: "review apps are not enabled for this cluster",
-		}, nil
-	}
+	appName, err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName)
 
-	reviewAppName := reviewAppName(in.AppName, in.Branch)
-
-	logger := s.Logger.With(
-		zap.String("appName", in.AppName),
-		zap.String("reviewAppName", reviewAppName),
-		zap.String("branch", in.Branch),
-	)
-
-	logger.Info("creating review app")
-
-	logger.Info("checking permissions")
-	permitted, err := canCreate(logger, in.AppName, in.Token)
 	if err != nil {
-		return nil, err
-	}
-
-	if !permitted {
-		return &proto.CreateReviewAppResponse{
-			Error: "not permitted to create a review app",
-		}, nil
-	}
-
-	sourceApp, err := core.FindApp(in.AppName)
-	if err != nil {
-		return &proto.CreateReviewAppResponse{
-			Error: fmt.Sprintf("can't find source app. is %s managed by tuber?", in.AppName),
-		}, nil
-	}
-
-	logger.Info("creating review app resources")
-
-	err = NewReviewAppSetup(in.AppName, reviewAppName)
-	if err != nil {
-		logger.Error("error creating review app resources; tearing down", zap.Error(err))
-
-		teardownErr := core.DestroyTuberApp(reviewAppName)
-		if teardownErr != nil {
-			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
-			return nil, teardownErr
-		}
-
 		return &proto.CreateReviewAppResponse{
 			Error: err.Error(),
 		}, nil
 	}
 
-	logger.Info("creating app entry for review app")
-
-	err = core.AddReviewAppConfig(reviewAppName, sourceApp.Repo, in.Branch)
-	if err != nil {
-		teardownErr := core.DestroyTuberApp(reviewAppName)
-		if teardownErr != nil {
-			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
-			return nil, teardownErr
-		}
-
-		return nil, err
-	}
-
-	logger.Info("creating and running review app trigger")
-
-	err = CreateAndRunTrigger(ctx, s.Credentials, sourceApp.Repo, s.ProjectName, reviewAppName, in.Branch)
-	if err != nil {
-		logger.Error("error creating trigger; no trigger resource created", zap.Error(err))
-
-		triggerCleanupErr := deleteReviewAppTrigger(ctx, s.Credentials, s.ProjectName, reviewAppName)
-		teardownErr := core.DestroyTuberApp(reviewAppName)
-		cleanupConfigErr := core.RemoveReviewAppConfig(reviewAppName)
-
-		if teardownErr != nil {
-			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
-			return nil, teardownErr
-		}
-
-		if cleanupConfigErr != nil {
-			logger.Error("error removing config entry for app", zap.Error(cleanupConfigErr))
-			return nil, cleanupConfigErr
-		}
-
-		if triggerCleanupErr != nil {
-			logger.Error("error removing trigger", zap.Error(triggerCleanupErr))
-			return nil, triggerCleanupErr
-		}
-
-		return &proto.CreateReviewAppResponse{
-			Error: err.Error(),
-		}, nil
+	var host string
+	if s.ClusterDefaultHost == "" {
+		host = appName
+	} else {
+		host = fmt.Sprintf("https://%s.%s/", appName, s.ClusterDefaultHost)
 	}
 
 	return &proto.CreateReviewAppResponse{
-		Hostname: fmt.Sprintf("https://%s.%s/", reviewAppName, s.ClusterDefaultHost),
+		Hostname: host,
 	}, nil
 }
 
 func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppRequest) (*proto.DeleteReviewAppResponse, error) {
-	res := &proto.DeleteReviewAppResponse{}
-	reviewAppName := in.GetAppName()
-
 	logger := s.Logger.With(
 		zap.String("appName", in.AppName),
 	)
 
-	err := core.DestroyTuberApp(reviewAppName)
+	err := DeleteReviewApp(ctx, in.AppName, s.Credentials, s.ProjectName)
+
 	if err != nil {
-		logger.Error("error deleting tuber app", zap.Error(err))
-		return nil, err
+		logger.Error("error deleting review app " + in.AppName + ": " + err.Error())
+		return &proto.DeleteReviewAppResponse{Error: err.Error()}, nil
 	}
 
-	err = core.RemoveReviewAppConfig(reviewAppName)
-	if err != nil {
-		logger.Error("error deleting tuber review map app config entry item row", zap.Error(err))
-	}
-
-	err = deleteReviewAppTrigger(ctx, s.Credentials, s.ProjectName, reviewAppName)
-
-	return res, nil
-}
-
-func reviewAppName(appName, branch string) string {
-	randStr := uuid.New().String()[0:8]
-
-	if len(branch) > 8 {
-		branch = branch[0:8]
-	}
-
-	if len(appName) > 8 {
-		appName = appName[0:8]
-	}
-
-	return fmt.Sprintf("%s-%s-%s", appName, branch, randStr)
+	logger.Info("deleted review app: " + in.AppName)
+	return &proto.DeleteReviewAppResponse{}, nil
 }

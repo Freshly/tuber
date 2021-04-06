@@ -1,8 +1,9 @@
 package core
 
 import (
-	yamls "tuber/data/tuberapps"
-	"tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/k8s"
+
+	yamls "github.com/freshly/tuber/data/tuberapps"
 )
 
 // NewAppSetup adds a new tuber app configuration, including namespace,

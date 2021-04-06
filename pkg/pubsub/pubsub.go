@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"tuber/pkg/core"
-	"tuber/pkg/events"
-	"tuber/pkg/report"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/report"
 
 	"cloud.google.com/go/pubsub"
 	"go.uber.org/zap"

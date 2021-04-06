@@ -3,7 +3,8 @@ package core
 import (
 	"bytes"
 	"text/template"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/k8s"
 )
 
 // ApplyTemplate interpolates and applies a yaml to a given namespace

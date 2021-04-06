@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tuber/pkg/containers"
 
-	"tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/k8s"
 )
 
 const tuberSourceApps = "tuber-apps"
@@ -101,6 +101,16 @@ func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
 
 func FindApp(name string) (foundApp *TuberApp, err error) {
 	apps, err := TuberSourceApps()
+
+	if err != nil {
+		return
+	}
+
+	return apps.FindApp(name)
+}
+
+func FindReviewApp(name string) (foundApp *TuberApp, err error) {
+	apps, err := TuberReviewApps()
 
 	if err != nil {
 		return

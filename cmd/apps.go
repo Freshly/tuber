@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"sort"
-	"tuber/pkg/core"
+
+	"github.com/freshly/tuber/pkg/core"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"

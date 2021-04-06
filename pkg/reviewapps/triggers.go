@@ -3,9 +3,11 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/davecgh/go-spew/spew"
+	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
 )
@@ -14,7 +16,7 @@ const tuberReposConfig = "tuber-repos"
 const tuberReviewTriggersConfig = "tuber-review-triggers"
 
 // CreateAndRunTrigger creates a cloud build trigger for the review app
-func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, project string, targetAppName string, branch string) error {
+func CreateAndRunTrigger(ctx context.Context, logger *zap.Logger, creds []byte, sourceRepo string, project string, targetAppName string, branch string) error {
 	config, err := k8s.GetConfigResource(tuberReposConfig, "tuber", "configmap")
 	if err != nil {
 		return err
@@ -63,7 +65,8 @@ func CreateAndRunTrigger(ctx context.Context, creds []byte, sourceRepo string, p
 	triggerRunCall := service.Run(project, triggerCreateResult.Id, &triggerTemplate)
 	_, err = triggerRunCall.Do()
 	if err != nil {
-		return fmt.Errorf("run trigger: %w", err)
+		logger.Error(fmt.Sprintf("run trigger: %s", err.Error()))
+		return fmt.Errorf("error running trigger: does the branch exist")
 	}
 
 	return nil

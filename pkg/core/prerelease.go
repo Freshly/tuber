@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/k8s"
 )
 
 // RunPrerelease takes an array of pods, that are designed to be single use command runners

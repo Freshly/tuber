@@ -2,14 +2,16 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-	"tuber/pkg/events"
-	"tuber/pkg/pubsub"
-	"tuber/pkg/report"
-	"tuber/pkg/reviewapps"
-	"tuber/pkg/server"
+
+	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/pubsub"
+	"github.com/freshly/tuber/pkg/report"
+	"github.com/freshly/tuber/pkg/reviewapps"
+	"github.com/freshly/tuber/pkg/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -105,10 +107,17 @@ func start(cmd *cobra.Command, args []string) {
 func startReviewAppsServer(logger *zap.Logger, creds []byte) {
 	logger = logger.With(zap.String("action", "grpc"))
 
+	projectName := viper.GetString("review-apps-triggers-project-name")
+	if projectName == "" {
+		err := fmt.Errorf("no reviewapps project name configured")
+		logger.Error("grpc server failed to start: no reviewapps project name configured")
+		report.Error(err, report.Scope{"during": "grpc server startup"})
+		panic(err)
+	}
+
 	srv := reviewapps.Server{
-		ReviewAppsEnabled:  viper.GetBool("reviewapps-enabled"),
 		ClusterDefaultHost: viper.GetString("cluster-default-host"),
-		ProjectName:        viper.GetString("project-name"),
+		ProjectName:        projectName,
 		Logger:             logger,
 		Credentials:        creds,
 	}

@@ -6,9 +6,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tuber/pkg/containers"
-	"tuber/pkg/core"
-	"tuber/pkg/report"
+
+	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/report"
 
 	"go.uber.org/zap"
 )
@@ -51,9 +52,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	scope := report.Scope{"tag": tag, "digest": digest}
 	split := strings.Split(digest, "@")
 	if len(split) != 2 {
-		err := fmt.Errorf("event digest split length not 2")
-		logger.Error("failed to process event", zap.Error(err))
-		report.Error(err, scope.WithContext("event processing"))
+		logger.Warn("failed to process event", zap.Error(fmt.Errorf("event digest split length not 2")))
 		return
 	}
 	sha := split[1]

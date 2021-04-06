@@ -1,7 +1,7 @@
 package main
 
 import (
-	"tuber/cmd"
+	"github.com/freshly/tuber/cmd"
 )
 
 func main() {

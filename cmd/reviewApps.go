@@ -3,9 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/k8s"
-	"tuber/pkg/proto"
-	"tuber/pkg/reviewapps"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/proto"
+	"github.com/freshly/tuber/pkg/reviewapps"
 
 	"github.com/spf13/cobra"
 )
@@ -18,16 +20,16 @@ var reviewAppsCmd = &cobra.Command{
 var reviewAppsCreateCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "create [source app name] [branch name]",
-	Short:        "",
+	Short:        "Create a temporary application deployed alongside the source application for a given branch, copying its rolebindings and env",
 	Args:         cobra.ExactArgs(2),
 	RunE:         create,
 }
 
 var reviewAppsDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "delete [review app name]",
-	Short:        "",
-	Args:         cobra.ExactArgs(1),
+	Use:          "delete [source app name] [branch]",
+	Short:        "Delete a review app",
+	Args:         cobra.ExactArgs(2),
 	RunE:         delete,
 }
 
@@ -42,7 +44,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 	clusterConf := tuberConf.CurrentClusterConfig()
 	if clusterConf.URL == "" {
-		return fmt.Errorf("no cluster config found. run `tuber config`")
+		return fmt.Errorf("no tuber url found for current cluster. run `tuber config`")
 	}
 
 	client, conn, err := reviewapps.NewClient(clusterConf.URL)
@@ -50,6 +52,19 @@ func create(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer conn.Close()
+
+	_, err = core.FindApp(sourceAppName)
+	if err != nil {
+		return fmt.Errorf("source app not found")
+	}
+
+	canDeploy, err := k8s.CanDeploy(sourceAppName)
+	if err != nil {
+		return err
+	}
+	if !canDeploy {
+		return fmt.Errorf("not permitted to create a review app from %s", sourceAppName)
+	}
 
 	config, err := k8s.GetConfig()
 	if err != nil {
@@ -78,7 +93,9 @@ func create(cmd *cobra.Command, args []string) error {
 }
 
 func delete(cmd *cobra.Command, args []string) error {
-	reviewAppName := args[0]
+	sourceAppName := args[0]
+	branch := args[1]
+	reviewAppName := reviewapps.ReviewAppName(sourceAppName, branch)
 
 	tuberConf, err := getTuberConfig()
 	if err != nil {
@@ -87,7 +104,7 @@ func delete(cmd *cobra.Command, args []string) error {
 
 	clusterConf := tuberConf.CurrentClusterConfig()
 	if clusterConf.URL == "" {
-		return fmt.Errorf("no cluster config found. run `tuber config`")
+		return fmt.Errorf("no tuber url found for current cluster. run `tuber config`")
 	}
 
 	client, conn, err := reviewapps.NewClient(clusterConf.URL)
@@ -95,6 +112,11 @@ func delete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer conn.Close()
+
+	_, err = core.FindReviewApp(reviewAppName)
+	if err != nil {
+		return fmt.Errorf("review app not found")
+	}
 
 	config, err := k8s.GetConfig()
 	if err != nil {
