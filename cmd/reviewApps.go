@@ -3,10 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/core"
-	"tuber/pkg/k8s"
-	"tuber/pkg/proto"
-	"tuber/pkg/reviewapps"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/proto"
+	"github.com/freshly/tuber/pkg/reviewapps"
 
 	"github.com/spf13/cobra"
 )

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )

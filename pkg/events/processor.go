@@ -6,9 +6,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tuber/pkg/containers"
-	"tuber/pkg/core"
-	"tuber/pkg/report"
+
+	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/report"
 
 	"go.uber.org/zap"
 )

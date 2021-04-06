@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"tuber/pkg/gcloud"
+
+	"github.com/freshly/tuber/pkg/gcloud"
 
 	"github.com/spf13/cobra"
 )

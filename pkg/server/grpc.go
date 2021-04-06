@@ -3,8 +3,9 @@ package server
 import (
 	"fmt"
 	"net"
-	"tuber/pkg/proto"
-	"tuber/pkg/reviewapps"
+
+	"github.com/freshly/tuber/pkg/proto"
+	"github.com/freshly/tuber/pkg/reviewapps"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

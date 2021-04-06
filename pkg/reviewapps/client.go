@@ -3,7 +3,8 @@ package reviewapps
 import (
 	"crypto/tls"
 	"fmt"
-	"tuber/pkg/proto"
+
+	"github.com/freshly/tuber/pkg/proto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

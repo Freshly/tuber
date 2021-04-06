@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"context"
-	"tuber/pkg/containers"
-	"tuber/pkg/core"
-	"tuber/pkg/events"
+
+	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/events"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 	"strings"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )

@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"tuber/pkg/core"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
 )

@@ -3,7 +3,8 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/proto"
+
+	"github.com/freshly/tuber/pkg/proto"
 
 	"go.uber.org/zap"
 )

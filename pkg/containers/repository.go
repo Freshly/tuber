@@ -9,7 +9,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"tuber/pkg/gcloud"
+
+	"github.com/freshly/tuber/pkg/gcloud"
 )
 
 type RepositoryLocation struct {

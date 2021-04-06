@@ -3,7 +3,8 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/davecgh/go-spew/spew"
 	"go.uber.org/zap"
