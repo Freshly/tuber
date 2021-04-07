@@ -1,6 +1,8 @@
 package core
 
-import "tuber/pkg/k8s"
+import (
+	"github.com/freshly/tuber/pkg/k8s"
+)
 
 const tuberAppPauses = "tuber-app-pauses"
 

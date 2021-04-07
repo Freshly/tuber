@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	data "tuber/data/tuberapps"
+
+	data "github.com/freshly/tuber/data/tuberapps"
 )
 
 const tuberConfigPath = ".tuber"

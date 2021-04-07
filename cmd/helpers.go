@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"tuber/pkg/core"
-	"tuber/pkg/k8s"
-	"tuber/pkg/report"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/report"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-yaml"

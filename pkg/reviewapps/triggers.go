@@ -3,7 +3,8 @@ package reviewapps
 import (
 	"context"
 	"fmt"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"

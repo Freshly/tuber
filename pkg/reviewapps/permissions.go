@@ -2,8 +2,9 @@ package reviewapps
 
 import (
 	"fmt"
-	"tuber/pkg/core"
-	"tuber/pkg/k8s"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/k8s"
 
 	"go.uber.org/zap"
 )

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tuber/pkg/containers"
 
-	"tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/k8s"
 )
 
 const tuberSourceApps = "tuber-apps"

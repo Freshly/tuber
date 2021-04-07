@@ -8,9 +8,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tuber/pkg/containers"
-	"tuber/pkg/k8s"
-	"tuber/pkg/report"
+
+	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/report"
 
 	"github.com/goccy/go-yaml"
 	"go.uber.org/zap"
