@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"context"
-	"tuber/pkg/adminserver"
+
+	"github.com/freshly/tuber/pkg/adminserver"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

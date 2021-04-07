@@ -5,7 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	"sort"
-	"tuber/pkg/core"
+
+	"github.com/freshly/tuber/pkg/core"
 
 	"github.com/gorilla/mux"
 )

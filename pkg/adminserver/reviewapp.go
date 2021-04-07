@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"tuber/pkg/core"
-	"tuber/pkg/k8s"
-	"tuber/pkg/reviewapps"
+
+	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/reviewapps"
 
 	"github.com/gorilla/mux"
 	"google.golang.org/api/cloudbuild/v1"

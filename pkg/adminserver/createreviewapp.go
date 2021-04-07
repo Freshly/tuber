@@ -2,7 +2,8 @@ package adminserver
 
 import (
 	"net/http"
-	"tuber/pkg/reviewapps"
+
+	"github.com/freshly/tuber/pkg/reviewapps"
 )
 
 func createReviewAppHandler() createReviewApp {
