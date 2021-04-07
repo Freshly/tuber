@@ -46,13 +46,12 @@ var envGetCmd = &cobra.Command{
 var fileCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "file [app] [local filepath]",
-	Short:        "batch set environment variables based on the contents of a yaml file",
+	Short:        "REPLACE all of a tuber app's env to the contents of a local yaml or json file. DESTRUCTIVE!",
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
 		err := k8s.CreateEnvFromFile(appName, args[1])
-
 		if err != nil {
 			return err
 		}
