@@ -34,7 +34,7 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName string, token string, credentials []byte, projectName string) (string, error) {
+func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
 	reviewAppName := ReviewAppName(appName, branch)
 
 	list, err := core.TuberReviewApps()
@@ -53,16 +53,6 @@ func CreateReviewApp(ctx context.Context, l *zap.Logger, branch string, appName 
 	)
 
 	logger.Info("creating review app")
-
-	logger.Info("checking permissions")
-	permitted, err := canCreate(logger, appName, token)
-	if err != nil {
-		return "", err
-	}
-
-	if !permitted {
-		return "", fmt.Errorf("not permitted to create a review app from %s", appName)
-	}
 
 	sourceApp, err := core.FindApp(appName)
 	if err != nil {

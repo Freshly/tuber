@@ -1,0 +1,14 @@
+<head><title>{{.Title}}</title></head>
+<h1>potate</h1>
+{{if .Error}}
+	<p>{{.Error}}</p>
+{{else}}
+	<table>
+			{{range $app := .SourceApps}}
+				<tr>
+					<td><a href="apps/{{$app.Name}}">{{$app.Name}}</a></td>
+					<td>{{$app.Branch}}</td>
+			</tr>
+      {{end}}
+	</table>
+{{end}}

@@ -1,0 +1,33 @@
+<head><title>{{.Title}}</title></head>
+<a href="/tuber"><- back to all apps</a>
+<h1>{{.Name}}</h1>
+<p>Available at - <a href="{{.Link}}">{{.Link}}</a> - if it uses your cluster's default hostname.</p>
+{{if .ReviewAppsEnabled}}
+	<br>
+	<h2>Create a review app</h2>
+	<form method="POST" action="{{.Name}}/createReviewApp">
+		<span>Branch name:</span><input type="text" name="branch">
+		<input type="submit" value="Submit">
+	</form>
+{{end}}
+{{if .Error}}
+	<p>{{.Error}}</p>
+	<br>
+{{end}}
+{{if .ReviewAppCreationError}}
+	<p>{{.ReviewAppCreationError}}</p>
+	<br>
+{{end}}
+{{if .ReviewAppsEnabled}}
+	<br>
+	<h2>Review Apps</h2>
+	<table>
+		<th>App</th>
+		<th>Branch</th>
+  		{{range $reviewApp := .ReviewApps}}
+				<tr>
+					<td><a href="{{$.Name}}/reviewapps/{{$reviewApp.Name}}">{{$reviewApp.Name}}</a></td>
+					<td>{{$reviewApp.Branch}}</td>
+				</tr>
+      {{end}}</table>
+{{end}}

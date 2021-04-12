@@ -20,7 +20,19 @@ type Server struct {
 
 // CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppRequest) (*proto.CreateReviewAppResponse, error) {
-	appName, err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, in.Token, s.Credentials, s.ProjectName)
+	permitted, err := canCreate(s.Logger, in.AppName, in.Token)
+	if err != nil {
+		return &proto.CreateReviewAppResponse{
+			Error: err.Error(),
+		}, nil
+	}
+	if !permitted {
+		return &proto.CreateReviewAppResponse{
+			Error: "not permitted to create a review app from " + in.AppName,
+		}, nil
+	}
+
+	appName, err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, s.Credentials, s.ProjectName)
 
 	if err != nil {
 		return &proto.CreateReviewAppResponse{
