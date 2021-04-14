@@ -37,6 +37,8 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 type ClusterData struct {
 	DefaultGateway string
 	DefaultHost    string
+	AdminGateway   string
+	AdminHost      string
 }
 
 func releaseData(digest string, app *TuberApp, clusterData *ClusterData) (data map[string]string) {
@@ -44,6 +46,8 @@ func releaseData(digest string, app *TuberApp, clusterData *ClusterData) (data m
 		"tuberImage":            digest,
 		"clusterDefaultGateway": clusterData.DefaultGateway,
 		"clusterDefaultHost":    clusterData.DefaultHost,
+		"clusterAdminGateway":   clusterData.AdminGateway,
+		"clusterAdminHost":      clusterData.AdminHost,
 		"tuberAppName":          app.Name,
 	}
 }
