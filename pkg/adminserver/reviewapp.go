@@ -3,7 +3,6 @@ package adminserver
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/freshly/tuber/pkg/k8s"
@@ -19,12 +18,13 @@ type Build struct {
 }
 
 type reviewAppResponse struct {
-	Title         string
-	Error         string
-	Name          string
-	Link          string
-	SourceAppName string
-	Builds        []Build
+	Title             string
+	Error             string
+	Name              string
+	Link              string
+	SourceAppName     string
+	NoSuccessfulBuild bool
+	Builds            []Build
 }
 
 func (s server) reviewApp(c *gin.Context) {
@@ -54,6 +54,15 @@ func (s server) reviewApp(c *gin.Context) {
 		return
 	}
 
+	var successfulBuildExists bool
+	for _, build := range builds {
+		if build.Status == "SUCCESS" {
+			successfulBuildExists = true
+			break
+		}
+	}
+	data.NoSuccessfulBuild = !successfulBuildExists
+
 	data.Builds = builds
 	c.HTML(status, template, data)
 }
@@ -76,10 +85,10 @@ func reviewAppBuilds(reviewAppName string, triggersProjectName string, cloudbuil
 		if build.StartTime != "" {
 			parsed, timeErr := time.Parse(time.RFC3339, build.StartTime)
 			if timeErr == nil {
-				startTime = parsed.String()
+				startTime = parsed.Format(time.RFC822)
 			}
 		}
-		builds = append(builds, Build{Status: strings.Title(build.Status), Link: build.LogUrl, StartTime: startTime})
+		builds = append(builds, Build{Status: build.Status, Link: build.LogUrl, StartTime: startTime})
 	}
 	return builds, err
 }

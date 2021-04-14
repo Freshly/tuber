@@ -54,6 +54,7 @@ func (s server) start() error {
 	{
 		apps.GET("/:appName", s.app)
 		apps.GET("/:appName/reviewapps/:reviewAppName", s.reviewApp)
+		apps.GET("/:appName/reviewapps/:reviewAppName/delete", s.deleteReviewApp)
 		apps.POST("/:appName/createReviewApp", s.createReviewApp)
 	}
 	router.Run(":3000")

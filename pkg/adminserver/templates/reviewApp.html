@@ -6,6 +6,10 @@
 	<h1>{{.Name}}</h1>
 	<p>Available at - <a href="{{.Link}}">{{.Link}}</a> - if it uses your cluster's default hostname.</p>
 	<p>created from <a href="../../{{.SourceAppName}}">{{.SourceAppName}}</a></p>
+  {{if .NoSuccessfulBuild}}
+		<br>
+		<p>no successful build exists yet, so the app will not work.</p>
+  {{end}}
 	<h2>Builds</h2>
 	<table>{{range $build := .Builds}}
 			<tr>
