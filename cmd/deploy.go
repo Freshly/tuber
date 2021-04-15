@@ -6,6 +6,7 @@ import (
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/slack"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -60,7 +61,8 @@ func deploy(cmd *cobra.Command, args []string) error {
 	var ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	processor := events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled"))
+	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
+	processor := events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled"), slackClient)
 	digest := app.RepoHost + "/" + app.RepoPath + "@" + sha
 	tag := app.ImageTag
 

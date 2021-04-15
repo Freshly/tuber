@@ -12,6 +12,7 @@ import (
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/reviewapps"
 	"github.com/freshly/tuber/pkg/server"
+	"github.com/freshly/tuber/pkg/slack"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -73,6 +74,7 @@ func start(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
+	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
 	listener, err := pubsub.NewListener(
 		ctx,
 		logger,
@@ -80,7 +82,7 @@ func start(cmd *cobra.Command, args []string) {
 		viper.GetString("pubsub-subscription-name"),
 		creds,
 		data,
-		events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled")),
+		events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled"), slackClient),
 	)
 
 	if err != nil {
