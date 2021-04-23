@@ -22,11 +22,12 @@ type sourceApp struct {
 func (s server) dashboard(c *gin.Context) {
 	sourceApps, err := sourceApps()
 	var status = http.StatusOK
-	data := dashboardResponse{Title: "potate"}
+	data := dashboardResponse{Title: "Tuber Dashboard"}
 
 	if err != nil {
 		status = http.StatusInternalServerError
-		data.Error = err.Error()
+		s.logger.Error("error rendering dashboard: " + err.Error())
+		data.Error = "internal error pulling source apps for dashboard"
 	} else {
 		data.SourceApps = sourceApps
 	}

@@ -28,8 +28,6 @@ func (s server) app(c *gin.Context) {
 	template := "app.html"
 	appName := c.Param("appName")
 
-	var status = http.StatusOK
-
 	response := &appResponse{
 		Title:                  fmt.Sprintf("Tuber Admin: %s", appName),
 		ReviewAppsEnabled:      s.reviewAppsEnabled,
@@ -48,7 +46,7 @@ func (s server) app(c *gin.Context) {
 	}
 
 	response.Link = fmt.Sprintf("https://%s.%s/", appName, s.clusterDefaultHost)
-	c.HTML(status, template, response)
+	c.HTML(http.StatusOK, template, response)
 }
 
 func reviewApps(sourceAppName string) ([]appReviewApp, error) {

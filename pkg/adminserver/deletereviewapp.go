@@ -10,11 +10,12 @@ import (
 func (s server) deleteReviewApp(c *gin.Context) {
 	sourceAppName := c.Param("appName")
 	reviewAppName := c.Param("reviewAppName")
-	err := reviewapps.DeleteReviewApp(s.ctx, reviewAppName, s.creds, s.triggersProjectName)
+	err := reviewapps.DeleteReviewApp(c.Request.Context(), reviewAppName, s.creds, s.triggersProjectName)
 	if err == nil {
 		c.Redirect(http.StatusFound, "/tuber/apps/"+sourceAppName)
 	} else {
-		errString := "review app deletion error: " + err.Error()
-		c.Redirect(http.StatusFound, "/tuber/apps/"+sourceAppName+"?error="+errString)
+		s.logger.Error("review app deletion error: " + err.Error())
+		clientError := "review app deletion failed"
+		c.Redirect(http.StatusFound, "/tuber/apps/"+sourceAppName+"?error="+clientError)
 	}
 }

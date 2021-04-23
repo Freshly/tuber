@@ -15,7 +15,6 @@ type server struct {
 	cloudbuildClient    *cloudbuild.Service
 	clusterDefaultHost  string
 	triggersProjectName string
-	ctx                 context.Context
 	logger              *zap.Logger
 	creds               []byte
 }
@@ -37,7 +36,6 @@ func Start(ctx context.Context, logger *zap.Logger, triggersProjectName string, 
 		cloudbuildClient:    cloudbuildClient,
 		clusterDefaultHost:  clusterDefaultHost,
 		triggersProjectName: triggersProjectName,
-		ctx:                 ctx,
 		logger:              logger,
 		creds:               creds,
 	}.start()

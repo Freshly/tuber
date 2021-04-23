@@ -8,13 +8,12 @@ import (
 )
 
 func (s server) createReviewApp(c *gin.Context) {
-	branch := c.PostForm("branch")
-	appName := c.Param("appName")
-	reviewAppName, err := reviewapps.CreateReviewApp(s.ctx, s.logger, branch, appName, s.creds, s.triggersProjectName)
+	reviewAppName, err := reviewapps.CreateReviewApp(c.Request.Context(), s.logger, c.PostForm("branch"), c.Param("appName"), s.creds, s.triggersProjectName)
 	if err == nil {
 		c.Redirect(http.StatusFound, "reviewapps/"+reviewAppName)
 	} else {
-		errString := "review app creation error: " + err.Error()
-		c.Redirect(http.StatusFound, "?error="+errString)
+		s.logger.Error("review app creation error: " + err.Error())
+		clientError := "review app creation failed"
+		c.Redirect(http.StatusFound, "?error="+clientError)
 	}
 }
