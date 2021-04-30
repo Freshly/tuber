@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/report"
+	"github.com/freshly/tuber/pkg/slack"
 
 	"go.uber.org/zap"
 )
@@ -22,10 +23,11 @@ type Processor struct {
 	clusterData       *core.ClusterData
 	reviewAppsEnabled bool
 	locks             *map[string]*sync.Cond
+	slackClient       *slack.Client
 }
 
 // NewProcessor is a constructor for Processors so that the fields can be unexported
-func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool) Processor {
+func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) Processor {
 	l := make(map[string]*sync.Cond)
 
 	return Processor{
@@ -35,6 +37,7 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, creds []byte, cluster
 		clusterData:       clusterData,
 		reviewAppsEnabled: reviewAppsEnabled,
 		locks:             &l,
+		slackClient:       slackClient,
 	}
 }
 
@@ -99,6 +102,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 				}
 
 				if paused {
+					p.slackClient.Message(event.logger, "release skipped for "+app.Name+" as it is paused")
 					event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
 					return
 				}
@@ -143,6 +147,7 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 	yamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), event.sha, p.creds)
 	if err != nil {
+		p.slackClient.Message(logger, "image not found for "+app.Name)
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
 		return
@@ -160,9 +165,11 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
+		p.slackClient.Message(logger, ":loudspeaker: release failed for "+app.Name)
 		return
 	}
 
+	p.slackClient.Message(logger, ":white_check_mark: release complete for "+app.Name)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 	return
 }

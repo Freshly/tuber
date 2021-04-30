@@ -48,7 +48,7 @@ func CreateAndRunTrigger(ctx context.Context, logger *zap.Logger, creds []byte, 
 	buildTrigger := cloudbuild.BuildTrigger{
 		Description:     "created by tuber",
 		Filename:        "cloudbuild.yaml",
-		Name:            "review-app-for-" + targetAppName,
+		Name:            targetAppName,
 		TriggerTemplate: &triggerTemplate,
 	}
 	triggerCreateCall := service.Create(project, &buildTrigger)
