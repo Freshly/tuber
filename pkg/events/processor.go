@@ -165,11 +165,11 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
-		p.slackClient.Message(logger, "release failed for "+app.Name)
+		p.slackClient.Message(logger, ":loudspeaker: release failed for "+app.Name)
 		return
 	}
 
-	p.slackClient.Message(logger, "release complete for "+app.Name)
+	p.slackClient.Message(logger, ":white_check_mark: release complete for "+app.Name)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 	return
 }
