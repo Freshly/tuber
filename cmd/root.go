@@ -3,7 +3,6 @@ package cmd
 import (
 	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -44,7 +43,5 @@ func createLogger() (*zap.Logger, error) {
 
 // Execute executes
 func Execute() error {
-	godotenv.Load()
-
 	return rootCmd.Execute()
 }

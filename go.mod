@@ -9,7 +9,6 @@ require (
 	github.com/gin-gonic/gin v1.4.0
 	github.com/goccy/go-yaml v1.8.9
 	github.com/golang/protobuf v1.5.2
-	github.com/joho/godotenv v1.3.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/slack-go/slack v0.8.2
 	github.com/spf13/cobra v1.1.3
