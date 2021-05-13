@@ -38,6 +38,7 @@ input AppInput {
 }
 
 type Query {
+  getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
 }
 
