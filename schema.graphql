@@ -1,0 +1,48 @@
+type Tuple {
+  key: String!
+  value: String!
+}
+
+type TuberApp {
+  cloudSourceRepo: String!
+  imageTag: String!
+  name: String!
+  paused: Boolean!
+  repo: String!
+  repoHost: String!
+  repoPath: String!
+  reviewApp: Boolean!
+  reviewAppsConfig: ReviewAppsConfig
+  slackChannel: String!
+  stateResources: [Resource!]!
+  tag: String!
+  triggerID: String!
+  vars: [Tuple!]!
+}
+
+type Resource {
+  encoded: String!
+  kind: String!
+  name: String!
+}
+
+type ReviewAppsConfig {
+  enabled: Boolean!
+  vars: [Tuple!]!
+  skips: [Resource!]!
+}
+
+input AppInput {
+  name: String!
+  isIstio: Boolean!
+}
+
+type Query {
+  getApps: [TuberApp!]!
+}
+
+type Mutation {
+  createApp(input: AppInput): TuberApp
+  updateApp(appID: ID!, input: AppInput): TuberApp
+  deleteApp(appID: ID!): TuberApp
+}
