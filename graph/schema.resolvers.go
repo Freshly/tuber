@@ -28,7 +28,34 @@ func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberAp
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+	// if err != nil {
+	// 	return err
+	// }
+
+	// sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
+	// if jsonOutput {
+	// 	out, err := json.Marshal(apps)
+
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	os.Stdout.Write(out)
+
+	// 	return nil
+	// }
+
+	// table := tablewriter.NewWriter(os.Stdout)
+	// table.SetHeader([]string{"Name", "Image"})
+	// table.SetBorder(false)
+
+	// for _, app := range apps {
+	// 	table.Append([]string{app.Name, app.ImageTag})
+	// }
+
+	// table.Render()
+	return nil, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

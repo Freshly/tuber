@@ -1,13 +1,8 @@
 package cmd
 
 import (
-	"encoding/json"
-	"os"
-	"sort"
-
 	"github.com/freshly/tuber/pkg/core"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -109,36 +104,8 @@ var appsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List tuberapps",
 	RunE: func(*cobra.Command, []string) (err error) {
-		apps, err := core.TuberSourceApps()
-
-		if err != nil {
-			return err
-		}
-
-		sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
-
-		if jsonOutput {
-			out, err := json.Marshal(apps)
-
-			if err != nil {
-				return err
-			}
-
-			os.Stdout.Write(out)
-
-			return nil
-		}
-
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Name", "Image"})
-		table.SetBorder(false)
-
-		for _, app := range apps {
-			table.Append([]string{app.Name, app.ImageTag})
-		}
-
-		table.Render()
-		return
+		// client.
+		return nil
 	},
 }
 
