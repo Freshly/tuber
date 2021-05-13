@@ -1,7 +1,15 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
+	"os"
+	"sort"
+
+	"github.com/freshly/tuber/graph/client"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/olekukonko/tablewriter"
 
 	"github.com/spf13/cobra"
 )
@@ -104,6 +112,51 @@ var appsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List tuberapps",
 	RunE: func(*cobra.Command, []string) (err error) {
+		graphql := client.New()
+
+		gql := `
+			query {
+				getApps {
+					name
+					imageTag
+				}
+			}
+		`
+
+		var respData struct {
+			GetApps []model.TuberApp
+		}
+
+		if err := graphql.Query(context.Background(), gql, &respData); err != nil {
+			return err
+		}
+
+		apps := respData.GetApps
+
+		sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
+		if jsonOutput {
+			out, err := json.Marshal(apps)
+
+			if err != nil {
+				return err
+			}
+
+			os.Stdout.Write(out)
+
+			return nil
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"Name", "Image"})
+		table.SetBorder(false)
+
+		for _, app := range apps {
+			table.Append([]string{app.Name, app.ImageTag})
+		}
+
+		table.Render()
+
 		// client.
 		return nil
 	},

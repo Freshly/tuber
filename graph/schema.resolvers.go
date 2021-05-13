@@ -9,6 +9,7 @@ import (
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/core"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
@@ -28,34 +29,22 @@ func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberAp
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	// if err != nil {
-	// 	return err
-	// }
+	appList, err := core.TuberSourceApps()
 
-	// sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+	if err != nil {
+		return nil, err
+	}
 
-	// if jsonOutput {
-	// 	out, err := json.Marshal(apps)
+	var list []*model.TuberApp
 
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	for _, n := range appList {
+		list = append(list, &model.TuberApp{
+			Name:     n.Name,
+			ImageTag: n.ImageTag,
+		})
+	}
 
-	// 	os.Stdout.Write(out)
-
-	// 	return nil
-	// }
-
-	// table := tablewriter.NewWriter(os.Stdout)
-	// table.SetHeader([]string{"Name", "Image"})
-	// table.SetBorder(false)
-
-	// for _, app := range apps {
-	// 	table.Append([]string{app.Name, app.ImageTag})
-	// }
-
-	// table.Render()
-	return nil, nil
+	return list, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

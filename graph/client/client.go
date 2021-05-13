@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/freshly/tuber/graph/model"
 	"github.com/machinebox/graphql"
 )
 
@@ -41,12 +40,7 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 	// set header fields
 	req.Header.Set("Cache-Control", "no-cache")
 
-	// run it and capture the response
-	var respData struct {
-		GetApps model.TuberApp
-	}
-
-	if err := g.client.Run(ctx, req, &respData); err != nil {
+	if err := g.client.Run(ctx, req, &target); err != nil {
 		return err
 	}
 
