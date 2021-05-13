@@ -13,17 +13,6 @@ import (
 const tuberSourceApps = "tuber-apps"
 const tuberReviewApps = "tuber-review-apps"
 
-// TuberApp type for Tuber app
-type TuberApp struct {
-	Tag       string
-	ImageTag  string
-	Repo      string
-	RepoPath  string
-	RepoHost  string
-	Name      string
-	ReviewApp bool
-}
-
 // GetRepositoryLocation returns a RepositoryLocation struct for a given Tuber App
 func (ta *TuberApp) GetRepositoryLocation() containers.RepositoryLocation {
 	return containers.RepositoryLocation{
