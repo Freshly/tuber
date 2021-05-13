@@ -19,6 +19,11 @@ type ReviewAppsConfig struct {
 	Skips   []*Resource `json:"skips"`
 }
 
+type State struct {
+	Current  []*Resource `json:"Current"`
+	Previous []*Resource `json:"Previous"`
+}
+
 type TuberApp struct {
 	CloudSourceRepo  string            `json:"cloudSourceRepo"`
 	ImageTag         string            `json:"imageTag"`
@@ -30,6 +35,7 @@ type TuberApp struct {
 	ReviewApp        bool              `json:"reviewApp"`
 	ReviewAppsConfig *ReviewAppsConfig `json:"reviewAppsConfig"`
 	SlackChannel     string            `json:"slackChannel"`
+	SourceAppName    *string           `json:"sourceAppName"`
 	StateResources   []*Resource       `json:"stateResources"`
 	Tag              string            `json:"tag"`
 	TriggerID        string            `json:"triggerID"`

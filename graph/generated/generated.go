@@ -66,6 +66,11 @@ type ComplexityRoot struct {
 		Vars    func(childComplexity int) int
 	}
 
+	State struct {
+		Current  func(childComplexity int) int
+		Previous func(childComplexity int) int
+	}
+
 	TuberApp struct {
 		CloudSourceRepo  func(childComplexity int) int
 		ImageTag         func(childComplexity int) int
@@ -77,6 +82,7 @@ type ComplexityRoot struct {
 		ReviewApp        func(childComplexity int) int
 		ReviewAppsConfig func(childComplexity int) int
 		SlackChannel     func(childComplexity int) int
+		SourceAppName    func(childComplexity int) int
 		StateResources   func(childComplexity int) int
 		Tag              func(childComplexity int) int
 		TriggerID        func(childComplexity int) int
@@ -211,6 +217,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ReviewAppsConfig.Vars(childComplexity), true
 
+	case "State.Current":
+		if e.complexity.State.Current == nil {
+			break
+		}
+
+		return e.complexity.State.Current(childComplexity), true
+
+	case "State.Previous":
+		if e.complexity.State.Previous == nil {
+			break
+		}
+
+		return e.complexity.State.Previous(childComplexity), true
+
 	case "TuberApp.cloudSourceRepo":
 		if e.complexity.TuberApp.CloudSourceRepo == nil {
 			break
@@ -280,6 +300,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TuberApp.SlackChannel(childComplexity), true
+
+	case "TuberApp.sourceAppName":
+		if e.complexity.TuberApp.SourceAppName == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.SourceAppName(childComplexity), true
 
 	case "TuberApp.stateResources":
 		if e.complexity.TuberApp.StateResources == nil {
@@ -403,10 +430,16 @@ type TuberApp {
   reviewApp: Boolean!
   reviewAppsConfig: ReviewAppsConfig
   slackChannel: String!
+  sourceAppName: String
   stateResources: [Resource!]!
   tag: String!
   triggerID: String!
   vars: [Tuple!]!
+}
+
+type State {
+  Current: [Resource!]!
+  Previous: [Resource!]!
 }
 
 type Resource {
@@ -1038,6 +1071,76 @@ func (ec *executionContext) _ReviewAppsConfig_skips(ctx context.Context, field g
 	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _State_Current(ctx context.Context, field graphql.CollectedField, obj *model.State) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "State",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Current, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Resource)
+	fc.Result = res
+	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _State_Previous(ctx context.Context, field graphql.CollectedField, obj *model.State) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "State",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Previous, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Resource)
+	fc.Result = res
+	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TuberApp_cloudSourceRepo(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1383,6 +1486,38 @@ func (ec *executionContext) _TuberApp_slackChannel(ctx context.Context, field gr
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_sourceAppName(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SourceAppName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TuberApp_stateResources(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
@@ -2879,6 +3014,38 @@ func (ec *executionContext) _ReviewAppsConfig(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var stateImplementors = []string{"State"}
+
+func (ec *executionContext) _State(ctx context.Context, sel ast.SelectionSet, obj *model.State) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, stateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("State")
+		case "Current":
+			out.Values[i] = ec._State_Current(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Previous":
+			out.Values[i] = ec._State_Previous(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var tuberAppImplementors = []string{"TuberApp"}
 
 func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet, obj *model.TuberApp) graphql.Marshaler {
@@ -2937,6 +3104,8 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "sourceAppName":
+			out.Values[i] = ec._TuberApp_sourceAppName(ctx, field, obj)
 		case "stateResources":
 			out.Values[i] = ec._TuberApp_stateResources(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
