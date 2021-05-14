@@ -9,17 +9,41 @@ import (
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/core"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
+	err := core.NewAppSetup(input.Name, input.IsIstio)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := core.AddSourceAppConfig(input.Name, input.Repo, input.Tag); err != nil {
+		return nil, err
+	}
+
+	inputApp := model.TuberApp{
+		Name: input.Name,
+		Repo: input.Repo,
+		Tag:  input.Tag,
+	}
+
+	if err := r.Resolver.db.Save(&inputApp); err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{}, nil
+}
+
+func (r *mutationResolver) UpdateApp(ctx context.Context, key string, input *model.AppInput) (*model.TuberApp, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UpdateApp(ctx context.Context, appID string, input *model.AppInput) (*model.TuberApp, error) {
+func (r *mutationResolver) RemoveApp(ctx context.Context, key string) (*model.TuberApp, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) DeleteApp(ctx context.Context, appID string) (*model.TuberApp, error) {
+func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.TuberApp, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -39,3 +63,13 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *mutationResolver) DeleteApp(ctx context.Context, appID string) (*model.TuberApp, error) {
+	panic(fmt.Errorf("not implemented"))
+}

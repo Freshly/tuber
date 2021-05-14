@@ -144,6 +144,16 @@ func (c tuberConfig) FindByName(name string) Cluster {
 	return Cluster{}
 }
 
+func mustGetTuberConfig() *tuberConfig {
+	config, err := getTuberConfig()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return config
+}
+
 func getTuberConfig() (*tuberConfig, error) {
 	path, err := tuberConfigPath()
 	if err != nil {

@@ -6,7 +6,7 @@ type Tuple {
 type TuberApp {
   cloudSourceRepo: String!
   imageTag: String!
-  name: String!
+  name: ID!
   paused: Boolean!
   reviewApp: Boolean!
   reviewAppsConfig: ReviewAppsConfig
@@ -16,6 +16,13 @@ type TuberApp {
   tag: String!
   triggerID: String!
   vars: [Tuple!]!
+}
+
+input AppInput {
+  name: ID!
+  isIstio: Boolean!
+  repo: String!
+  tag: String!
 }
 
 type State {
@@ -35,11 +42,6 @@ type ReviewAppsConfig {
   skips: [Resource!]!
 }
 
-input AppInput {
-  name: String!
-  isIstio: Boolean!
-}
-
 type Query {
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
@@ -47,6 +49,7 @@ type Query {
 
 type Mutation {
   createApp(input: AppInput): TuberApp
-  updateApp(appID: ID!, input: AppInput): TuberApp
-  deleteApp(appID: ID!): TuberApp
+  updateApp(key: ID!, input: AppInput): TuberApp
+  removeApp(key: ID!): TuberApp
+  destroyApp(key: ID!): TuberApp
 }

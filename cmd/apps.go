@@ -10,7 +10,6 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
 )
@@ -25,35 +24,37 @@ var jsonOutput bool
 
 var appsInstallCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "install [app name] [image tag] [--istio=<true(default) || false>]",
+	Use:          "install [app name] [docker repo] [deploy tag] [--istio=<true(default) || false>]",
 	Short:        "install a new app in the current cluster",
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.ExactArgs(3),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
+
 		appName := args[0]
-		tag := args[1]
+		repo := args[1]
+		tag := args[2]
 
-		err := core.NewAppSetup(appName, istioEnabled)
-		if err != nil {
-			return err
+		input := &model.AppInput{
+			IsIstio: istioEnabled,
+			Name:    appName,
+			Tag:     tag,
+			Repo:    repo,
 		}
 
-		model.TuberApp{
-			CloudSourceRepo:  "",
-			ImageTag:         tag,
-			Name:             appName,
-			Paused:           false,
-			ReviewApp:        false,
-			ReviewAppsConfig: &model.ReviewAppsConfig{},
-			SlackChannel:     "",
-			SourceAppName:    "",
-			State:            nil,
-			Tag:              "",
-			TriggerID:        "",
-			Vars:             nil,
+		var respData struct {
+			createApp []model.TuberApp
 		}
 
-		return core.AddSourceAppConfig(appName, repo, tag)
+		gql := `
+			mutation($input: AppInput) {
+				createApp(input: $input) {
+					name
+				}
+			}
+		`
+
+		return graphql.Mutation(context.Background(), gql, nil, input, respData)
 	},
 }
 
@@ -96,6 +97,7 @@ var appsSetRepoCmd = &cobra.Command{
 		return core.AddSourceAppConfig(appName, repo, app.Tag)
 	},
 }
+
 var appsRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "remove [app name]",
@@ -127,16 +129,7 @@ var appsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List tuberapps",
 	RunE: func(*cobra.Command, []string) (err error) {
-		graphqlURL := viper.GetString("graphql-url")
-		if graphqlURL == "" {
-			config, err := getTuberConfig()
-			if err != nil {
-				return err
-			}
-			graphqlURL = config.CurrentClusterConfig().URL + "/graphql"
-		}
-
-		graphql := client.New(graphqlURL)
+		graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
 
 		gql := `
 			query {

@@ -5,6 +5,8 @@ package model
 type AppInput struct {
 	Name    string `json:"name"`
 	IsIstio bool   `json:"isIstio"`
+	Repo    string `json:"repo"`
+	Tag     string `json:"tag"`
 }
 
 type Resource struct {
