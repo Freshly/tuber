@@ -14,8 +14,8 @@ type TuberApp {
   reviewApp: Boolean!
   reviewAppsConfig: ReviewAppsConfig
   slackChannel: String!
-  sourceAppName: String
-  stateResources: [Resource!]!
+  sourceAppName: String!
+  state: State!
   tag: String!
   triggerID: String!
   vars: [Tuple!]!

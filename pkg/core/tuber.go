@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/k8s"
 )
@@ -14,7 +15,7 @@ const tuberSourceApps = "tuber-apps"
 const tuberReviewApps = "tuber-review-apps"
 
 // GetRepositoryLocation returns a RepositoryLocation struct for a given Tuber App
-func (ta *TuberApp) GetRepositoryLocation() containers.RepositoryLocation {
+func GetRepositoryLocation(ta *model.TuberApp) containers.RepositoryLocation {
 	return containers.RepositoryLocation{
 		Host: ta.RepoHost,
 		Path: ta.RepoPath,
@@ -23,7 +24,7 @@ func (ta *TuberApp) GetRepositoryLocation() containers.RepositoryLocation {
 }
 
 type appsCache struct {
-	apps   []TuberApp
+	apps   []model.TuberApp
 	expiry time.Time
 }
 
@@ -37,18 +38,18 @@ func (a appsCache) isExpired() bool {
 	return a.expiry.Before(time.Now())
 }
 
-func refreshSourceAppsCache(apps []TuberApp) {
+func refreshSourceAppsCache(apps []model.TuberApp) {
 	expiry := time.Now().Add(time.Second * 10)
 	sourceAppsCache = &appsCache{apps: apps, expiry: expiry}
 }
 
-func refreshReviewAppsCache(apps []TuberApp) {
+func refreshReviewAppsCache(apps []model.TuberApp) {
 	expiry := time.Now().Add(time.Second * 10)
 	reviewAppsCache = &appsCache{apps: apps, expiry: expiry}
 }
 
-func toTuberApps(data map[string]string, reviewApps bool) ([]TuberApp, error) {
-	var apps []TuberApp
+func toTuberApps(data map[string]string, reviewApps bool) ([]model.TuberApp, error) {
+	var apps []model.TuberApp
 	for name, imageTag := range data {
 		split := strings.SplitN(imageTag, ":", 2)
 		if len(split) != 2 {
@@ -59,7 +60,7 @@ func toTuberApps(data map[string]string, reviewApps bool) ([]TuberApp, error) {
 		if len(repoSplit) != 2 {
 			return nil, fmt.Errorf("error parsing tuber app %s", name)
 		}
-		apps = append(apps, TuberApp{
+		apps = append(apps, model.TuberApp{
 			Name:      name,
 			ImageTag:  imageTag,
 			Tag:       split[1],
@@ -73,10 +74,10 @@ func toTuberApps(data map[string]string, reviewApps bool) ([]TuberApp, error) {
 }
 
 // AppList is a slice of TuberApp structs
-type AppList []TuberApp
+type AppList []model.TuberApp
 
 // FindApp locates a Tuber app within an app-list
-func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
+func (ta AppList) FindApp(name string) (foundApp *model.TuberApp, err error) {
 	for _, app := range ta {
 		if app.Name == name {
 			foundApp = &app
@@ -88,7 +89,7 @@ func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
 	return
 }
 
-func FindApp(name string) (foundApp *TuberApp, err error) {
+func FindApp(name string) (foundApp *model.TuberApp, err error) {
 	apps, err := TuberSourceApps()
 
 	if err != nil {
@@ -98,7 +99,7 @@ func FindApp(name string) (foundApp *TuberApp, err error) {
 	return apps.FindApp(name)
 }
 
-func FindReviewApp(name string) (foundApp *TuberApp, err error) {
+func FindReviewApp(name string) (foundApp *model.TuberApp, err error) {
 	apps, err := TuberReviewApps()
 
 	if err != nil {

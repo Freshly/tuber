@@ -35,8 +35,8 @@ type TuberApp struct {
 	ReviewApp        bool              `json:"reviewApp"`
 	ReviewAppsConfig *ReviewAppsConfig `json:"reviewAppsConfig"`
 	SlackChannel     string            `json:"slackChannel"`
-	SourceAppName    *string           `json:"sourceAppName"`
-	StateResources   []*Resource       `json:"stateResources"`
+	SourceAppName    string            `json:"sourceAppName"`
+	State            *State            `json:"state"`
 	Tag              string            `json:"tag"`
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`

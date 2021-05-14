@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
+	bolt "go.etcd.io/bbolt"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-yaml"
@@ -22,6 +23,36 @@ var appName string
 var pod string
 var podRunningTimeout string
 var workload string
+
+func db() (*core.Data, error) {
+	var path string
+	if _, err := os.Stat("/etc/tuber-bolt"); os.IsNotExist(err) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		path = wd + "/localbolt"
+	} else {
+		path = "/etc/tuber-bolt/db"
+	}
+	db, err := bolt.Open(path, 0666, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// It's a common pattern to call this function for all your top-level buckets after you open your database
+	// so you can guarantee that they exist for future transactions. shrug emoji
+	db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("apps"))
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	data := core.NewData(db)
+	return &data, nil
+}
 
 func clusterData() (*core.ClusterData, error) {
 	defaultGateway := viper.GetString("cluster-default-gateway")

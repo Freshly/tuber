@@ -5,12 +5,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 )
 
 // RunPrerelease takes an array of pods, that are designed to be single use command runners
 // that have access to the new code being released.
-func RunPrerelease(resources []appResource, app *TuberApp) error {
+func RunPrerelease(resources []appResource, app *model.TuberApp) error {
 	for _, resource := range resources {
 		if resource.kind != "Pod" {
 			return fmt.Errorf("prerelease resources must be Pods, received %s", resource.kind)
@@ -35,7 +36,7 @@ func RunPrerelease(resources []appResource, app *TuberApp) error {
 	return fmt.Errorf("unhandled prerelease run exit")
 }
 
-func waitForPhase(name string, kind string, app *TuberApp, resourceTimeout time.Duration) error {
+func waitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout time.Duration) error {
 	phaseTemplate := fmt.Sprintf(`go-template="%s"`, "{{.status.phase}}")
 	failureTemplate := fmt.Sprintf(
 		`go-template="%s"`,

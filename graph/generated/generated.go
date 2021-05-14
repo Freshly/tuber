@@ -83,7 +83,7 @@ type ComplexityRoot struct {
 		ReviewAppsConfig func(childComplexity int) int
 		SlackChannel     func(childComplexity int) int
 		SourceAppName    func(childComplexity int) int
-		StateResources   func(childComplexity int) int
+		State            func(childComplexity int) int
 		Tag              func(childComplexity int) int
 		TriggerID        func(childComplexity int) int
 		Vars             func(childComplexity int) int
@@ -308,12 +308,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TuberApp.SourceAppName(childComplexity), true
 
-	case "TuberApp.stateResources":
-		if e.complexity.TuberApp.StateResources == nil {
+	case "TuberApp.state":
+		if e.complexity.TuberApp.State == nil {
 			break
 		}
 
-		return e.complexity.TuberApp.StateResources(childComplexity), true
+		return e.complexity.TuberApp.State(childComplexity), true
 
 	case "TuberApp.tag":
 		if e.complexity.TuberApp.Tag == nil {
@@ -430,8 +430,8 @@ type TuberApp {
   reviewApp: Boolean!
   reviewAppsConfig: ReviewAppsConfig
   slackChannel: String!
-  sourceAppName: String
-  stateResources: [Resource!]!
+  sourceAppName: String!
+  state: State!
   tag: String!
   triggerID: String!
   vars: [Tuple!]!
@@ -1513,14 +1513,17 @@ func (ec *executionContext) _TuberApp_sourceAppName(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TuberApp_stateResources(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+func (ec *executionContext) _TuberApp_state(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1538,7 +1541,7 @@ func (ec *executionContext) _TuberApp_stateResources(ctx context.Context, field 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.StateResources, nil
+		return obj.State, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1550,9 +1553,9 @@ func (ec *executionContext) _TuberApp_stateResources(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Resource)
+	res := resTmp.(*model.State)
 	fc.Result = res
-	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+	return ec.marshalNState2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TuberApp_tag(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
@@ -3106,8 +3109,11 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "sourceAppName":
 			out.Values[i] = ec._TuberApp_sourceAppName(ctx, field, obj)
-		case "stateResources":
-			out.Values[i] = ec._TuberApp_stateResources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "state":
+			out.Values[i] = ec._TuberApp_state(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3489,6 +3495,16 @@ func (ec *executionContext) marshalNResource2ᚖgithubᚗcomᚋfreshlyᚋtuber�
 		return graphql.Null
 	}
 	return ec._Resource(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNState2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐState(ctx context.Context, sel ast.SelectionSet, v *model.State) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._State(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

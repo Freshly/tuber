@@ -3,14 +3,13 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/spf13/cobra"
-	bolt "go.etcd.io/bbolt"
 )
 
 var bolterCmd = &cobra.Command{
@@ -21,35 +20,10 @@ var bolterCmd = &cobra.Command{
 }
 
 func bolter(cmd *cobra.Command, args []string) error {
-	var path string
-	if _, err := os.Stat("/etc/tuber-bolt"); os.IsNotExist(err) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		path = wd + "/localbolt"
-		_ = os.Remove(path)
-	} else {
-		path = "/etc/tuber-bolt/db"
-	}
-	db, err := bolt.Open(path, 0666, nil)
-	if err != nil {
-		return err
-	}
+	db, err := db()
 	defer db.Close()
-	// It's a common pattern to call this function for all your top-level buckets after you open your database
-	// so you can guarantee that they exist for future transactions. shrug emoji
-	db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("apps"))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
 
-	data := core.NewData(db)
-
-	configApps, err := core.SourceAndReviewApps()
+	configApps, err := getallconfigapps()
 	if err != nil {
 		return err
 	}
@@ -81,7 +55,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 		appState, err := currentState(configApp)
 
 		starttime := time.Now()
-		app := &core.TuberApp{
+		app := &model.TuberApp{
 			Tag:          configApp.Tag,
 			ImageTag:     configApp.ImageTag,
 			Repo:         configApp.Repo,
@@ -90,12 +64,12 @@ func bolter(cmd *cobra.Command, args []string) error {
 			Name:         configApp.Name,
 			ReviewApp:    configApp.ReviewApp,
 			SlackChannel: "",
-			Vars:         make(map[string]string),
+			Vars:         []*model.Tuple{},
 		}
 
 		cloudrepo := cloudrepo(configApp, repos.Data)
 		var triggerid string
-		rac := core.ReviewAppsConfig{}
+		rac := model.ReviewAppsConfig{}
 		if err != nil {
 			return err
 		}
@@ -105,8 +79,8 @@ func bolter(cmd *cobra.Command, args []string) error {
 			sourceAppName = "qa-replicated"
 		} else {
 			rac.Enabled = true
-			rac.Vars = make(map[string]string)
-			rac.Skips = []core.Resource{}
+			rac.Vars = []*model.Tuple{}
+			rac.Skips = []*model.Resource{}
 		}
 		var paused bool
 		if pauses.Data[app.Name] != "" {
@@ -123,7 +97,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 		app.ReviewAppsConfig = &rac
 		app.SourceAppName = sourceAppName
 
-		err = data.CreateApp(app)
+		err = db.Save(app)
 		if err != nil {
 			return err
 		}
@@ -131,7 +105,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 		totalDBDuration += int64(dur)
 	}
 
-	okletstryit, err := data.App("qa-replicated-pig-399-close-isnewexpressdesign-experiment")
+	okletstryit, err := db.App("qa-replicated-pig-399-close-isnewexpressdesign-experiment")
 	if err != nil {
 		return err
 	}
@@ -139,7 +113,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 	fmt.Println("time excluding kubectl data gathering: " + time.Duration(totalDBDuration).String())
 
 	fmt.Println("now for filtering")
-	matchingApps, err := data.AppsForTag("gcr.io/freshly-docker/tuber:start-bolting")
+	matchingApps, err := db.AppsForTag("gcr.io/freshly-docker/tuber:start-bolting")
 	for _, a := range matchingApps {
 		fmt.Println(a.Name)
 	}
@@ -147,7 +121,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func cloudrepo(a core.TuberApp, data map[string]string) string {
+func cloudrepo(a *model.TuberApp, data map[string]string) string {
 	for k, v := range data {
 		if v == a.ImageTag {
 			return k
@@ -179,7 +153,7 @@ type managedResource struct {
 	Encoded string `json:"encoded"`
 }
 
-func currentState(app core.TuberApp) (*core.State, error) {
+func currentState(app *model.TuberApp) (*model.State, error) {
 	stateName := "tuber-state-" + app.Name
 	exists, err := k8s.Exists("configMap", stateName, app.Name)
 
@@ -209,11 +183,11 @@ func currentState(app core.TuberApp) (*core.State, error) {
 		}
 	}
 
-	var current []core.Resource
-	var previous []core.Resource
+	var current []*model.Resource
+	var previous []*model.Resource
 
 	for _, prev := range stateData.PreviousState {
-		previous = append(previous, core.Resource{
+		previous = append(previous, &model.Resource{
 			Encoded: prev.Encoded,
 			Kind:    prev.Kind,
 			Name:    prev.Name,
@@ -221,14 +195,14 @@ func currentState(app core.TuberApp) (*core.State, error) {
 	}
 
 	for _, curr := range stateData.Resources {
-		current = append(current, core.Resource{
+		current = append(current, &model.Resource{
 			Encoded: curr.Encoded,
 			Kind:    curr.Kind,
 			Name:    curr.Name,
 		})
 	}
 
-	return &core.State{
+	return &model.State{
 		Current:  current,
 		Previous: previous,
 	}, nil
@@ -237,3 +211,56 @@ func currentState(app core.TuberApp) (*core.State, error) {
 //
 //
 // ^ mostly copied from releaser cus this is the most temporary nonsense ever
+
+func getallconfigapps() ([]*model.TuberApp, error) {
+	reviewAppsConfig, err := k8s.GetConfigResource("tuber-review-apps", "tuber", "ConfigMap")
+	if err != nil {
+		return nil, err
+	}
+	sourceAppsConfig, err := k8s.GetConfigResource("tuber-apps", "tuber", "ConfigMap")
+	if err != nil {
+		return nil, err
+	}
+	reviewApps, err := toTuberApps(reviewAppsConfig.Data, true)
+	if err != nil {
+		return nil, err
+	}
+	sourceApps, err := toTuberApps(sourceAppsConfig.Data, false)
+	if err != nil {
+		return nil, err
+	}
+	var configapps []*model.TuberApp
+	for _, app := range reviewApps {
+		configapps = append(configapps, app)
+	}
+
+	for _, app := range sourceApps {
+		configapps = append(configapps, app)
+	}
+	return configapps, nil
+}
+
+func toTuberApps(data map[string]string, reviewApps bool) ([]*model.TuberApp, error) {
+	var apps []*model.TuberApp
+	for name, imageTag := range data {
+		split := strings.SplitN(imageTag, ":", 2)
+		if len(split) != 2 {
+			return nil, fmt.Errorf("error parsing tuber app %s", name)
+		}
+
+		repoSplit := strings.SplitN(split[0], "/", 2)
+		if len(repoSplit) != 2 {
+			return nil, fmt.Errorf("error parsing tuber app %s", name)
+		}
+		apps = append(apps, &model.TuberApp{
+			Name:      name,
+			ImageTag:  imageTag,
+			Tag:       split[1],
+			Repo:      split[0],
+			RepoPath:  repoSplit[1],
+			RepoHost:  repoSplit[0],
+			ReviewApp: reviewApps,
+		})
+	}
+	return apps, nil
+}
