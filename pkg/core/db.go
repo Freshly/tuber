@@ -74,11 +74,7 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*model.TuberA
 	}
 	sourceAppName := getString(appBucket, "sourceAppName")
 	app := model.TuberApp{
-		Tag:             getString(appBucket, "tag"),
 		ImageTag:        getString(appBucket, "imageTag"),
-		Repo:            getString(appBucket, "repo"),
-		RepoPath:        getString(appBucket, "repoPath"),
-		RepoHost:        getString(appBucket, "repoHost"),
 		Name:            appName,
 		ReviewApp:       getBool(appBucket, "isReviewApp"),
 		Paused:          getBool(appBucket, "isPaused"),
@@ -94,11 +90,12 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*model.TuberA
 		var current []*model.Resource
 		currentStateBucket := getNestedBucket(stateBucket, "current")
 		currentStateBucket.ForEach(func(k []byte, v []byte) error {
+			resourceBucket := currentStateBucket.Bucket(k)
 			current = append(current,
 				&model.Resource{
-					Encoded: getString(currentStateBucket, "encoded"),
-					Kind:    getString(currentStateBucket, "kind"),
-					Name:    getString(currentStateBucket, "name"),
+					Encoded: getString(resourceBucket, "encoded"),
+					Kind:    getString(resourceBucket, "kind"),
+					Name:    getString(resourceBucket, "name"),
 				},
 			)
 			return nil
@@ -108,11 +105,12 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*model.TuberA
 		var previous []*model.Resource
 		previousStateBucket := getNestedBucket(stateBucket, "previous")
 		previousStateBucket.ForEach(func(k []byte, v []byte) error {
-			previous = append(current,
+			resourceBucket := previousStateBucket.Bucket(k)
+			previous = append(previous,
 				&model.Resource{
-					Encoded: getString(previousStateBucket, "encoded"),
-					Kind:    getString(previousStateBucket, "kind"),
-					Name:    getString(previousStateBucket, "name"),
+					Encoded: getString(resourceBucket, "encoded"),
+					Kind:    getString(resourceBucket, "kind"),
+					Name:    getString(resourceBucket, "name"),
 				},
 			)
 			return nil
@@ -212,7 +210,7 @@ func (d *Data) SourceAppFor(app *model.TuberApp) (*model.TuberApp, error) {
 }
 
 // this is the most duplicative thing ive ever done but whatever the signature is fixed
-func (d *Data) SourceApps(tag string) ([]*model.TuberApp, error) {
+func (d *Data) SourceApps() ([]*model.TuberApp, error) {
 	var matchingApps []*model.TuberApp
 	err := d.db.View(func(tx *bolt.Tx) error {
 
@@ -242,7 +240,7 @@ func (d *Data) SourceApps(tag string) ([]*model.TuberApp, error) {
 }
 
 // this is the most duplicative thing ive ever done but whatever the signature is fixed
-func (d *Data) ReviewApps(tag string) ([]*model.TuberApp, error) {
+func (d *Data) ReviewApps() ([]*model.TuberApp, error) {
 	var matchingApps []*model.TuberApp
 	err := d.db.View(func(tx *bolt.Tx) error {
 
@@ -388,11 +386,7 @@ func (d *Data) saveApp(app *model.TuberApp) error {
 		if err != nil {
 			return err
 		}
-		setString(appBucket, "tag", app.Tag)
 		setString(appBucket, "imageTag", app.ImageTag)
-		setString(appBucket, "repo", app.Repo)
-		setString(appBucket, "repoPath", app.RepoPath)
-		setString(appBucket, "repoHost", app.RepoHost)
 		setBool(appBucket, "isReviewApp", app.ReviewApp)
 		setBool(appBucket, "isPaused", app.Paused)
 		setString(appBucket, "cloudSourceRepo", app.CloudSourceRepo)
@@ -458,6 +452,10 @@ func (d *Data) saveApp(app *model.TuberApp) error {
 				return err
 			}
 			for _, skip := range app.ReviewAppsConfig.Skips {
+				// fuckit
+				if skip.Name == "" && skip.Kind == "" {
+					continue
+				}
 				skipBucket, err := skips.CreateBucketIfNotExists([]byte(skip.Name + skip.Kind))
 				if err != nil {
 					return err

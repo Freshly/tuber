@@ -3,10 +3,9 @@
 package model
 
 type AppInput struct {
-	Name    string `json:"name"`
-	IsIstio bool   `json:"isIstio"`
-	Repo    string `json:"repo"`
-	Tag     string `json:"tag"`
+	Name     string `json:"name"`
+	IsIstio  bool   `json:"isIstio"`
+	ImageTag string `json:"imageTag"`
 }
 
 type Resource struct {
@@ -36,7 +35,6 @@ type TuberApp struct {
 	SlackChannel     string            `json:"slackChannel"`
 	SourceAppName    string            `json:"sourceAppName"`
 	State            *State            `json:"state"`
-	Tag              string            `json:"tag"`
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`
 }

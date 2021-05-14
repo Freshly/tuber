@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -27,6 +26,7 @@ type releaser struct {
 	releaseYamls     []string
 	prereleaseYamls  []string
 	postreleaseYamls []string
+	db               *Data
 }
 
 type ErrorContext struct {
@@ -67,7 +67,7 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(yamls containers.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
+func Release(db *Data, yamls containers.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
 	return releaser{
 		logger:           logger,
 		errorScope:       errorScope,
@@ -77,6 +77,7 @@ func Release(yamls containers.AppYamls, logger *zap.Logger, errorScope report.Sc
 		app:              app,
 		digest:           digest,
 		data:             data,
+		db:               db,
 	}.release()
 }
 
@@ -88,7 +89,7 @@ func (r releaser) release() error {
 		return r.releaseError(err)
 	}
 
-	state, err := r.currentState()
+	decodedStateBeforeApply, err := r.currentState()
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -107,15 +108,15 @@ func (r releaser) release() error {
 	appliedConfigs, err := r.apply(configs)
 	if err != nil {
 		_ = r.releaseError(err)
-		r.rollback(appliedConfigs, state.resources)
+		r.rollback(appliedConfigs, decodedStateBeforeApply)
 		return err
 	}
 
 	appliedWorkloads, err := r.apply(workloads)
 	if err != nil {
 		_ = r.releaseError(err)
-		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
-		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
+		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
 		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
 			_ = r.releaseError(rollbackError)
 		}
@@ -129,8 +130,8 @@ func (r releaser) release() error {
 	err = r.watchWorkloads(appliedWorkloads)
 	if err != nil {
 		_ = r.releaseError(err)
-		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
-		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
+		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
 		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
 			_ = r.releaseError(rollbackError)
 		}
@@ -144,8 +145,8 @@ func (r releaser) release() error {
 	appliedPostreleaseResources, err := r.apply(postreleaseResources)
 	if err != nil {
 		_ = r.releaseError(err)
-		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
-		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
+		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
 		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
 			_ = r.releaseError(rollbackError)
 		}
@@ -159,9 +160,9 @@ func (r releaser) release() error {
 	err = r.watchWorkloads(appliedPostreleaseResources)
 	if err != nil {
 		_ = r.releaseError(err)
-		_, configRollbackErrors := r.rollback(appliedConfigs, state.resources)
-		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, state.resources)
-		rolledBackPostreleaseResources, postreleaseRollbackErrors := r.rollback(appliedPostreleaseResources, state.resources)
+		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
+		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
+		rolledBackPostreleaseResources, postreleaseRollbackErrors := r.rollback(appliedPostreleaseResources, decodedStateBeforeApply)
 		for _, rollbackError := range append(configRollbackErrors, append(workloadRollbackErrors, postreleaseRollbackErrors...)...) {
 			_ = r.releaseError(rollbackError)
 		}
@@ -172,29 +173,12 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.reconcileState(state, appliedWorkloads, appliedConfigs)
+	err = r.reconcileState(decodedStateBeforeApply, appliedWorkloads, appliedConfigs)
 	if err != nil {
 		return r.releaseError(err)
 	}
 
 	return nil
-}
-
-type state struct {
-	resources []appResource
-	raw       rawState
-	remote    *k8s.ConfigResource
-}
-
-type rawState struct {
-	Resources     managedResources `json:"resources"`
-	PreviousState managedResources `json:"previousState"`
-}
-
-type managedResource struct {
-	Kind    string `json:"kind"`
-	Name    string `json:"name"`
-	Encoded string `json:"encoded"`
 }
 
 type appResource struct {
@@ -227,10 +211,10 @@ func (a appResource) scopes(r releaser) (report.Scope, *zap.Logger) {
 
 type appResources []appResource
 
-func (a appResources) encode() managedResources {
-	var encoded []managedResource
+func (a appResources) encode() []*model.Resource {
+	var encoded []*model.Resource
 	for _, resource := range a {
-		m := managedResource{
+		m := &model.Resource{
 			Kind:    resource.kind,
 			Name:    resource.name,
 			Encoded: base64.StdEncoding.EncodeToString(resource.contents),
@@ -240,11 +224,9 @@ func (a appResources) encode() managedResources {
 	return encoded
 }
 
-type managedResources []managedResource
-
-func (m managedResources) decode() (appResources, error) {
+func (r releaser) currentState() (appResources, error) {
 	var resources appResources
-	for _, managed := range m {
+	for _, managed := range r.app.State.Current {
 		contents, err := base64.StdEncoding.DecodeString(managed.Encoded)
 		if err != nil {
 			return nil, err
@@ -252,43 +234,6 @@ func (m managedResources) decode() (appResources, error) {
 		resources = append(resources, appResource{contents: contents, kind: managed.Kind, name: managed.Name})
 	}
 	return resources, nil
-}
-
-func (r releaser) currentState() (*state, error) {
-	stateName := "tuber-state-" + r.app.Name
-	exists, err := k8s.Exists("configMap", stateName, r.app.Name)
-
-	if err != nil {
-		return nil, ErrorContext{err: err, context: "state config exists check"}
-	}
-
-	if !exists {
-		createErr := k8s.Create(r.app.Name, "configmap", stateName, `--from-literal=state=`)
-		if createErr != nil {
-			return nil, ErrorContext{err: createErr, context: "state config creation"}
-		}
-	}
-
-	stateResource, err := k8s.GetConfigResource(stateName, r.app.Name, "ConfigMap")
-	if err != nil {
-		return nil, ErrorContext{err: err, context: "get state config"}
-	}
-
-	rawStateData := stateResource.Data["state"]
-
-	var stateData rawState
-	if rawStateData != "" {
-		unmarshalErr := json.Unmarshal([]byte(rawStateData), &stateData)
-		if unmarshalErr != nil {
-			return nil, ErrorContext{err: unmarshalErr, context: "parse state"}
-		}
-	}
-
-	resources, err := stateData.Resources.decode()
-	if err != nil {
-		return nil, ErrorContext{err: err, context: "decode state"}
-	}
-	return &state{resources: resources, raw: stateData, remote: stateResource}, nil
 }
 
 type metadata struct {
@@ -589,7 +534,7 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 	return nil
 }
 
-func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, appliedConfigs []appResource) error {
+func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource) error {
 	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
 
 	type stateResource struct {
@@ -598,7 +543,7 @@ func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, a
 		}
 	}
 
-	for _, cached := range state.resources {
+	for _, cached := range stateBeforeApply {
 		var inPreviousState bool
 		for _, applied := range appliedResources {
 			if applied.kind == cached.kind && applied.name == cached.name {
@@ -630,13 +575,11 @@ func (r releaser) reconcileState(state *state, appliedWorkloads []appResource, a
 		}
 	}
 
-	marshalled, err := json.Marshal(rawState{Resources: appliedResources.encode(), PreviousState: state.raw.Resources})
-	if err != nil {
-		return ErrorContext{err: err, context: "marshal new state"}
-	}
+	updatedApp := r.app
+	updatedApp.State.Previous = r.app.State.Current
+	updatedApp.State.Current = appliedResources.encode()
 
-	state.remote.Data["state"] = string(marshalled)
-	err = state.remote.Save(r.app.Name)
+	err := r.db.Save(updatedApp)
 	if err != nil {
 		return ErrorContext{err: err, context: "save new state"}
 	}

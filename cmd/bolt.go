@@ -4,25 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var bolterCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "bolter",
-	Short:        "boltss",
+	Short:        "pulls remote database to local (CURRENTLY FROM CONFIGMAPS)",
 	RunE:         bolter,
 }
 
 func bolter(cmd *cobra.Command, args []string) error {
 	db, err := db()
 	defer db.Close()
+	if err != nil {
+		return err
+	}
 
+	return pullLocalDB(db)
+}
+
+func pullLocalDB(db *core.Data) error {
+	fmt.Println("pulling db from configmaps, takes a sec")
 	configApps, err := getallconfigapps()
 	if err != nil {
 		return err
@@ -49,18 +57,11 @@ func bolter(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	var totalDBDuration int64
-
 	for _, configApp := range configApps {
 		appState, err := currentState(configApp)
 
-		starttime := time.Now()
 		app := &model.TuberApp{
-			Tag:          configApp.Tag,
 			ImageTag:     configApp.ImageTag,
-			Repo:         configApp.Repo,
-			RepoPath:     configApp.RepoPath,
-			RepoHost:     configApp.RepoHost,
 			Name:         configApp.Name,
 			ReviewApp:    configApp.ReviewApp,
 			SlackChannel: "",
@@ -78,7 +79,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 			triggerid = reviewAppTriggers.Data[configApp.Name]
 			sourceAppName = "qa-replicated"
 		} else {
-			rac.Enabled = true
+			rac.Enabled = reviewAppsEnabled
 			rac.Vars = []*model.Tuple{}
 			rac.Skips = []*model.Resource{}
 		}
@@ -101,23 +102,9 @@ func bolter(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		dur := time.Since(starttime)
-		totalDBDuration += int64(dur)
 	}
 
-	okletstryit, err := db.App("qa-replicated-pig-399-close-isnewexpressdesign-experiment")
-	if err != nil {
-		return err
-	}
-	fmt.Println(okletstryit)
-	fmt.Println("time excluding kubectl data gathering: " + time.Duration(totalDBDuration).String())
-
-	fmt.Println("now for filtering")
-	matchingApps, err := db.AppsForTag("gcr.io/freshly-docker/tuber:start-bolting")
-	for _, a := range matchingApps {
-		fmt.Println(a.Name)
-	}
-
+	fmt.Println("done pulling db")
 	return nil
 }
 
@@ -213,52 +200,46 @@ func currentState(app *model.TuberApp) (*model.State, error) {
 // ^ mostly copied from releaser cus this is the most temporary nonsense ever
 
 func getallconfigapps() ([]*model.TuberApp, error) {
-	reviewAppsConfig, err := k8s.GetConfigResource("tuber-review-apps", "tuber", "ConfigMap")
-	if err != nil {
-		return nil, err
-	}
 	sourceAppsConfig, err := k8s.GetConfigResource("tuber-apps", "tuber", "ConfigMap")
 	if err != nil {
 		return nil, err
 	}
-	reviewApps, err := toTuberApps(reviewAppsConfig.Data, true)
-	if err != nil {
-		return nil, err
-	}
+
 	sourceApps, err := toTuberApps(sourceAppsConfig.Data, false)
 	if err != nil {
 		return nil, err
 	}
 	var configapps []*model.TuberApp
-	for _, app := range reviewApps {
-		configapps = append(configapps, app)
-	}
 
 	for _, app := range sourceApps {
 		configapps = append(configapps, app)
 	}
+
+	if viper.GetBool("reviewapps-enabled") {
+		reviewAppsConfig, err := k8s.GetConfigResource("tuber-review-apps", "tuber", "ConfigMap")
+		if err != nil {
+			return nil, err
+		}
+
+		reviewApps, err := toTuberApps(reviewAppsConfig.Data, true)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, app := range reviewApps {
+			configapps = append(configapps, app)
+		}
+	}
+
 	return configapps, nil
 }
 
 func toTuberApps(data map[string]string, reviewApps bool) ([]*model.TuberApp, error) {
 	var apps []*model.TuberApp
 	for name, imageTag := range data {
-		split := strings.SplitN(imageTag, ":", 2)
-		if len(split) != 2 {
-			return nil, fmt.Errorf("error parsing tuber app %s", name)
-		}
-
-		repoSplit := strings.SplitN(split[0], "/", 2)
-		if len(repoSplit) != 2 {
-			return nil, fmt.Errorf("error parsing tuber app %s", name)
-		}
 		apps = append(apps, &model.TuberApp{
 			Name:      name,
 			ImageTag:  imageTag,
-			Tag:       split[1],
-			Repo:      split[0],
-			RepoPath:  repoSplit[1],
-			RepoHost:  repoSplit[0],
 			ReviewApp: reviewApps,
 		})
 	}

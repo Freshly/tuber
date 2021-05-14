@@ -8,7 +8,7 @@ import (
 )
 
 func (s server) createReviewApp(c *gin.Context) {
-	reviewAppName, err := reviewapps.CreateReviewApp(c.Request.Context(), s.logger, c.PostForm("branch"), c.Param("appName"), s.creds, s.triggersProjectName)
+	reviewAppName, err := reviewapps.CreateReviewApp(c.Request.Context(), s.db, s.logger, c.PostForm("branch"), c.Param("appName"), s.creds, s.triggersProjectName)
 	if err == nil {
 		c.Redirect(http.StatusFound, "reviewapps/"+reviewAppName)
 	} else {

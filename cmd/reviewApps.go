@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/proto"
 	"github.com/freshly/tuber/pkg/reviewapps"
@@ -53,10 +52,11 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	defer conn.Close()
 
-	_, err = core.FindApp(sourceAppName)
-	if err != nil {
-		return fmt.Errorf("source app not found")
-	}
+	// TODO: convert to graphql
+	// _, err = core.FindApp(sourceAppName)
+	// if err != nil {
+	// 	return fmt.Errorf("source app not found")
+	// }
 
 	canDeploy, err := k8s.CanDeploy(sourceAppName)
 	if err != nil {
@@ -113,10 +113,11 @@ func delete(cmd *cobra.Command, args []string) error {
 	}
 	defer conn.Close()
 
-	_, err = core.FindReviewApp(reviewAppName)
-	if err != nil {
-		return fmt.Errorf("review app not found")
-	}
+	// TODO: convert to graphql
+	// _, err = core.FindReviewApp(reviewAppName)
+	// if err != nil {
+	// 	return fmt.Errorf("review app not found")
+	// }
 
 	config, err := k8s.GetConfig()
 	if err != nil {

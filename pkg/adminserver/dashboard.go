@@ -1,11 +1,13 @@
 package adminserver
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type dashboardResponse struct {
@@ -20,7 +22,7 @@ type sourceApp struct {
 }
 
 func (s server) dashboard(c *gin.Context) {
-	sourceApps, err := sourceApps()
+	sourceApps, err := sourceApps(s.logger, s.db)
 	var status = http.StatusOK
 	data := dashboardResponse{Title: "Tuber Dashboard"}
 
@@ -35,10 +37,11 @@ func (s server) dashboard(c *gin.Context) {
 	c.HTML(status, "dashboard.html", data)
 }
 
-func sourceApps() ([]sourceApp, error) {
-	tuberApps, err := core.TuberSourceApps()
+func sourceApps(logger *zap.Logger, db *core.Data) ([]sourceApp, error) {
+	tuberApps, err := db.SourceApps()
 	if err != nil {
-		return nil, err
+		logger.Error("error retrieving source apps", zap.Error(err))
+		return []sourceApp{}, fmt.Errorf("error retrieving source apps")
 	}
 
 	sort.Slice(tuberApps, func(i, j int) bool {

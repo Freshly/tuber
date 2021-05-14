@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/freshly/tuber/graph/client"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
@@ -52,6 +55,32 @@ func db() (*core.Data, error) {
 
 	data := core.NewData(db)
 	return &data, nil
+}
+
+func getApp(appName string) (*model.TuberApp, error) {
+	graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
+	gql := `
+			query {
+				getApps {
+					name
+					imageTag
+				}
+			}
+		`
+	var respData struct {
+		GetApp *model.TuberApp
+	}
+
+	err := graphql.Query(context.Background(), gql, &respData)
+	if err != nil {
+		return nil, err
+	}
+
+	if respData.GetApp == nil {
+		return nil, fmt.Errorf("error retrieving app")
+	}
+
+	return respData.GetApp, nil
 }
 
 func clusterData() (*core.ClusterData, error) {

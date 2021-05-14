@@ -12,14 +12,14 @@ import (
 )
 
 // Start starts a GRPC server
-func Start(port int, s reviewapps.Server) error {
+func Start(port int, s *reviewapps.Server) error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
 	}
 
 	server := grpc.NewServer()
-	proto.RegisterTuberServer(server, &s)
+	proto.RegisterTuberServer(server, s)
 	reflection.Register(server)
 
 	if err := server.Serve(lis); err != nil {

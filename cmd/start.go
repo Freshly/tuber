@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
@@ -26,7 +27,7 @@ func init() {
 var startCmd = &cobra.Command{
 	Use:     "start",
 	Short:   "Start tuber's pub/sub server",
-	Run:     start,
+	RunE:    start,
 	PreRunE: promptCurrentContext,
 }
 
@@ -43,13 +44,19 @@ func bindShutdown(logger *zap.Logger, cancel func()) {
 	}()
 }
 
-func start(cmd *cobra.Command, args []string) {
+func start(cmd *cobra.Command, args []string) error {
 	logger, err := createLogger()
 	defer logger.Sync()
 
 	if err != nil {
-		panic(err)
+		return err
 	}
+
+	db, err := db()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
 
 	initErrorReporters()
 	scope := report.Scope{"during": "startup"}
@@ -82,7 +89,7 @@ func start(cmd *cobra.Command, args []string) {
 		viper.GetString("pubsub-subscription-name"),
 		creds,
 		data,
-		events.NewProcessor(ctx, logger, creds, data, viper.GetBool("reviewapps-enabled"), slackClient),
+		events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient),
 	)
 
 	if err != nil {
@@ -92,7 +99,7 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	if viper.GetBool("reviewapps-enabled") {
-		go startReviewAppsServer(logger, creds)
+		go startReviewAppsServer(logger, db, creds)
 	}
 
 	err = listener.Start()
@@ -104,9 +111,10 @@ func start(cmd *cobra.Command, args []string) {
 
 	<-ctx.Done()
 	logger.Info("Shutting down...")
+	return nil
 }
 
-func startReviewAppsServer(logger *zap.Logger, creds []byte) {
+func startReviewAppsServer(logger *zap.Logger, db *core.Data, creds []byte) {
 	logger = logger.With(zap.String("action", "grpc"))
 
 	projectName := viper.GetString("review-apps-triggers-project-name")
@@ -117,12 +125,7 @@ func startReviewAppsServer(logger *zap.Logger, creds []byte) {
 		panic(err)
 	}
 
-	srv := reviewapps.Server{
-		ClusterDefaultHost: viper.GetString("cluster-default-host"),
-		ProjectName:        projectName,
-		Logger:             logger,
-		Credentials:        creds,
-	}
+	srv := reviewapps.NewServer(logger, creds, db, viper.GetString("cluster-default-host"), projectName)
 
 	logger.Debug("starting GRPC server")
 	err := server.Start(3000, srv)

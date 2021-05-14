@@ -43,6 +43,7 @@ func graphqlServer(cmd *cobra.Command, args []string) {
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
 
 	port := os.Getenv("PORT")
 	if port == "" {

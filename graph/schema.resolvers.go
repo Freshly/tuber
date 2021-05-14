@@ -18,14 +18,9 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput)
 		return nil, err
 	}
 
-	if err := core.AddSourceAppConfig(input.Name, input.Repo, input.Tag); err != nil {
-		return nil, err
-	}
-
 	inputApp := model.TuberApp{
-		Name: input.Name,
-		Repo: input.Repo,
-		Tag:  input.Tag,
+		Name:     input.Name,
+		ImageTag: input.ImageTag,
 	}
 
 	if err := r.Resolver.db.Save(&inputApp); err != nil {
@@ -48,7 +43,7 @@ func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.T
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Resolver.db.App(name)
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {

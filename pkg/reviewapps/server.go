@@ -12,17 +12,27 @@ import (
 
 // Server is the ReviewApp GRPC service
 type Server struct {
-	ClusterDefaultHost string
-	ProjectName        string
-	Credentials        []byte
-	Logger             *zap.Logger
+	clusterDefaultHost string
+	projectName        string
+	credentials        []byte
+	logger             *zap.Logger
 	db                 *core.Data
 	proto.UnimplementedTuberServer
 }
 
+func NewServer(logger *zap.Logger, creds []byte, db *core.Data, clusterDefaultHost string, projectName string) *Server {
+	return &Server{
+		clusterDefaultHost: clusterDefaultHost,
+		projectName:        projectName,
+		credentials:        creds,
+		logger:             logger,
+		db:                 db,
+	}
+}
+
 // CreateReviewApp creates a review app
 func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppRequest) (*proto.CreateReviewAppResponse, error) {
-	permitted, err := canCreate(s.Logger, in.AppName, in.Token)
+	permitted, err := canCreate(s.logger, s.db, in.AppName, in.Token)
 	if err != nil {
 		return &proto.CreateReviewAppResponse{
 			Error: err.Error(),
@@ -34,7 +44,7 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 		}, nil
 	}
 
-	appName, err := CreateReviewApp(ctx, s.Logger, in.Branch, in.AppName, s.Credentials, s.ProjectName)
+	appName, err := CreateReviewApp(ctx, s.db, s.logger, in.Branch, in.AppName, s.credentials, s.projectName)
 
 	if err != nil {
 		return &proto.CreateReviewAppResponse{
@@ -43,10 +53,10 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 	}
 
 	var host string
-	if s.ClusterDefaultHost == "" {
+	if s.clusterDefaultHost == "" {
 		host = appName
 	} else {
-		host = fmt.Sprintf("https://%s.%s/", appName, s.ClusterDefaultHost)
+		host = fmt.Sprintf("https://%s.%s/", appName, s.clusterDefaultHost)
 	}
 
 	return &proto.CreateReviewAppResponse{
@@ -55,11 +65,11 @@ func (s *Server) CreateReviewApp(ctx context.Context, in *proto.CreateReviewAppR
 }
 
 func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppRequest) (*proto.DeleteReviewAppResponse, error) {
-	logger := s.Logger.With(
+	logger := s.logger.With(
 		zap.String("appName", in.AppName),
 	)
 
-	err := DeleteReviewApp(ctx, s.db, in.AppName, s.Credentials, s.ProjectName)
+	err := DeleteReviewApp(ctx, s.db, in.AppName, s.credentials, s.projectName)
 
 	if err != nil {
 		logger.Error("error deleting review app " + in.AppName + ": " + err.Error())

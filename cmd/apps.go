@@ -3,12 +3,12 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sort"
 
 	"github.com/freshly/tuber/graph/client"
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/core"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/spf13/cobra"
@@ -24,22 +24,20 @@ var jsonOutput bool
 
 var appsInstallCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "install [app name] [docker repo] [deploy tag] [--istio=<true(default) || false>]",
+	Use:          "install [app name] [docker tag] [--istio=<true(default) || false>]",
 	Short:        "install a new app in the current cluster",
-	Args:         cobra.ExactArgs(3),
+	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
 
 		appName := args[0]
-		repo := args[1]
-		tag := args[2]
+		imageTag := args[1]
 
 		input := &model.AppInput{
-			IsIstio: istioEnabled,
-			Name:    appName,
-			Tag:     tag,
-			Repo:    repo,
+			IsIstio:  istioEnabled,
+			Name:     appName,
+			ImageTag: imageTag,
 		}
 
 		var respData struct {
@@ -65,16 +63,17 @@ var appsSetBranchCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appName := args[0]
-		branch := args[1]
+		return fmt.Errorf("unimplemented in graphql")
+		// appName := args[0]
+		// branch := args[1]
 
-		app, err := core.FindApp(appName)
-
-		if err != nil {
-			return err
-		}
-
-		return core.AddSourceAppConfig(appName, app.Repo, branch)
+		// app, err := core.FindApp(appName)
+		//
+		// if err != nil {
+		// 	return err
+		// }
+		//
+		// return core.AddSourceAppConfig(appName, app.Repo, branch)
 	},
 }
 
@@ -85,16 +84,17 @@ var appsSetRepoCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appName := args[0]
-		repo := args[1]
-
-		app, err := core.FindApp(appName)
-
-		if err != nil {
-			return err
-		}
-
-		return core.AddSourceAppConfig(appName, repo, app.Tag)
+		return fmt.Errorf("unimplemented in graphql")
+		// appName := args[0]
+		// repo := args[1]
+		//
+		// app, err := core.FindApp(appName)
+		//
+		// if err != nil {
+		// 	return err
+		// }
+		//
+		// return core.AddSourceAppConfig(appName, repo, app.Tag)
 	},
 }
 
@@ -105,9 +105,10 @@ var appsRemoveCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appName := args[0]
-
-		return core.RemoveSourceAppConfig(appName)
+		return fmt.Errorf("unimplemented in graphql")
+		// appName := args[0]
+		//
+		// return core.RemoveSourceAppConfig(appName)
 	},
 }
 
@@ -118,9 +119,10 @@ var appsDestroyCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appName := args[0]
-
-		return core.DestroyTuberApp(appName)
+		return fmt.Errorf("unimplemented in graphql")
+		// appName := args[0]
+		//
+		// return core.DestroyTuberApp(appName)
 	},
 }
 
@@ -141,7 +143,7 @@ var appsListCmd = &cobra.Command{
 		`
 
 		var respData struct {
-			GetApps []model.TuberApp
+			GetApps []*model.TuberApp
 		}
 
 		if err := graphql.Query(context.Background(), gql, &respData); err != nil {
@@ -173,8 +175,6 @@ var appsListCmd = &cobra.Command{
 		}
 
 		table.Render()
-
-		// client.
 		return nil
 	},
 }

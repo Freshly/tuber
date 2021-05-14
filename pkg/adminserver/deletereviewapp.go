@@ -10,7 +10,7 @@ import (
 func (s server) deleteReviewApp(c *gin.Context) {
 	sourceAppName := c.Param("appName")
 	reviewAppName := c.Param("reviewAppName")
-	err := reviewapps.DeleteReviewApp(c.Request.Context(), reviewAppName, s.creds, s.triggersProjectName)
+	err := reviewapps.DeleteReviewApp(c.Request.Context(), s.db, reviewAppName, s.creds, s.triggersProjectName)
 	if err == nil {
 		c.Redirect(http.StatusFound, "/tuber/apps/"+sourceAppName)
 	} else {

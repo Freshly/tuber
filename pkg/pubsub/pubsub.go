@@ -81,6 +81,8 @@ func (l *Listener) Start() error {
 
 	err = subscription.Receive(l.ctx, func(ctx context.Context, pubsubMessage *pubsub.Message) {
 		pubsubMessage.Ack()
+		// {"action":"INSERT","digest":"gcr.io/freshly-docker/freshly@sha256:17f4431497a07da98bc16e599ef9d38afb9817049b6e98b71b7e321b946a24d4",
+		// "tag":"gcr.io/freshly-docker/freshly:PIG-267-refactor-email-service"}
 		var message Message
 		err := json.Unmarshal(pubsubMessage.Data, &message)
 		if err != nil {
@@ -88,7 +90,13 @@ func (l *Listener) Start() error {
 			report.Error(err, report.Scope{"context": "messageProcessing"})
 			return
 		}
-		l.processor.ProcessMessage(message.Digest, message.Tag)
+		event, err := events.NewEvent(l.logger, message.Digest, message.Tag)
+		if err != nil {
+			listenLogger.Warn("failed to unmarshal pubsub message", zap.Error(err))
+			report.Error(err, report.Scope{"context": "messageProcessing"})
+			return
+		}
+		l.processor.ProcessMessage(event)
 	})
 
 	if err != nil {

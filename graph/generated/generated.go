@@ -82,7 +82,6 @@ type ComplexityRoot struct {
 		SlackChannel     func(childComplexity int) int
 		SourceAppName    func(childComplexity int) int
 		State            func(childComplexity int) int
-		Tag              func(childComplexity int) int
 		TriggerID        func(childComplexity int) int
 		Vars             func(childComplexity int) int
 	}
@@ -305,13 +304,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TuberApp.State(childComplexity), true
 
-	case "TuberApp.tag":
-		if e.complexity.TuberApp.Tag == nil {
-			break
-		}
-
-		return e.complexity.TuberApp.Tag(childComplexity), true
-
 	case "TuberApp.triggerID":
 		if e.complexity.TuberApp.TriggerID == nil {
 			break
@@ -419,7 +411,6 @@ type TuberApp {
   slackChannel: String!
   sourceAppName: String!
   state: State!
-  tag: String!
   triggerID: String!
   vars: [Tuple!]!
 }
@@ -427,8 +418,7 @@ type TuberApp {
 input AppInput {
   name: ID!
   isIstio: Boolean!
-  repo: String!
-  tag: String!
+  imageTag: String!
 }
 
 type State {
@@ -1495,41 +1485,6 @@ func (ec *executionContext) _TuberApp_state(ctx context.Context, field graphql.C
 	res := resTmp.(*model.State)
 	fc.Result = res
 	return ec.marshalNState2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐState(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _TuberApp_tag(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "TuberApp",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Tag, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TuberApp_triggerID(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
@@ -2781,19 +2736,11 @@ func (ec *executionContext) unmarshalInputAppInput(ctx context.Context, obj inte
 			if err != nil {
 				return it, err
 			}
-		case "repo":
+		case "imageTag":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
-			it.Repo, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "tag":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tag"))
-			it.Tag, err = ec.unmarshalNString2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageTag"))
+			it.ImageTag, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3056,11 +3003,6 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "state":
 			out.Values[i] = ec._TuberApp_state(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "tag":
-			out.Values[i] = ec._TuberApp_tag(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

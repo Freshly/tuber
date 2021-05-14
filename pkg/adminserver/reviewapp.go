@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/freshly/tuber/pkg/k8s"
-	"github.com/freshly/tuber/pkg/reviewapps"
+	"github.com/freshly/tuber/pkg/core"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/cloudbuild/v1"
 )
@@ -45,7 +44,7 @@ func (s server) reviewApp(c *gin.Context) {
 
 	data.Link = fmt.Sprintf("https://%s.%s/", reviewAppName, s.clusterDefaultHost)
 
-	builds, err := reviewAppBuilds(reviewAppName, s.triggersProjectName, s.cloudbuildClient)
+	builds, err := reviewAppBuilds(s.db, reviewAppName, s.triggersProjectName, s.cloudbuildClient)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("error pulling review app builds for %s: %v", reviewAppName, err))
 		data.Error = "error retrieving review app builds, try refreshing"
@@ -65,16 +64,16 @@ func (s server) reviewApp(c *gin.Context) {
 	c.HTML(http.StatusOK, template, data)
 }
 
-func reviewAppBuilds(reviewAppName string, triggersProjectName string, cloudbuildClient *cloudbuild.Service) ([]Build, error) {
-	config, err := k8s.GetConfigResource(reviewapps.TuberReviewTriggersConfig, "tuber", "configmap")
+func reviewAppBuilds(db *core.Data, reviewAppName string, triggersProjectName string, cloudbuildClient *cloudbuild.Service) ([]Build, error) {
+	app, err := db.App(reviewAppName)
+	if !app.ReviewApp {
+		return nil, fmt.Errorf("review app not found")
+	}
 	if err != nil {
-		return nil, fmt.Errorf("review triggers map not found")
+		return nil, fmt.Errorf("error retrieving review app")
 	}
 
-	triggerId := config.Data[reviewAppName]
-	if triggerId == "" {
-		return nil, fmt.Errorf("trigger is untracked or it doesnt exist")
-	}
+	triggerId := app.TriggerID
 
 	buildsResponse, err := cloudbuild.NewProjectsBuildsService(cloudbuildClient).List(triggersProjectName).Filter(fmt.Sprintf(`trigger_id="%s"`, triggerId)).Do()
 	if err != nil {

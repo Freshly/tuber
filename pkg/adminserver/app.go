@@ -21,8 +21,8 @@ type appResponse struct {
 }
 
 type appReviewApp struct {
-	Name   string
-	Branch string
+	Name     string
+	ImageTag string
 }
 
 func (s server) app(c *gin.Context) {
@@ -64,7 +64,7 @@ func reviewApps(sourceAppName string, db *core.Data) ([]appReviewApp, error) {
 
 	var reviewApps []appReviewApp
 	for _, app := range reviewAppsList {
-		reviewApps = append(reviewApps, appReviewApp{Name: app.Name, Branch: app.Tag})
+		reviewApps = append(reviewApps, appReviewApp{Name: app.Name, ImageTag: app.ImageTag})
 	}
 
 	return reviewApps, err
