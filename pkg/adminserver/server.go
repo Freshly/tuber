@@ -2,7 +2,10 @@ package adminserver
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -19,9 +22,10 @@ type server struct {
 	logger              *zap.Logger
 	creds               []byte
 	db                  *core.Data
+	port                string
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.Data, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.Data, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -41,23 +45,38 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.Data, triggersProje
 		logger:              logger,
 		creds:               creds,
 		db:                  db,
+		port:                port,
 	}.start()
 }
 
 func (s server) start() error {
+	var err error
+
 	router := gin.Default()
+
 	router.LoadHTMLGlob("pkg/adminserver/templates/*")
+
 	tuber := router.Group("/tuber")
 	{
 		tuber.GET("/", s.dashboard)
+
+		tuber.Any("/graphql", gin.WrapH(graph.Handler(s.db)))
+		tuber.GET("/graphql/playground", gin.WrapF(playground.Handler("GraphQL playground", "/tuber/graphql")))
+
+		apps := tuber.Group("/apps")
+		{
+			apps.GET("/:appName", s.app)
+			apps.GET("/:appName/reviewapps/:reviewAppName", s.reviewApp)
+			apps.GET("/:appName/reviewapps/:reviewAppName/delete", s.deleteReviewApp)
+			apps.POST("/:appName/createReviewApp", s.createReviewApp)
+		}
 	}
-	apps := tuber.Group("/apps")
-	{
-		apps.GET("/:appName", s.app)
-		apps.GET("/:appName/reviewapps/:reviewAppName", s.reviewApp)
-		apps.GET("/:appName/reviewapps/:reviewAppName/delete", s.deleteReviewApp)
-		apps.POST("/:appName/createReviewApp", s.createReviewApp)
+
+	if s.port == "" {
+		err = router.Run(":3000")
+	} else {
+		err = router.Run(fmt.Sprintf(":%s", s.port))
 	}
-	router.Run(":3000")
-	return nil
+
+	return err
 }
