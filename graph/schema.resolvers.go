@@ -9,7 +9,6 @@ import (
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/core"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
@@ -29,22 +28,7 @@ func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberAp
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	appList, err := core.TuberSourceApps()
-
-	if err != nil {
-		return nil, err
-	}
-
-	var list []*model.TuberApp
-
-	for _, n := range appList {
-		list = append(list, &model.TuberApp{
-			Name:     n.Name,
-			ImageTag: n.ImageTag,
-		})
-	}
-
-	return list, nil
+	return r.Resolver.db.Apps()
 }
 
 // Mutation returns generated.MutationResolver implementation.
