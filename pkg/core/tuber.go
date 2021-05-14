@@ -3,185 +3,81 @@ package core
 import (
 	"fmt"
 	"strings"
-	"sync"
-	"time"
 
+	yamls "github.com/freshly/tuber/data/tuberapps"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/k8s"
 )
 
-const tuberSourceApps = "tuber-apps"
-const tuberReviewApps = "tuber-review-apps"
-
 // GetRepositoryLocation returns a RepositoryLocation struct for a given Tuber App
-func (ta *TuberApp) GetRepositoryLocation() containers.RepositoryLocation {
+func GetRepositoryLocation(ta *model.TuberApp) (containers.RepositoryLocation, error) {
+	split := strings.SplitN(ta.ImageTag, ":", 2)
+	if len(split) != 2 {
+		return containers.RepositoryLocation{}, fmt.Errorf("app image tag invalid")
+	}
+
+	repoSplit := strings.SplitN(split[0], "/", 2)
+	if len(repoSplit) != 2 {
+		return containers.RepositoryLocation{}, fmt.Errorf("app image tag invalid")
+	}
+
 	return containers.RepositoryLocation{
-		Host: ta.RepoHost,
-		Path: ta.RepoPath,
-		Tag:  ta.Tag,
+		Host: repoSplit[0],
+		Path: repoSplit[1],
+		Tag:  split[1],
+	}, nil
+}
+
+// DestroyTuberApp deletes all resources for the given app on the current cluster
+func DestroyTuberApp(db *Data, app *model.TuberApp) error {
+	err := k8s.Delete("namespace", app.Name, app.Name)
+	if err != nil {
+		return err
 	}
-}
-
-type appsCache struct {
-	apps   []TuberApp
-	expiry time.Time
-}
-
-var sourceAppsCache *appsCache
-var sourceAppsMutex sync.Mutex
-
-var reviewAppsCache *appsCache
-var reviewMutex sync.Mutex
-
-func (a appsCache) isExpired() bool {
-	return a.expiry.Before(time.Now())
-}
-
-func refreshSourceAppsCache(apps []TuberApp) {
-	expiry := time.Now().Add(time.Second * 10)
-	sourceAppsCache = &appsCache{apps: apps, expiry: expiry}
-}
-
-func refreshReviewAppsCache(apps []TuberApp) {
-	expiry := time.Now().Add(time.Second * 10)
-	reviewAppsCache = &appsCache{apps: apps, expiry: expiry}
-}
-
-func toTuberApps(data map[string]string, reviewApps bool) ([]TuberApp, error) {
-	var apps []TuberApp
-	for name, imageTag := range data {
-		split := strings.SplitN(imageTag, ":", 2)
-		if len(split) != 2 {
-			return nil, fmt.Errorf("error parsing tuber app %s", name)
-		}
-
-		repoSplit := strings.SplitN(split[0], "/", 2)
-		if len(repoSplit) != 2 {
-			return nil, fmt.Errorf("error parsing tuber app %s", name)
-		}
-		apps = append(apps, TuberApp{
-			Name:      name,
-			ImageTag:  imageTag,
-			Tag:       split[1],
-			Repo:      split[0],
-			RepoPath:  repoSplit[1],
-			RepoHost:  repoSplit[0],
-			ReviewApp: reviewApps,
-		})
+	err = db.DeleteTuberApp(app)
+	if err != nil {
+		return err
 	}
-	return apps, nil
+
+	return nil
 }
 
-// AppList is a slice of TuberApp structs
-type AppList []TuberApp
+// NewAppSetup adds a new tuber app configuration, including namespace,
+// role, rolebinding, and a listing in tuber-apps
+func NewAppSetup(appName string, istio bool) error {
+	var err error
+	var istioEnabled string
+	if istio {
+		istioEnabled = "enabled"
+	} else {
+		istioEnabled = "disabled"
+	}
 
-// FindApp locates a Tuber app within an app-list
-func (ta AppList) FindApp(name string) (foundApp *TuberApp, err error) {
-	for _, app := range ta {
-		if app.Name == name {
-			foundApp = &app
-			return
+	data := map[string]string{
+		"namespace":    appName,
+		"istioEnabled": istioEnabled,
+	}
+
+	for _, yaml := range []yamls.TuberYaml{yamls.Namespace, yamls.Role, yamls.Rolebinding} {
+		err = ApplyTemplate(appName, string(yaml.Contents), data)
+		if err != nil {
+			return err
 		}
 	}
 
-	err = fmt.Errorf("app '%s' not found", name)
-	return
-}
+	existsAlready, err := k8s.Exists("secret", appName+"-env", appName)
+	if err != nil {
+		return err
+	}
 
-func FindApp(name string) (foundApp *TuberApp, err error) {
-	apps, err := TuberSourceApps()
+	if !existsAlready {
+		err = k8s.CreateEnv(appName)
+	}
 
 	if err != nil {
-		return
+		return err
 	}
 
-	return apps.FindApp(name)
-}
-
-func FindReviewApp(name string) (foundApp *TuberApp, err error) {
-	apps, err := TuberReviewApps()
-
-	if err != nil {
-		return
-	}
-
-	return apps.FindApp(name)
-}
-
-// TuberSourceApps returns a list of Tuber apps
-func TuberSourceApps() (AppList, error) {
-	sourceAppsMutex.Lock()
-	defer sourceAppsMutex.Unlock()
-	if sourceAppsCache == nil || sourceAppsCache.isExpired() {
-		config, err := k8s.GetConfigResource(tuberSourceApps, "tuber", "ConfigMap")
-		if err != nil {
-			return nil, err
-		}
-
-		apps, err := toTuberApps(config.Data, false)
-
-		if err != nil {
-			return nil, err
-		}
-
-		refreshSourceAppsCache(apps)
-		return apps, nil
-	}
-
-	return sourceAppsCache.apps, nil
-}
-
-// TuberReviewApps returns a list of Tuber apps
-func TuberReviewApps() (AppList, error) {
-	reviewMutex.Lock()
-	defer reviewMutex.Unlock()
-	if reviewAppsCache == nil || reviewAppsCache.isExpired() {
-		config, err := k8s.GetConfigResource(tuberReviewApps, "tuber", "ConfigMap")
-		if err != nil {
-			return nil, err
-		}
-		apps, err := toTuberApps(config.Data, true)
-		if err != nil {
-			return nil, err
-		}
-
-		refreshReviewAppsCache(apps)
-		return apps, nil
-	}
-
-	return reviewAppsCache.apps, nil
-}
-
-func SourceAndReviewApps() (AppList, error) {
-	apps, err := TuberSourceApps()
-	if err != nil {
-		return AppList{}, err
-	}
-
-	reviewApps, err := TuberReviewApps()
-	if err != nil {
-		return AppList{}, err
-	}
-
-	return append(reviewApps, apps...), nil
-}
-
-// AddSourceAppConfig adds a new Source app that tuber will monitor and deploy
-func AddSourceAppConfig(appName string, repo string, tag string) error {
-	return k8s.PatchConfigMap(tuberSourceApps, "tuber", appName, fmt.Sprintf("%s:%s", repo, tag))
-}
-
-// AddReviewAppConfig adds a new Review app that tuber will monitor and deploy
-func AddReviewAppConfig(appName string, repo string, tag string) error {
-	return k8s.PatchConfigMap(tuberReviewApps, "tuber", appName, fmt.Sprintf("%s:%s", repo, tag))
-}
-
-// RemoveSourceAppConfig removes a configuration from Tuber's control
-func RemoveSourceAppConfig(appName string) (err error) {
-	return k8s.RemoveConfigMapEntry(tuberSourceApps, "tuber", appName)
-}
-
-// RemoveReviewAppConfig removes a configuration from Tuber's control
-func RemoveReviewAppConfig(appName string) (err error) {
-	return k8s.RemoveConfigMapEntry(tuberReviewApps, "tuber", appName)
+	return nil
 }

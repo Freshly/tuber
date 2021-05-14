@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/report"
@@ -85,7 +86,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 			matchFound = true
 			wg.Add(1)
 
-			go func(app core.TuberApp) {
+			go func(app model.TuberApp) {
 				defer wg.Done()
 				if _, ok := (*p.locks)[app.Name]; !ok {
 					var mutex sync.Mutex
@@ -120,7 +121,7 @@ func (p Processor) ProcessMessage(digest string, tag string) {
 	}
 }
 
-func (p Processor) apps() ([]core.TuberApp, error) {
+func (p Processor) apps() ([]model.TuberApp, error) {
 	if p.reviewAppsEnabled {
 		p.logger.Debug("pulling source and review apps")
 		return core.SourceAndReviewApps()
@@ -130,10 +131,9 @@ func (p Processor) apps() ([]core.TuberApp, error) {
 	return core.TuberSourceApps()
 }
 
-func (p Processor) startRelease(event event, app *core.TuberApp) {
+func (p Processor) startRelease(event event, app *model.TuberApp) {
 	logger := event.logger.With(
 		zap.String("name", app.Name),
-		zap.String("branch", app.Tag),
 		zap.String("imageTag", app.ImageTag),
 		zap.String("action", "release"),
 	)
@@ -145,7 +145,12 @@ func (p Processor) startRelease(event event, app *core.TuberApp) {
 
 	logger.Info("release starting")
 
-	yamls, err := containers.GetTuberLayer(app.GetRepositoryLocation(), event.sha, p.creds)
+	rl, err := core.GetRepositoryLocation(app)
+	if err != nil {
+
+	}
+
+	yamls, err := containers.GetTuberLayer(rl, event.sha, p.creds)
 	if err != nil {
 		p.slackClient.Message(logger, "image not found for "+app.Name)
 		logger.Error("failed to find tuber layer", zap.Error(err))

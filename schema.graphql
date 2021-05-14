@@ -8,14 +8,11 @@ type TuberApp {
   imageTag: String!
   name: String!
   paused: Boolean!
-  repo: String!
-  repoHost: String!
-  repoPath: String!
   reviewApp: Boolean!
   reviewAppsConfig: ReviewAppsConfig
   slackChannel: String!
-  sourceAppName: String
-  stateResources: [Resource!]!
+  sourceAppName: String!
+  state: State!
   tag: String!
   triggerID: String!
   vars: [Tuple!]!

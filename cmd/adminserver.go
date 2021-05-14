@@ -20,6 +20,12 @@ func startAdminServer(cmd *cobra.Command, args []string) {
 	var ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
+	db, err := db()
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
 	logger, err := createLogger()
 	if err != nil {
 		panic(err)

@@ -45,7 +45,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	location := app.GetRepositoryLocation()
+	location, err := core.GetRepositoryLocation(app)
+	if err != nil {
+		return err
+	}
 
 	sha, err := containers.GetLatestSHA(location, creds)
 

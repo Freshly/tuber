@@ -9,12 +9,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
+func canCreate(logger *zap.Logger, db *core.Data, appName string, token string) (bool, error) {
 	if appName == "tuber" || token == "" {
 		return false, nil
 	}
 
-	exists, err := appExists(appName)
+	exists, err := appExists(db, appName)
 	if err != nil || !exists {
 		return false, err
 	}
@@ -22,17 +22,10 @@ func canCreate(logger *zap.Logger, appName, token string) (bool, error) {
 	return k8s.CanDeploy(appName, fmt.Sprintf("--token=%s", token))
 }
 
-func appExists(appName string) (bool, error) {
-	apps, err := core.SourceAndReviewApps()
+func appExists(db *core.Data, appName string) (bool, error) {
+	exists, err := db.AppExists(appName)
 	if err != nil {
 		return false, err
 	}
-
-	for _, app := range apps {
-		if app.Name == appName {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return exists, nil
 }

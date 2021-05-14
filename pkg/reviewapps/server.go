@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/proto"
 
 	"go.uber.org/zap"
@@ -15,6 +16,7 @@ type Server struct {
 	ProjectName        string
 	Credentials        []byte
 	Logger             *zap.Logger
+	db                 *core.Data
 	proto.UnimplementedTuberServer
 }
 
@@ -57,7 +59,7 @@ func (s *Server) DeleteReviewApp(ctx context.Context, in *proto.DeleteReviewAppR
 		zap.String("appName", in.AppName),
 	)
 
-	err := DeleteReviewApp(ctx, in.AppName, s.Credentials, s.ProjectName)
+	err := DeleteReviewApp(ctx, s.db, in.AppName, s.Credentials, s.ProjectName)
 
 	if err != nil {
 		logger.Error("error deleting review app " + in.AppName + ": " + err.Error())

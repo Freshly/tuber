@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/freshly/tuber/graph/model"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -13,6 +14,10 @@ type Data struct {
 
 func NewData(db *bolt.DB) Data {
 	return Data{db}
+}
+
+func (d *Data) Close() {
+	d.db.Close()
 }
 
 func appsBucket(tx *bolt.Tx) *bolt.Bucket {
@@ -55,11 +60,20 @@ func setBool(bucket *bolt.Bucket, key string, value bool) {
 	bucket.Put([]byte(key), []byte(strconv.FormatBool(value)))
 }
 
-func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*TuberApp, error) {
+type NotFoundError struct {
+	error
+}
+
+func (e NotFoundError) Error() string {
+	return fmt.Sprintf("bolt app not found")
+}
+
+func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*model.TuberApp, error) {
 	if appBucket == nil {
-		return nil, fmt.Errorf("bolt app not found")
+		return nil, NotFoundError{}
 	}
-	app := TuberApp{
+	sourceAppName := getString(appBucket, "sourceAppName")
+	app := model.TuberApp{
 		Tag:             getString(appBucket, "tag"),
 		ImageTag:        getString(appBucket, "imageTag"),
 		Repo:            getString(appBucket, "repo"),
@@ -71,18 +85,17 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*TuberApp, er
 		CloudSourceRepo: getString(appBucket, "cloudSourceRepo"),
 		SlackChannel:    getString(appBucket, "slackChannel"),
 		TriggerID:       getString(appBucket, "triggerID"),
-		SourceAppName:   getString(appBucket, "sourceAppName"),
-		d:               d,
+		SourceAppName:   sourceAppName,
 	}
 
-	state := State{}
+	state := model.State{}
 	stateBucket := getNestedBucket(appBucket, "state")
 	if stateBucket != nil {
-		var current []Resource
+		var current []*model.Resource
 		currentStateBucket := getNestedBucket(stateBucket, "current")
 		currentStateBucket.ForEach(func(k []byte, v []byte) error {
 			current = append(current,
-				Resource{
+				&model.Resource{
 					Encoded: getString(currentStateBucket, "encoded"),
 					Kind:    getString(currentStateBucket, "kind"),
 					Name:    getString(currentStateBucket, "name"),
@@ -92,10 +105,11 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*TuberApp, er
 		})
 		state.Current = current
 
+		var previous []*model.Resource
 		previousStateBucket := getNestedBucket(stateBucket, "previous")
 		previousStateBucket.ForEach(func(k []byte, v []byte) error {
-			current = append(current,
-				Resource{
+			previous = append(current,
+				&model.Resource{
 					Encoded: getString(previousStateBucket, "encoded"),
 					Kind:    getString(previousStateBucket, "kind"),
 					Name:    getString(previousStateBucket, "name"),
@@ -103,14 +117,18 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*TuberApp, er
 			)
 			return nil
 		})
+		state.Previous = previous
 		app.State = &state
 	}
 
 	varsBucket := getNestedBucket(appBucket, "vars")
+	var vars []*model.Tuple
 	if varsBucket != nil {
-		vars := make(map[string]string)
 		_ = varsBucket.ForEach(func(k []byte, value []byte) error {
-			vars[string(k)] = string(value)
+			vars = append(vars, &model.Tuple{
+				Key:   string(k),
+				Value: string(value),
+			})
 			return nil
 		})
 		app.Vars = vars
@@ -118,22 +136,25 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*TuberApp, er
 
 	reviewAppsConfigBucket := getNestedBucket(appBucket, "reviewAppsConfig")
 	if reviewAppsConfigBucket != nil {
-		var rac ReviewAppsConfig
+		var rac model.ReviewAppsConfig
 		rac.Enabled = getBool(reviewAppsConfigBucket, "enabled")
 		racVarsBucket := getNestedBucket(reviewAppsConfigBucket, "vars")
 		if racVarsBucket != nil {
-			vars := make(map[string]string)
+			var vars []*model.Tuple
 			_ = racVarsBucket.ForEach(func(k []byte, value []byte) error {
-				vars[string(k)] = string(value)
+				vars = append(vars, &model.Tuple{
+					Key:   string(k),
+					Value: string(value),
+				})
 				return nil
 			})
 			rac.Vars = vars
 		}
 		skips := getNestedBucket(reviewAppsConfigBucket, "skips")
 		if skips != nil {
-			var skipsResources []Resource
+			var skipsResources []*model.Resource
 			skipsResources = append(skipsResources,
-				Resource{
+				&model.Resource{
 					Kind: getString(skips, "kind"),
 					Name: getString(skips, "name"),
 				},
@@ -146,13 +167,158 @@ func (d *Data) toTuberApp(appBucket *bolt.Bucket, appName string) (*TuberApp, er
 	return &app, nil
 }
 
-func (d *Data) App(appName string) (*TuberApp, error) {
-	var app *TuberApp
+func (d *Data) ReviewAppsFor(app *model.TuberApp) ([]*model.TuberApp, error) {
+	var reviewApps []*model.TuberApp
 	err := d.db.View(func(tx *bolt.Tx) error {
 		apps := appsBucket(tx)
-		if apps == nil {
-			return fmt.Errorf("bolt bucket apps not found, this should never happen")
+		err := apps.ForEach(func(k []byte, v []byte) error {
+			appBucket := getNestedBucket(apps, string(k))
+			if getString(appBucket, "sourceAppName") == app.Name {
+				app, err := d.toTuberApp(appBucket, string(k))
+				if err != nil {
+					return err
+				}
+				reviewApps = append(reviewApps, app)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return reviewApps, nil
+}
+
+func (d *Data) SourceAppFor(app *model.TuberApp) (*model.TuberApp, error) {
+	var sourceApp *model.TuberApp
+	err := d.db.View(func(tx *bolt.Tx) error {
+		apps := appsBucket(tx)
+		appBucket := getNestedBucket(apps, app.SourceAppName)
+		var err error
+		app, err = d.toTuberApp(appBucket, app.SourceAppName)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return sourceApp, nil
+}
+
+// this is the most duplicative thing ive ever done but whatever the signature is fixed
+func (d *Data) SourceApps(tag string) ([]*model.TuberApp, error) {
+	var matchingApps []*model.TuberApp
+	err := d.db.View(func(tx *bolt.Tx) error {
+
+		apps := appsBucket(tx)
+
+		err := apps.ForEach(func(k []byte, v []byte) error {
+			appBucket := getNestedBucket(apps, string(k))
+			if getString(appBucket, "sourceAppName") == "" {
+				app, err := d.toTuberApp(appBucket, string(k))
+				if err != nil {
+					return err
+				}
+				matchingApps = append(matchingApps, app)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return matchingApps, nil
+}
+
+// this is the most duplicative thing ive ever done but whatever the signature is fixed
+func (d *Data) ReviewApps(tag string) ([]*model.TuberApp, error) {
+	var matchingApps []*model.TuberApp
+	err := d.db.View(func(tx *bolt.Tx) error {
+
+		apps := appsBucket(tx)
+
+		err := apps.ForEach(func(k []byte, v []byte) error {
+			appBucket := getNestedBucket(apps, string(k))
+			if getString(appBucket, "sourceAppName") != "" {
+				app, err := d.toTuberApp(appBucket, string(k))
+				if err != nil {
+					return err
+				}
+				matchingApps = append(matchingApps, app)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return matchingApps, nil
+}
+
+// this is the most duplicative thing ive ever done but whatever the signature is fixed
+func (d *Data) Apps() ([]*model.TuberApp, error) {
+	var apps []*model.TuberApp
+	err := d.db.View(func(tx *bolt.Tx) error {
+
+		all := appsBucket(tx)
+
+		err := all.ForEach(func(k []byte, v []byte) error {
+			appBucket := getNestedBucket(all, string(k))
+			app, err := d.toTuberApp(appBucket, string(k))
+			if err != nil {
+				return err
+			}
+			apps = append(apps, app)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return apps, nil
+}
+
+func (d *Data) AppExists(appName string) (bool, error) {
+	var exists bool
+	err := d.db.View(func(tx *bolt.Tx) error {
+		apps := appsBucket(tx)
+		appBucket := getNestedBucket(apps, appName)
+		if appBucket != nil {
+			exists = true
+		}
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+func (d *Data) App(appName string) (*model.TuberApp, error) {
+	var app *model.TuberApp
+	err := d.db.View(func(tx *bolt.Tx) error {
+		apps := appsBucket(tx)
 		appBucket := getNestedBucket(apps, appName)
 		var err error
 		app, err = d.toTuberApp(appBucket, appName)
@@ -167,14 +333,11 @@ func (d *Data) App(appName string) (*TuberApp, error) {
 	return app, nil
 }
 
-func (d *Data) AppsForTag(tag string) ([]*TuberApp, error) {
-	var matchingApps []*TuberApp
+func (d *Data) AppsForTag(tag string) ([]*model.TuberApp, error) {
+	var matchingApps []*model.TuberApp
 	err := d.db.View(func(tx *bolt.Tx) error {
 
 		apps := appsBucket(tx)
-		if apps == nil {
-			return fmt.Errorf("bolt bucket apps not found, this should never happen")
-		}
 
 		err := apps.ForEach(func(k []byte, v []byte) error {
 			appBucket := getNestedBucket(apps, string(k))
@@ -199,20 +362,28 @@ func (d *Data) AppsForTag(tag string) ([]*TuberApp, error) {
 	return matchingApps, nil
 }
 
-func (app *TuberApp) Save() error {
-	return app.d.saveApp(app)
-}
-
-func (d *Data) CreateApp(app *TuberApp) error {
+func (d *Data) Save(app *model.TuberApp) error {
 	return d.saveApp(app)
 }
 
-func (d *Data) saveApp(app *TuberApp) error {
+func (d *Data) DeleteTuberApp(app *model.TuberApp) error {
 	err := d.db.Update(func(tx *bolt.Tx) error {
 		apps := appsBucket(tx)
-		if apps == nil {
-			return fmt.Errorf("bolt bucket apps not found, this should never happen")
+		err := apps.DeleteBucket([]byte(app.Name))
+		if err != nil {
+			return err
 		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Data) saveApp(app *model.TuberApp) error {
+	err := d.db.Update(func(tx *bolt.Tx) error {
+		apps := appsBucket(tx)
 		appBucket, err := apps.CreateBucketIfNotExists([]byte(app.Name))
 		if err != nil {
 			return err
@@ -265,8 +436,8 @@ func (d *Data) saveApp(app *TuberApp) error {
 		if err != nil {
 			return err
 		}
-		for k, v := range app.Vars {
-			setString(varsBucket, k, v)
+		for _, tuple := range app.Vars {
+			setString(varsBucket, tuple.Key, tuple.Value)
 		}
 
 		if !app.ReviewApp {
@@ -279,8 +450,8 @@ func (d *Data) saveApp(app *TuberApp) error {
 			if err != nil {
 				return err
 			}
-			for k, v := range app.ReviewAppsConfig.Vars {
-				setString(racVars, k, v)
+			for _, tuple := range app.ReviewAppsConfig.Vars {
+				setString(racVars, tuple.Key, tuple.Value)
 			}
 			skips, err := reviewAppsConfigBucket.CreateBucketIfNotExists([]byte("skips"))
 			if err != nil {
@@ -303,40 +474,4 @@ func (d *Data) saveApp(app *TuberApp) error {
 		return err
 	}
 	return nil
-}
-
-type TuberApp struct {
-	Tag              string
-	ImageTag         string
-	Repo             string
-	RepoPath         string
-	RepoHost         string
-	Name             string
-	ReviewApp        bool
-	Paused           bool
-	CloudSourceRepo  string
-	SlackChannel     string
-	TriggerID        string
-	State            *State
-	Vars             map[string]string
-	ReviewAppsConfig *ReviewAppsConfig
-	SourceAppName    string
-	d                *Data
-}
-
-type State struct {
-	Current  []Resource
-	Previous []Resource
-}
-
-type Resource struct {
-	Encoded string
-	Kind    string
-	Name    string
-}
-
-type ReviewAppsConfig struct {
-	Enabled bool
-	Vars    map[string]string
-	Skips   []Resource
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/gin-gonic/gin"
 )
@@ -36,7 +37,7 @@ func (s server) app(c *gin.Context) {
 	}
 
 	if s.reviewAppsEnabled {
-		reviewApps, err := reviewApps(appName)
+		reviewApps, err := reviewApps(appName, s.db)
 		if err != nil {
 			response.Error = err.Error()
 			c.HTML(http.StatusInternalServerError, template, response)
@@ -49,28 +50,13 @@ func (s server) app(c *gin.Context) {
 	c.HTML(http.StatusOK, template, response)
 }
 
-func reviewApps(sourceAppName string) ([]appReviewApp, error) {
-	allReviewApps, err := core.TuberReviewApps()
+func reviewApps(sourceAppName string, db *core.Data) ([]appReviewApp, error) {
+	var reviewAppsList []*model.TuberApp
+	app, err := db.App(sourceAppName)
 	if err != nil {
 		return nil, err
 	}
-
-	sourceApps, err := core.TuberSourceApps()
-	if err != nil {
-		return nil, err
-	}
-
-	sourceApp, err := sourceApps.FindApp(sourceAppName)
-	if err != nil {
-		return nil, err
-	}
-
-	var reviewAppsList core.AppList
-	for _, reviewApp := range allReviewApps {
-		if sourceApp.Repo == reviewApp.Repo {
-			reviewAppsList = append(reviewAppsList, reviewApp)
-		}
-	}
+	reviewAppsList, err = db.ReviewAppsFor(app)
 
 	sort.Slice(reviewAppsList, func(i, j int) bool {
 		return reviewAppsList[i].Name < reviewAppsList[j].Name

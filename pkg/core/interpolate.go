@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"text/template"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 )
 
@@ -41,7 +42,7 @@ type ClusterData struct {
 	AdminHost      string
 }
 
-func releaseData(digest string, app *TuberApp, clusterData *ClusterData) (data map[string]string) {
+func releaseData(digest string, app *model.TuberApp, clusterData *ClusterData) (data map[string]string) {
 	return map[string]string{
 		"tuberImage":            digest,
 		"clusterDefaultGateway": clusterData.DefaultGateway,

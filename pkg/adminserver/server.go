@@ -3,6 +3,7 @@ package adminserver
 import (
 	"context"
 
+	"github.com/freshly/tuber/pkg/core"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
@@ -17,9 +18,10 @@ type server struct {
 	triggersProjectName string
 	logger              *zap.Logger
 	creds               []byte
+	db                  *core.Data
 }
 
-func Start(ctx context.Context, logger *zap.Logger, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.Data, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -38,6 +40,7 @@ func Start(ctx context.Context, logger *zap.Logger, triggersProjectName string, 
 		triggersProjectName: triggersProjectName,
 		logger:              logger,
 		creds:               creds,
+		db:                  db,
 	}.start()
 }
 

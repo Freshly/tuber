@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 
 	"github.com/olekukonko/tablewriter"
@@ -21,18 +22,32 @@ var jsonOutput bool
 
 var appsInstallCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "install [app name] [docker repo] [deploy tag] [--istio=<true(default) || false>]",
+	Use:          "install [app name] [image tag] [--istio=<true(default) || false>]",
 	Short:        "install a new app in the current cluster",
-	Args:         cobra.ExactArgs(3),
+	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
-		repo := args[1]
-		tag := args[2]
+		tag := args[1]
 
 		err := core.NewAppSetup(appName, istioEnabled)
 		if err != nil {
 			return err
+		}
+
+		model.TuberApp{
+			CloudSourceRepo:  "",
+			ImageTag:         tag,
+			Name:             appName,
+			Paused:           false,
+			ReviewApp:        false,
+			ReviewAppsConfig: &model.ReviewAppsConfig{},
+			SlackChannel:     "",
+			SourceAppName:    "",
+			State:            nil,
+			Tag:              "",
+			TriggerID:        "",
+			Vars:             nil,
 		}
 
 		return core.AddSourceAppConfig(appName, repo, tag)
