@@ -28,7 +28,7 @@ func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberAp
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.Resolver.db.Apps()
 }
 
 // Mutation returns generated.MutationResolver implementation.
