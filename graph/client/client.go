@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"log"
 	"os"
 
 	"github.com/machinebox/graphql"
@@ -20,19 +21,16 @@ type GraphqlClient struct {
 }
 
 func New() *GraphqlClient {
+	client := graphql.NewClient(graphqlURL)
+	client.Log = func(s string) { log.Println(s) }
+
 	return &GraphqlClient{
-		client: graphql.NewClient(graphqlURL),
+		client: client,
 	}
 }
 
 func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{}) error {
-	req := graphql.NewRequest(`
-		query {
-			getApps {
-				name
-			}
-		}
-	`)
+	req := graphql.NewRequest(gql)
 
 	// set any variables
 	// req.Var("key", "value")
