@@ -51,3 +51,8 @@ type Mutation {
   removeApp(key: ID!): TuberApp
   destroyApp(key: ID!): TuberApp
 }
+
+schema {
+  query: Query
+  mutation: Mutation
+}

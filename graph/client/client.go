@@ -43,11 +43,11 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 	return nil
 }
 
-func (g *GraphqlClient) Mutation(ctx context.Context, gql string, id *int, input interface{}, target interface{}) error {
+func (g *GraphqlClient) Mutation(ctx context.Context, gql string, key *int, input interface{}, target interface{}) error {
 	req := graphql.NewRequest(gql)
 
-	if id != nil {
-		req.Var("id", *id)
+	if key != nil {
+		req.Var("key", *key)
 	}
 
 	if input != nil {
