@@ -60,13 +60,46 @@ func db() (*core.Data, error) {
 func getApp(appName string) (*model.TuberApp, error) {
 	graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
 	gql := `
-			query {
-				getApps {
-					name
-					imageTag
-				}
+query {
+	getApp {
+		cloudSourceRepo
+		imageTag
+		name
+		paused
+		reviewApp
+		reviewAppsConfig{
+			enabled
+			vars {
+				key
+				value
 			}
-		`
+			skips {
+				kind
+				name
+			}
+		}
+		slackChanne
+		sourceAppName
+		state {
+			current {
+				kind
+				name
+				encoded
+			}
+			previous {
+				kind
+				name
+				encoded
+			}
+		}
+		triggerID
+		vars {
+			key
+			value
+		}
+	}
+}
+`
 	var respData struct {
 		GetApp *model.TuberApp
 	}
