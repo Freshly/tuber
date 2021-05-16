@@ -135,6 +135,10 @@ func (d *DB) Save(m Model) error {
 	return nil
 }
 
+func Q() Query {
+	return Query{}
+}
+
 type Query struct {
 	Strings map[string]string
 	Bools   map[string]bool

@@ -21,7 +21,7 @@ func (d *DB) Close() {
 }
 
 func (d *DB) ReviewAppsFor(app *model.TuberApp) ([]*model.TuberApp, error) {
-	r, err := d.db.Get(model.TuberApp{}, db.Query{Strings: map[string]string{"sourceAppName": app.Name}, Bools: map[string]bool{"reviewApp": true}})
+	r, err := d.db.Get(model.TuberApp{}, db.Q().String("sourceAppName", app.Name).Bool("reviewApp", true))
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (d *DB) SourceAppFor(app *model.TuberApp) (*model.TuberApp, error) {
 }
 
 func (d *DB) SourceApps() ([]*model.TuberApp, error) {
-	r, err := d.db.Get(model.TuberApp{}, db.Query{Bools: map[string]bool{"reviewApp": false}})
+	r, err := d.db.Get(model.TuberApp{}, db.Q().Bool("reviewApp", false))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (d *DB) SourceApps() ([]*model.TuberApp, error) {
 }
 
 func (d *DB) ReviewApps() ([]*model.TuberApp, error) {
-	r, err := d.db.Get(model.TuberApp{}, db.Query{Bools: map[string]bool{"reviewApp": true}})
+	r, err := d.db.Get(model.TuberApp{}, db.Q().Bool("reviewApp", true))
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (d *DB) AppExists(appName string) bool {
 }
 
 func (d *DB) AppsForTag(tag string) ([]*model.TuberApp, error) {
-	r, err := d.db.Get(model.TuberApp{}, db.Query{Strings: map[string]string{"imageTag": tag}})
+	r, err := d.db.Get(model.TuberApp{}, db.Q().String("imageTag", tag))
 	if err != nil {
 		return nil, err
 	}
