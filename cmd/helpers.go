@@ -38,7 +38,7 @@ func db() (*core.DB, error) {
 	} else {
 		path = "/etc/tuber-bolt/db"
 	}
-	database, err := tuberbolt.NewDefaultDB(path, model.TuberApp{}.Root())
+	database, err := tuberbolt.NewDefaultDB(path, model.TuberApp{}.DBRoot())
 	if err != nil {
 		return nil, err
 	}

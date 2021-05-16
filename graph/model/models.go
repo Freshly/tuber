@@ -6,7 +6,7 @@ import (
 	"github.com/freshly/tuber/pkg/db"
 )
 
-func (t TuberApp) Indexes() (map[string]string, map[string]bool, map[string]int) {
+func (t TuberApp) DBIndexes() (map[string]string, map[string]bool, map[string]int) {
 	return map[string]string{
 			"name":          t.Name,
 			"imageTag":      t.ImageTag,
@@ -16,19 +16,19 @@ func (t TuberApp) Indexes() (map[string]string, map[string]bool, map[string]int)
 		}, map[string]int{}
 }
 
-func (t TuberApp) Root() string {
+func (t TuberApp) DBRoot() string {
 	return "apps"
 }
 
-func (t TuberApp) Key() string {
+func (t TuberApp) DBKey() string {
 	return t.Name
 }
 
-func (t TuberApp) Marshal() ([]byte, error) {
+func (t TuberApp) DBMarshal() ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func (t TuberApp) Unmarshal(data []byte) (db.Model, error) {
+func (t TuberApp) DBUnmarshal(data []byte) (db.Model, error) {
 	var app TuberApp
 	err := json.Unmarshal(data, &app)
 	if err != nil {

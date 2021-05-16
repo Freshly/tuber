@@ -75,20 +75,20 @@ func (d *DB) Close() {
 const marshalledKey = "marshalled"
 
 type Model interface {
-	Indexes() (map[string]string, map[string]bool, map[string]int)
-	Root() string
-	Unmarshal(data []byte) (Model, error)
-	Marshal() ([]byte, error)
-	Key() string
+	DBIndexes() (map[string]string, map[string]bool, map[string]int)
+	DBRoot() string
+	DBUnmarshal(data []byte) (Model, error)
+	DBMarshal() ([]byte, error)
+	DBKey() string
 }
 
 func (d *DB) Save(m Model) error {
-	key := m.Key()
+	key := m.DBKey()
 	if key == "" {
 		return fmt.Errorf("save failed, model key nil")
 	}
 
-	strings, bools, ints := m.Indexes()
+	strings, bools, ints := m.DBIndexes()
 	var err error
 
 	for k, v := range bools {
@@ -105,14 +105,14 @@ func (d *DB) Save(m Model) error {
 		strings[k] = strconv.Itoa(v)
 	}
 
-	marshalled, err := m.Marshal()
+	marshalled, err := m.DBMarshal()
 	if err != nil {
 		return err
 	}
 
 	err = d.db.Update(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.Root()))
-		mb, err := rootb.CreateBucketIfNotExists([]byte(m.Key()))
+		rootb := tx.Bucket([]byte(m.DBRoot()))
+		mb, err := rootb.CreateBucketIfNotExists([]byte(m.DBKey()))
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (d *DB) Get(m Model, query Query) ([]Model, error) {
 	var marshalled []queryResult
 
 	err = d.db.View(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.Root()))
+		rootb := tx.Bucket([]byte(m.DBRoot()))
 		_ = rootb.ForEach(func(k, v []byte) error {
 			rootbentryb := rootb.Bucket(k)
 			if rootbentryb == nil {
@@ -198,9 +198,9 @@ func (d *DB) Get(m Model, query Query) ([]Model, error) {
 
 	var results []Model
 	for _, marshalledResult := range marshalled {
-		result, err := m.Unmarshal(marshalledResult.marshalled)
+		result, err := m.DBUnmarshal(marshalledResult.marshalled)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal failed for %s/%s/: %v", m.Root(), marshalledResult.key, err)
+			return nil, fmt.Errorf("unmarshal failed for %s/%s/: %v", m.DBRoot(), marshalledResult.key, err)
 		}
 		results = append(results, result)
 	}
@@ -219,7 +219,7 @@ func (e NotFoundError) Error() string {
 func (d *DB) Find(m Model, key string) (Model, error) {
 	var marshalled []byte
 	err := d.db.View(func(tx *bolt.Tx) error {
-		root := m.Root()
+		root := m.DBRoot()
 		rootb := tx.Bucket([]byte(root))
 		rootbentryb := rootb.Bucket([]byte(key))
 		if rootbentryb == nil {
@@ -233,9 +233,9 @@ func (d *DB) Find(m Model, key string) (Model, error) {
 		return nil, err
 	}
 
-	model, err := m.Unmarshal(marshalled)
+	model, err := m.DBUnmarshal(marshalled)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal failed for %s/%s/: %v", m.Root(), key, err)
+		return nil, fmt.Errorf("unmarshal failed for %s/%s/: %v", m.DBRoot(), key, err)
 	}
 
 	return model, nil
@@ -244,7 +244,7 @@ func (d *DB) Find(m Model, key string) (Model, error) {
 func (d *DB) Exists(m Model, key string) bool {
 	var found bool
 	d.db.View(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.Root()))
+		rootb := tx.Bucket([]byte(m.DBRoot()))
 		rootbentryb := rootb.Bucket([]byte(key))
 		if rootbentryb != nil {
 			found = true
@@ -256,7 +256,7 @@ func (d *DB) Exists(m Model, key string) bool {
 
 func (d *DB) Delete(m Model, key string) error {
 	err := d.db.Update(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.Root()))
+		rootb := tx.Bucket([]byte(m.DBRoot()))
 		err := rootb.DeleteBucket([]byte(key))
 		if err != nil {
 			return err
@@ -288,7 +288,7 @@ func validateAndNormalize(m Model, query Query) (map[string]string, error) {
 		convertedQueryVals[k] = strconv.Itoa(v)
 	}
 
-	strings, bools, ints := m.Indexes()
+	strings, bools, ints := m.DBIndexes()
 	var indexKeys []string
 	for k, _ := range strings {
 		indexKeys = append(indexKeys, k)
