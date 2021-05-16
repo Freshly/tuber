@@ -35,7 +35,6 @@ func db() (*core.DB, error) {
 			return nil, err
 		}
 		path = wd + "/localbolt"
-		os.Remove(path)
 	} else {
 		path = "/etc/tuber-bolt/db"
 	}

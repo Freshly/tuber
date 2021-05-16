@@ -58,9 +58,6 @@ func pullLocalDB(db *core.DB) error {
 	}
 
 	for _, configApp := range configApps {
-		if configApp.Name != "potatoes" {
-			continue
-		}
 		appState, err := currentState(configApp)
 
 		app := &model.TuberApp{
