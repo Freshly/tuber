@@ -27,7 +27,7 @@ var pod string
 var podRunningTimeout string
 var workload string
 
-func db() (*core.Data, error) {
+func db() (*core.DB, error) {
 	var path string
 	if _, err := os.Stat("/etc/tuber-bolt"); os.IsNotExist(err) {
 		wd, err := os.Getwd()
@@ -35,6 +35,7 @@ func db() (*core.Data, error) {
 			return nil, err
 		}
 		path = wd + "/localbolt"
+		os.Remove(path)
 	} else {
 		path = "/etc/tuber-bolt/db"
 	}
@@ -53,8 +54,8 @@ func db() (*core.Data, error) {
 		return nil
 	})
 
-	data := core.NewData(db)
-	return &data, nil
+	data := core.NewDB(db)
+	return data, nil
 }
 
 func getApp(appName string) (*model.TuberApp, error) {

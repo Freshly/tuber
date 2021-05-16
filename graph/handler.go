@@ -8,7 +8,7 @@ import (
 	"github.com/freshly/tuber/pkg/core"
 )
 
-func Handler(db *core.Data) http.Handler {
+func Handler(db *core.DB) http.Handler {
 	return handler.NewDefaultServer(
 		generated.NewExecutableSchema(
 			generated.Config{

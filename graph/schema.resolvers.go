@@ -23,7 +23,7 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput)
 		ImageTag: input.ImageTag,
 	}
 
-	if err := r.Resolver.db.Save(&inputApp); err != nil {
+	if err := r.Resolver.db.SaveApp(&inputApp); err != nil {
 		return nil, err
 	}
 

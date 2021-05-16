@@ -50,7 +50,7 @@ func (s server) app(c *gin.Context) {
 	c.HTML(http.StatusOK, template, response)
 }
 
-func reviewApps(sourceAppName string, db *core.Data) ([]appReviewApp, error) {
+func reviewApps(sourceAppName string, db *core.DB) ([]appReviewApp, error) {
 	var reviewAppsList []*model.TuberApp
 	app, err := db.App(sourceAppName)
 	if err != nil {

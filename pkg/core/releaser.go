@@ -26,7 +26,7 @@ type releaser struct {
 	releaseYamls     []string
 	prereleaseYamls  []string
 	postreleaseYamls []string
-	db               *Data
+	db               *DB
 }
 
 type ErrorContext struct {
@@ -67,7 +67,7 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(db *Data, yamls containers.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
+func Release(db *DB, yamls containers.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
 	return releaser{
 		logger:           logger,
 		errorScope:       errorScope,
@@ -579,7 +579,7 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 	updatedApp.State.Previous = r.app.State.Current
 	updatedApp.State.Current = appliedResources.encode()
 
-	err := r.db.Save(updatedApp)
+	err := r.db.SaveApp(updatedApp)
 	if err != nil {
 		return ErrorContext{err: err, context: "save new state"}
 	}

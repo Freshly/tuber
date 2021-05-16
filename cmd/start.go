@@ -114,7 +114,7 @@ func start(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func startReviewAppsServer(logger *zap.Logger, db *core.Data, creds []byte) {
+func startReviewAppsServer(logger *zap.Logger, db *core.DB, creds []byte) {
 	logger = logger.With(zap.String("action", "grpc"))
 
 	projectName := viper.GetString("review-apps-triggers-project-name")

@@ -25,11 +25,11 @@ type Processor struct {
 	reviewAppsEnabled bool
 	locks             *map[string]*sync.Cond
 	slackClient       *slack.Client
-	db                *core.Data
+	db                *core.DB
 }
 
 // NewProcessor constructs a Processor
-func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.Data, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) Processor {
+func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) Processor {
 	l := make(map[string]*sync.Cond)
 
 	return Processor{
