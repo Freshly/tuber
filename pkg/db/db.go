@@ -2,7 +2,9 @@ package db
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -11,8 +13,59 @@ type DB struct {
 	db *bolt.DB
 }
 
-func NewDB(db *bolt.DB) *DB {
-	return &DB{db: db}
+const DefaultFilemode = 0666
+const DefaultStartupTimeout = time.Second
+
+func NewDefaultDB(path string, roots ...string) (*DB, error) {
+	return NewDB(path, DefaultFilemode, nil, DefaultStartupTimeout, roots...)
+}
+
+func NewDB(path string, filemode os.FileMode, boltOptions *bolt.Options, startupTimeout time.Duration, roots ...string) (*DB, error) {
+	dbChan := make(chan *bolt.DB)
+	errChan := make(chan error)
+	var db *bolt.DB
+	go func(dbChan chan *bolt.DB, errChan chan error) {
+		db, err := bolt.Open(path, filemode, boltOptions)
+		if err != nil {
+			errChan <- err
+		}
+		dbChan <- db
+		return
+	}(dbChan, errChan)
+
+	timeoutChan := make(chan bool)
+	go func(startupTimeout time.Duration, timeoutChan chan bool) {
+		time.Sleep(startupTimeout)
+		timeoutChan <- true
+	}(startupTimeout, timeoutChan)
+
+	select {
+	case dbr := <-dbChan:
+		db = dbr
+	case dbErr := <-errChan:
+		return nil, dbErr
+	case <-timeoutChan:
+		return nil, fmt.Errorf("timeout opening database - check for other running processes that access the file")
+	}
+
+	if db == nil {
+		panic("nil db")
+	}
+
+	err := db.Update(func(tx *bolt.Tx) error {
+		for _, root := range roots {
+			_, err := tx.CreateBucketIfNotExists([]byte(root))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &DB{db: db}, nil
 }
 
 func (d *DB) Close() {
@@ -22,19 +75,19 @@ func (d *DB) Close() {
 const marshalledKey = "marshalled"
 
 type Model interface {
-	// Indexes will be called on a zero'd out instance of your model, but only for the map keys
+	// Indexes can safely get called on a zero'd out instance of your model
 	Indexes() (map[string]string, map[string]bool, map[string]int)
 
-	// Root will be called on a zero'd out instance of your model
+	// Root can safely get called on a zero'd out instance of your model
 	Root() string
 
-	// Unmarshal will be called on a zero'd out instance of your model
+	// Unmarshal can safely get called on a zero'd out instance of your model
 	Unmarshal(data []byte) (Model, error)
 
-	// Marshal will be called on a zero'd out instance of your model
+	// Marshal can safely get called on a zero'd out instance of your model
 	Marshal() ([]byte, error)
 
-	// Key will be called on a zero'd out instance of your model
+	// Key can safely get called on a zero'd out instance of your model
 	Key() string
 }
 

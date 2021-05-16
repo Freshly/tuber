@@ -6,22 +6,14 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/db"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
-	bolt "go.etcd.io/bbolt"
 )
 
 type DB struct {
 	db *tuberbolt.DB
 }
 
-func NewDB(db *bolt.DB) *DB {
-	err := db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("apps"))
-		return err
-	})
-	if err != nil {
-		panic(err)
-	}
-	return &DB{db: tuberbolt.NewDB(db)}
+func NewDB(db *db.DB) *DB {
+	return &DB{db: db}
 }
 
 func (d *DB) Close() {
