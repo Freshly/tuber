@@ -75,19 +75,10 @@ func (d *DB) Close() {
 const marshalledKey = "marshalled"
 
 type Model interface {
-	// Indexes can safely get called on a zero'd out instance of your model
 	Indexes() (map[string]string, map[string]bool, map[string]int)
-
-	// Root can safely get called on a zero'd out instance of your model
 	Root() string
-
-	// Unmarshal can safely get called on a zero'd out instance of your model
 	Unmarshal(data []byte) (Model, error)
-
-	// Marshal can safely get called on a zero'd out instance of your model
 	Marshal() ([]byte, error)
-
-	// Key can safely get called on a zero'd out instance of your model
 	Key() string
 }
 
