@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
 
@@ -67,7 +67,7 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(db *Data, yamls containers.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
+func Release(db *Data, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
 	return releaser{
 		logger:           logger,
 		errorScope:       errorScope,

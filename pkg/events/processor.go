@@ -2,14 +2,12 @@ package events
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
 
@@ -55,18 +53,11 @@ type Event struct {
 func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
 	logger = logger.With(zap.String("tag", tag), zap.String("digest", digest))
 	scope := report.Scope{"tag": tag, "digest": digest}
-	split := strings.Split(digest, "@")
-	if len(split) != 2 {
-		return nil, fmt.Errorf("event digest split length not 2")
-	}
-	sha := split[1]
-
 	return &Event{
 		digest:     digest,
 		tag:        tag,
 		logger:     logger,
 		errorScope: scope,
-		sha:        sha,
 	}, nil
 }
 
@@ -130,15 +121,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	logger.Info("release starting")
 
-	rl, err := core.GetRepositoryLocation(app)
-	if err != nil {
-		p.slackClient.Message(logger, "error getting repository for "+app.Name)
-		logger.Error("error getting repository for", zap.Error(err))
-		report.Error(err, errorScope.WithContext("find tuber layer"))
-		return
-	}
-
-	yamls, err := containers.GetTuberLayer(rl, event.sha, p.creds)
+	yamls, err := gcr.GetTuberLayer(event.digest, p.creds)
 	if err != nil {
 		p.slackClient.Message(logger, "image not found for "+app.Name)
 		logger.Error("failed to find tuber layer", zap.Error(err))
