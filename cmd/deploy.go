@@ -6,6 +6,9 @@ import (
 
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/slack"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/google"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -60,7 +63,22 @@ func deploy(cmd *cobra.Command, args []string) error {
 	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
 	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient)
 
-	event, err := events.NewEvent(logger, app.ImageTag, "manual deploy")
+	ref, err := name.ParseReference(app.ImageTag)
+	if err != nil {
+		return err
+	}
+
+	img, err := remote.Image(ref, remote.WithAuth(google.NewJSONKeyAuthenticator(string(creds))))
+	if err != nil {
+		return err
+	}
+
+	digest, err := img.Digest()
+	if err != nil {
+		return err
+	}
+
+	event, err := events.NewEvent(logger, ref.Context().Digest(digest.String()).String(), app.ImageTag)
 	if err != nil {
 		return fmt.Errorf("app image tag invalid")
 	}
