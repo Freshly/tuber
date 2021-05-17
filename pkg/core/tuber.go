@@ -1,21 +1,10 @@
 package core
 
 import (
-	"fmt"
-	"strings"
-
 	yamls "github.com/freshly/tuber/data/tuberapps"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 )
-
-func RepoFromTag(tag string) (string, error) {
-	split := strings.SplitN(tag, ":", 2)
-	if len(split) != 2 {
-		return "", fmt.Errorf("app image tag invalid")
-	}
-	return split[0], nil
-}
 
 // DestroyTuberApp deletes all resources for the given app on the current cluster
 func DestroyTuberApp(db *Data, app *model.TuberApp) error {
