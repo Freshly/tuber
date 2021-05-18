@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -37,11 +38,11 @@ func (s server) dashboard(c *gin.Context) {
 	c.HTML(status, "dashboard.html", data)
 }
 
-func sourceApps(logger *zap.Logger, db *core.DB) ([]sourceApp, error) {
-	tuberApps, err := db.SourceApps()
-	if err != nil {
+func sourceApps(logger *zap.Logger, d *db.DB) ([]sourceApp, error) {
+	var tuberApps []*model.TuberApp
+	if err := d.Get("apps", tuberApps, db.Q().Bool("reviewApp", false)); err != nil {
 		logger.Error("error retrieving source apps", zap.Error(err))
-		return []sourceApp{}, fmt.Errorf("error retrieving source apps")
+		return nil, fmt.Errorf("error retrieving source apps")
 	}
 
 	sort.Slice(tuberApps, func(i, j int) bool {

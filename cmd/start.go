@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
@@ -52,7 +52,7 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	db, err := db()
+	db, err := initDB()
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func start(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func startReviewAppsServer(logger *zap.Logger, db *core.DB, creds []byte) {
+func startReviewAppsServer(logger *zap.Logger, db *db.DB, creds []byte) {
 	logger = logger.With(zap.String("action", "grpc"))
 
 	projectName := viper.GetString("review-apps-triggers-project-name")

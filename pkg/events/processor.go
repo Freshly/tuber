@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
 
@@ -25,11 +26,11 @@ type Processor struct {
 	reviewAppsEnabled bool
 	locks             *map[string]*sync.Cond
 	slackClient       *slack.Client
-	db                *core.DB
+	db                *db.DB
 }
 
 // NewProcessor constructs a Processor
-func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) Processor {
+func NewProcessor(ctx context.Context, logger *zap.Logger, db *db.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) Processor {
 	l := make(map[string]*sync.Cond)
 
 	return Processor{
@@ -72,7 +73,8 @@ func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers releases for matching apps
 func (p Processor) ProcessMessage(event *Event) {
-	apps, err := p.db.AppsForTag(event.tag)
+	var apps []*model.TuberApp
+	err := p.db.Get("apps", apps, db.Q().String("imageTag", event.tag))
 	if err != nil {
 		event.logger.Error("failed to look up tuber apps", zap.Error(err))
 		report.Error(err, event.errorScope.WithContext("tuber apps lookup"))

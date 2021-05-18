@@ -39,7 +39,7 @@ func logVerbose(next http.Handler) http.Handler {
 }
 
 func graphqlServer(cmd *cobra.Command, args []string) {
-	db, err := db()
+	db, err := initDB()
 	if err != nil {
 		panic(err)
 	}

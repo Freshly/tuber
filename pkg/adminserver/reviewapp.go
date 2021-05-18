@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/cloudbuild/v1"
 )
@@ -64,13 +65,14 @@ func (s server) reviewApp(c *gin.Context) {
 	c.HTML(http.StatusOK, template, data)
 }
 
-func reviewAppBuilds(db *core.DB, reviewAppName string, triggersProjectName string, cloudbuildClient *cloudbuild.Service) ([]Build, error) {
-	app, err := db.App(reviewAppName)
-	if !app.ReviewApp {
-		return nil, fmt.Errorf("review app not found")
-	}
+func reviewAppBuilds(db *db.DB, reviewAppName string, triggersProjectName string, cloudbuildClient *cloudbuild.Service) ([]Build, error) {
+	var app *model.TuberApp
+	err := db.Find("apps", reviewAppName, app)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving review app")
+	}
+	if !app.ReviewApp {
+		return nil, fmt.Errorf("review app not found")
 	}
 
 	triggerId := app.TriggerID

@@ -6,7 +6,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/freshly/tuber/graph"
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
@@ -21,11 +21,11 @@ type server struct {
 	triggersProjectName string
 	logger              *zap.Logger
 	creds               []byte
-	db                  *core.DB
+	db                  *db.DB
 	port                string
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.DB, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *db.DB, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {

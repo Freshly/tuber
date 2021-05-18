@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/containers"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
@@ -37,7 +38,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 	}
 
 	// TODO: keep this available but under a flag, and move all the default behavior into a graphql mutation
-	db, err := db()
+	db, err := initDB()
 	if err != nil {
 		return err
 	}
@@ -47,12 +48,12 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	app, err := db.App(appName)
-	if err != nil {
+	var app model.TuberApp
+	if err := db.Find("apps", appName, &app); err != nil {
 		return err
 	}
 
-	location, err := core.GetRepositoryLocation(app)
+	location, err := core.GetRepositoryLocation(&app)
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("app image tag invalid")
 	}
 
-	processor.StartRelease(event, app)
+	processor.StartRelease(event, &app)
 	return nil
 }
 

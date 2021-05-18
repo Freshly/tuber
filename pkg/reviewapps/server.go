@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/proto"
 
 	"go.uber.org/zap"
@@ -16,11 +16,11 @@ type Server struct {
 	projectName        string
 	credentials        []byte
 	logger             *zap.Logger
-	db                 *core.DB
+	db                 *db.DB
 	proto.UnimplementedTuberServer
 }
 
-func NewServer(logger *zap.Logger, creds []byte, db *core.DB, clusterDefaultHost string, projectName string) *Server {
+func NewServer(logger *zap.Logger, creds []byte, db *db.DB, clusterDefaultHost string, projectName string) *Server {
 	return &Server{
 		clusterDefaultHost: clusterDefaultHost,
 		projectName:        projectName,

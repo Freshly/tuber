@@ -11,6 +11,7 @@ import (
 	"github.com/freshly/tuber/graph/client"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
@@ -27,7 +28,7 @@ var pod string
 var podRunningTimeout string
 var workload string
 
-func db() (*core.DB, error) {
+func initDB() (*db.DB, error) {
 	var path string
 	if _, err := os.Stat("/etc/tuber-bolt"); os.IsNotExist(err) {
 		wd, err := os.Getwd()
@@ -38,11 +39,11 @@ func db() (*core.DB, error) {
 	} else {
 		path = "/etc/tuber-bolt/db"
 	}
-	database, err := tuberbolt.NewDefaultDB(path, model.TuberApp{}.DBRoot())
+	database, err := tuberbolt.NewDefaultDB(path, model.TuberApp{}.BucketName())
 	if err != nil {
 		return nil, err
 	}
-	return core.NewDB(database), nil
+	return database, nil
 }
 
 func getApp(appName string) (*model.TuberApp, error) {

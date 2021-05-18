@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -75,20 +76,18 @@ func (d *DB) Close() {
 const marshalledKey = "marshalled"
 
 type Model interface {
-	DBIndexes() (map[string]string, map[string]bool, map[string]int)
-	DBRoot() string
-	DBUnmarshal(data []byte) (Model, error)
-	DBMarshal() ([]byte, error)
-	DBKey() string
+	Indexes() (map[string]string, map[string]bool, map[string]int)
+	BucketName() string
+	Key() string
 }
 
 func (d *DB) Save(m Model) error {
-	key := m.DBKey()
+	key := m.Key()
 	if key == "" {
 		return fmt.Errorf("save failed, model key nil")
 	}
 
-	strings, bools, ints := m.DBIndexes()
+	strings, bools, ints := m.Indexes()
 	var err error
 
 	for k, v := range bools {
@@ -105,14 +104,14 @@ func (d *DB) Save(m Model) error {
 		strings[k] = strconv.Itoa(v)
 	}
 
-	marshalled, err := m.DBMarshal()
+	marshalled, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
 	err = d.db.Update(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.DBRoot()))
-		mb, err := rootb.CreateBucketIfNotExists([]byte(m.DBKey()))
+		rootb := tx.Bucket([]byte(m.BucketName()))
+		mb, err := rootb.CreateBucketIfNotExists([]byte(m.Key()))
 		if err != nil {
 			return err
 		}
@@ -135,46 +134,19 @@ func (d *DB) Save(m Model) error {
 	return nil
 }
 
-func Q() Query {
-	return Query{}
-}
-
-type Query struct {
-	Strings map[string]string
-	Bools   map[string]bool
-	Ints    map[string]int
-}
-
-func (q Query) String(k string, v string) Query {
-	q.Strings[k] = v
-	return q
-}
-
-func (q Query) Bool(k string, v bool) Query {
-	q.Bools[k] = v
-	return q
-}
-
-func (q Query) Int(k string, v int) Query {
-	q.Ints[k] = v
-	return q
-}
-
 type queryResult struct {
 	key        string
 	marshalled []byte
 }
 
-func (d *DB) Get(m Model, query Query) ([]Model, error) {
-	normalizedQueryValues, err := validateAndNormalize(m, query)
-	if err != nil {
-		return nil, err
-	}
+func (d *DB) Get(bucketName string, results interface{}, query Query) error {
+	normalizedQueryValues := query.normalize()
 
-	var marshalled []queryResult
+	marshalled := []byte("[")
+	i := 0
 
-	err = d.db.View(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.DBRoot()))
+	if err := d.db.View(func(tx *bolt.Tx) error {
+		rootb := tx.Bucket([]byte(bucketName))
 		_ = rootb.ForEach(func(k, v []byte) error {
 			rootbentryb := rootb.Bucket(k)
 			if rootbentryb == nil {
@@ -189,27 +161,28 @@ func (d *DB) Get(m Model, query Query) ([]Model, error) {
 				}
 			}
 			if match {
-				marshalled = append(marshalled, queryResult{key: string(k), marshalled: rootbentryb.Get([]byte(marshalledKey))})
+				if i != 0 {
+					marshalled = append(marshalled, byte(','))
+				}
+				i++
+				marshalled = append(marshalled, rootbentryb.Get([]byte(marshalledKey))...)
 			}
+
 			return nil
 		})
 
 		return nil
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return err
 	}
 
-	var results []Model
-	for _, marshalledResult := range marshalled {
-		result, err := m.DBUnmarshal(marshalledResult.marshalled)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshal failed for %s/%s/: %v", m.DBRoot(), marshalledResult.key, err)
-		}
-		results = append(results, result)
+	marshalled = append(marshalled, byte(']'))
+
+	if err := json.Unmarshal(marshalled, results); err != nil {
+		return err
 	}
 
-	return results, nil
+	return nil
 }
 
 type NotFoundError struct {
@@ -220,10 +193,10 @@ func (e NotFoundError) Error() string {
 	return e.err.Error()
 }
 
-func (d *DB) Find(m Model, key string) (Model, error) {
+func (d *DB) Find(bucketName string, key string, result interface{}) error {
 	var marshalled []byte
 	err := d.db.View(func(tx *bolt.Tx) error {
-		root := m.DBRoot()
+		root := bucketName
 		rootb := tx.Bucket([]byte(root))
 		rootbentryb := rootb.Bucket([]byte(key))
 		if rootbentryb == nil {
@@ -234,22 +207,21 @@ func (d *DB) Find(m Model, key string) (Model, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	model, err := m.DBUnmarshal(marshalled)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal failed for %s/%s/: %v", m.DBRoot(), key, err)
+	if err := json.Unmarshal(marshalled, result); err != nil {
+		return fmt.Errorf("unmarshal failed for %s/%s/: %v", bucketName, key, err)
 	}
 
-	return model, nil
+	return nil
 }
 
-func (d *DB) Exists(m Model, key string) bool {
+func (d *DB) Exists(m Model) bool {
 	var found bool
 	d.db.View(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.DBRoot()))
-		rootbentryb := rootb.Bucket([]byte(key))
+		rootb := tx.Bucket([]byte(m.BucketName()))
+		rootbentryb := rootb.Bucket([]byte(m.Key()))
 		if rootbentryb != nil {
 			found = true
 		}
@@ -258,10 +230,10 @@ func (d *DB) Exists(m Model, key string) bool {
 	return found
 }
 
-func (d *DB) Delete(m Model, key string) error {
+func (d *DB) Delete(m Model) error {
 	err := d.db.Update(func(tx *bolt.Tx) error {
-		rootb := tx.Bucket([]byte(m.DBRoot()))
-		err := rootb.DeleteBucket([]byte(key))
+		rootb := tx.Bucket([]byte(m.BucketName()))
+		err := rootb.DeleteBucket([]byte(m.Key()))
 		if err != nil {
 			return err
 		}
@@ -273,47 +245,4 @@ func (d *DB) Delete(m Model, key string) error {
 	}
 
 	return nil
-}
-
-func validateAndNormalize(m Model, query Query) (map[string]string, error) {
-	var convertedQueryVals map[string]string
-	var queryKeys []string
-
-	for k, v := range query.Strings {
-		queryKeys = append(queryKeys, k)
-		convertedQueryVals[k] = v
-	}
-	for k, v := range query.Bools {
-		queryKeys = append(queryKeys, k)
-		convertedQueryVals[k] = strconv.FormatBool(v)
-	}
-	for k, v := range query.Ints {
-		queryKeys = append(queryKeys, k)
-		convertedQueryVals[k] = strconv.Itoa(v)
-	}
-
-	strings, bools, ints := m.DBIndexes()
-	var indexKeys []string
-	for k, _ := range strings {
-		indexKeys = append(indexKeys, k)
-	}
-	for k, _ := range bools {
-		indexKeys = append(indexKeys, k)
-	}
-	for k, _ := range ints {
-		indexKeys = append(indexKeys, k)
-	}
-
-	for _, k := range queryKeys {
-		var found bool
-		for _, i := range indexKeys {
-			if k == i {
-				found = true
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("query invalid, %s must be an index", k)
-		}
-	}
-	return convertedQueryVals, nil
 }

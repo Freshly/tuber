@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
@@ -23,7 +24,7 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput)
 		ImageTag: input.ImageTag,
 	}
 
-	if err := r.Resolver.db.SaveApp(&inputApp); err != nil {
+	if err := r.Resolver.db.Save(&inputApp); err != nil {
 		return nil, err
 	}
 
@@ -43,11 +44,15 @@ func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.T
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
-	return r.Resolver.db.App(name)
+	var result *model.TuberApp
+	err := r.Resolver.db.Find("apps", name, result)
+	return result, err
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	return r.Resolver.db.Apps()
+	var results []*model.TuberApp
+	err := r.Resolver.db.Get("apps", results, db.Q().Bool("reviewApp", false))
+	return results, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

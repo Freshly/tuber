@@ -3,13 +3,14 @@ package reviewapps
 import (
 	"fmt"
 
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"go.uber.org/zap"
 )
 
-func canCreate(logger *zap.Logger, db *core.DB, appName string, token string) (bool, error) {
+func canCreate(logger *zap.Logger, db *db.DB, appName string, token string) (bool, error) {
 	if appName == "tuber" || token == "" {
 		return false, nil
 	}
@@ -21,6 +22,6 @@ func canCreate(logger *zap.Logger, db *core.DB, appName string, token string) (b
 	return k8s.CanDeploy(appName, fmt.Sprintf("--token=%s", token))
 }
 
-func appExists(db *core.DB, appName string) bool {
-	return db.AppExists(appName)
+func appExists(db *db.DB, appName string) bool {
+	return db.Exists(model.TuberApp{Name: appName})
 }

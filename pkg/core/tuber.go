@@ -7,6 +7,7 @@ import (
 	yamls "github.com/freshly/tuber/data/tuberapps"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/containers"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/k8s"
 )
 
@@ -38,12 +39,13 @@ func RepoFromTag(tag string) (string, error) {
 }
 
 // DestroyTuberApp deletes all resources for the given app on the current cluster
-func DestroyTuberApp(db *DB, app *model.TuberApp) error {
+func DestroyTuberApp(d *db.DB, app *model.TuberApp) error {
 	err := k8s.Delete("namespace", app.Name, app.Name)
 	if err != nil {
 		return err
 	}
-	err = db.DeleteApp(app)
+
+	err = d.Delete(app)
 	if err != nil {
 		return err
 	}

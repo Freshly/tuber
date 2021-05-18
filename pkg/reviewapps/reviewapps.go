@@ -9,6 +9,7 @@ import (
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"go.uber.org/zap"
@@ -35,10 +36,10 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
+func CreateReviewApp(ctx context.Context, db *db.DB, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
 	reviewAppName := ReviewAppName(appName, branch)
 
-	if db.AppExists(reviewAppName) {
+	if db.Exists(model.TuberApp{Name: reviewAppName}) {
 		return "", fmt.Errorf("review app already exists")
 	}
 
@@ -50,7 +51,8 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	logger.Info("creating review app")
 
-	sourceApp, err := db.App(appName)
+	var sourceApp *model.TuberApp
+	err := db.Find("apps", reviewAppName, appName)
 	if err != nil {
 		return "", fmt.Errorf("can't find source app. is %s managed by tuber", appName)
 	}
@@ -101,12 +103,12 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		Vars:            vars,
 	}
 
-	err = db.SaveApp(reviewApp)
+	err = db.Save(reviewApp)
 	if err != nil {
 		logger.Error("error saving review app", zap.Error(err))
 
 		triggerCleanupErr := deleteReviewAppTrigger(ctx, credentials, projectName, triggerID)
-		teardownErr := db.DeleteApp(reviewApp)
+		teardownErr := db.Delete(reviewApp)
 
 		if teardownErr != nil {
 			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
@@ -124,8 +126,9 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 	return reviewAppName, nil
 }
 
-func DeleteReviewApp(ctx context.Context, db *core.DB, reviewAppName string, credentials []byte, projectName string) error {
-	app, err := db.App(reviewAppName)
+func DeleteReviewApp(ctx context.Context, db *db.DB, reviewAppName string, credentials []byte, projectName string) error {
+	var app model.TuberApp
+	err := db.Find("apps", reviewAppName, &app)
 	if err != nil {
 		return fmt.Errorf("review app not found")
 	}
@@ -138,7 +141,7 @@ func DeleteReviewApp(ctx context.Context, db *core.DB, reviewAppName string, cre
 		return err
 	}
 
-	return db.DeleteApp(app)
+	return db.Delete(app)
 }
 
 // yoinked from https://gitlab.com/gitlab-org/gitlab-runner/-/blob/0e2ae0001684f681ff901baa85e0d63ec7838568/executors/kubernetes/util.go#L23

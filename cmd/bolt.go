@@ -7,6 +7,7 @@ import (
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,7 +21,7 @@ var bolterCmd = &cobra.Command{
 }
 
 func bolter(cmd *cobra.Command, args []string) error {
-	db, err := db()
+	db, err := initDB()
 	if err != nil {
 		return err
 	}
@@ -29,7 +30,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 	return pullLocalDB(db)
 }
 
-func pullLocalDB(db *core.DB) error {
+func pullLocalDB(db *db.DB) error {
 	fmt.Println("pulling db from configmaps, takes a sec")
 	configApps, err := getallconfigapps()
 	if err != nil {
@@ -101,7 +102,7 @@ func pullLocalDB(db *core.DB) error {
 		app.ReviewAppsConfig = &rac
 		app.SourceAppName = sourceAppName
 
-		err = db.SaveApp(app)
+		err = db.Save(app)
 		if err != nil {
 			return err
 		}

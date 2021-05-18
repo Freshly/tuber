@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/gin-gonic/gin"
 )
 
@@ -50,13 +50,17 @@ func (s server) app(c *gin.Context) {
 	c.HTML(http.StatusOK, template, response)
 }
 
-func reviewApps(sourceAppName string, db *core.DB) ([]appReviewApp, error) {
-	var reviewAppsList []*model.TuberApp
-	app, err := db.App(sourceAppName)
+func reviewApps(sourceAppName string, d *db.DB) ([]appReviewApp, error) {
+	var app *model.TuberApp
+	err := d.Find("apps", sourceAppName, app)
 	if err != nil {
 		return nil, err
 	}
-	reviewAppsList, err = db.ReviewAppsFor(app)
+
+	var reviewAppsList []*model.TuberApp
+	if err := d.Get("apps", reviewAppsList, db.Q().String("sourceAppName", app.Name).Bool("reviewApp", true)); err != nil {
+		return nil, err
+	}
 
 	sort.Slice(reviewAppsList, func(i, j int) bool {
 		return reviewAppsList[i].Name < reviewAppsList[j].Name
