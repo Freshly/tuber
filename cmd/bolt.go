@@ -21,10 +21,10 @@ var bolterCmd = &cobra.Command{
 
 func bolter(cmd *cobra.Command, args []string) error {
 	db, err := db()
-	defer db.Close()
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	return pullLocalDB(db)
 }
