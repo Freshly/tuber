@@ -33,23 +33,13 @@ func NewDB(path string, filemode os.FileMode, boltOptions *bolt.Options, startup
 		return
 	}(dbChan, errChan)
 
-	timeoutChan := make(chan bool)
-	go func(startupTimeout time.Duration, timeoutChan chan bool) {
-		time.Sleep(startupTimeout)
-		timeoutChan <- true
-	}(startupTimeout, timeoutChan)
-
 	select {
 	case dbr := <-dbChan:
 		db = dbr
 	case dbErr := <-errChan:
 		return nil, dbErr
-	case <-timeoutChan:
+	case <-time.After(startupTimeout):
 		return nil, fmt.Errorf("timeout opening database - check for other running processes that access the file")
-	}
-
-	if db == nil {
-		panic("nil db")
 	}
 
 	err := db.Update(func(tx *bolt.Tx) error {
