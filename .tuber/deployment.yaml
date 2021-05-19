@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: tuber
   namespace: tuber
+  annotations:
+    "tuber/rolloutTimeout": 30m
 spec:
   replicas: 1
   selector:
