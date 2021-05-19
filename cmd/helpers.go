@@ -11,9 +11,9 @@ import (
 	"github.com/freshly/tuber/graph/client"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	tuberbolt "github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
-	bolt "go.etcd.io/bbolt"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/goccy/go-yaml"
@@ -27,7 +27,7 @@ var pod string
 var podRunningTimeout string
 var workload string
 
-func db() (*core.Data, error) {
+func db() (*core.DB, error) {
 	var path string
 	if _, err := os.Stat("/etc/tuber-bolt"); os.IsNotExist(err) {
 		wd, err := os.Getwd()
@@ -38,23 +38,11 @@ func db() (*core.Data, error) {
 	} else {
 		path = "/etc/tuber-bolt/db"
 	}
-	db, err := bolt.Open(path, 0666, nil)
+	database, err := tuberbolt.NewDefaultDB(path, model.TuberApp{}.DBRoot())
 	if err != nil {
 		return nil, err
 	}
-
-	// It's a common pattern to call this function for all your top-level buckets after you open your database
-	// so you can guarantee that they exist for future transactions. shrug emoji
-	db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("apps"))
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-
-	data := core.NewData(db)
-	return &data, nil
+	return core.NewDB(database), nil
 }
 
 func getApp(appName string) (*model.TuberApp, error) {

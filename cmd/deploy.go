@@ -58,7 +58,6 @@ func deploy(cmd *cobra.Command, args []string) error {
 	}
 
 	sha, err := containers.GetLatestSHA(location, creds)
-
 	if err != nil {
 		return err
 	}

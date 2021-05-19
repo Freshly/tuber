@@ -45,11 +45,17 @@ type Query {
   getApps: [TuberApp!]!
 }
 
+input CreateReviewAppInput {
+  name: String!
+  branchName: String!
+}
+
 type Mutation {
   createApp(input: AppInput): TuberApp
   updateApp(key: ID!, input: AppInput): TuberApp
   removeApp(key: ID!): TuberApp
   destroyApp(key: ID!): TuberApp
+  createReviewApp(input: CreateReviewAppInput!): TuberApp
 }
 
 schema {

@@ -8,6 +8,11 @@ type AppInput struct {
 	ImageTag string `json:"imageTag"`
 }
 
+type CreateReviewAppInput struct {
+	Name       string `json:"name"`
+	BranchName string `json:"branchName"`
+}
+
 type Resource struct {
 	Encoded string `json:"encoded"`
 	Kind    string `json:"kind"`

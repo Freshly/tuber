@@ -23,11 +23,11 @@ type server struct {
 	triggersProjectName string
 	logger              *zap.Logger
 	creds               []byte
-	db                  *core.Data
+	db                  *core.DB
 	port                string
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.Data, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.DB, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -71,7 +71,7 @@ func (s server) start() error {
 	{
 		tuber.GET("/", s.dashboard)
 
-		tuber.Any("/graphql", gin.WrapH(graph.Handler(s.db)))
+		tuber.Any("/graphql", gin.WrapH(graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName)))
 		tuber.GET("/graphql/playground", gin.WrapF(playground.Handler("GraphQL playground", "/tuber/graphql")))
 
 		apps := tuber.Group("/apps")

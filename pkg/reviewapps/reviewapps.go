@@ -35,15 +35,10 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(ctx context.Context, db *core.Data, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
+func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
 	reviewAppName := ReviewAppName(appName, branch)
 
-	exists, err := db.AppExists(reviewAppName)
-	if err != nil {
-		return "", err
-	}
-
-	if exists {
+	if db.AppExists(reviewAppName) {
 		return "", fmt.Errorf("review app already exists")
 	}
 
@@ -106,12 +101,12 @@ func CreateReviewApp(ctx context.Context, db *core.Data, l *zap.Logger, branch s
 		Vars:            vars,
 	}
 
-	err = db.Save(reviewApp)
+	err = db.SaveApp(reviewApp)
 	if err != nil {
 		logger.Error("error saving review app", zap.Error(err))
 
 		triggerCleanupErr := deleteReviewAppTrigger(ctx, credentials, projectName, triggerID)
-		teardownErr := db.DeleteTuberApp(reviewApp)
+		teardownErr := db.DeleteApp(reviewApp)
 
 		if teardownErr != nil {
 			logger.Error("error tearing down review app resources", zap.Error(teardownErr))
@@ -129,7 +124,7 @@ func CreateReviewApp(ctx context.Context, db *core.Data, l *zap.Logger, branch s
 	return reviewAppName, nil
 }
 
-func DeleteReviewApp(ctx context.Context, db *core.Data, reviewAppName string, credentials []byte, projectName string) error {
+func DeleteReviewApp(ctx context.Context, db *core.DB, reviewAppName string, credentials []byte, projectName string) error {
 	app, err := db.App(reviewAppName)
 	if err != nil {
 		return fmt.Errorf("review app not found")
@@ -143,7 +138,7 @@ func DeleteReviewApp(ctx context.Context, db *core.Data, reviewAppName string, c
 		return err
 	}
 
-	return db.DeleteTuberApp(app)
+	return db.DeleteApp(app)
 }
 
 // yoinked from https://gitlab.com/gitlab-org/gitlab-runner/-/blob/0e2ae0001684f681ff901baa85e0d63ec7838568/executors/kubernetes/util.go#L23

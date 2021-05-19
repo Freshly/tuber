@@ -38,12 +38,12 @@ func RepoFromTag(tag string) (string, error) {
 }
 
 // DestroyTuberApp deletes all resources for the given app on the current cluster
-func DestroyTuberApp(db *Data, app *model.TuberApp) error {
+func DestroyTuberApp(db *DB, app *model.TuberApp) error {
 	err := k8s.Delete("namespace", app.Name, app.Name)
 	if err != nil {
 		return err
 	}
-	err = db.DeleteTuberApp(app)
+	err = db.DeleteApp(app)
 	if err != nil {
 		return err
 	}

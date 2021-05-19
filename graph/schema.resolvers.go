@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/reviewapps"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
@@ -23,7 +24,7 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput)
 		ImageTag: input.ImageTag,
 	}
 
-	if err := r.Resolver.db.Save(&inputApp); err != nil {
+	if err := r.Resolver.db.SaveApp(&inputApp); err != nil {
 		return nil, err
 	}
 
@@ -40,6 +41,17 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, key string) (*model.Tu
 
 func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.TuberApp, error) {
 	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error) {
+	name, err := reviewapps.CreateReviewApp(ctx, r.Resolver.db, r.Resolver.logger, input.BranchName, input.Name, r.Resolver.credentials, r.Resolver.projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{
+		Name: name,
+	}, nil
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {

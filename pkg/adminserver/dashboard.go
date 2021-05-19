@@ -37,7 +37,7 @@ func (s server) dashboard(c *gin.Context) {
 	c.HTML(status, "dashboard.html", data)
 }
 
-func sourceApps(logger *zap.Logger, db *core.Data) ([]sourceApp, error) {
+func sourceApps(logger *zap.Logger, db *core.DB) ([]sourceApp, error) {
 	tuberApps, err := db.SourceApps()
 	if err != nil {
 		logger.Error("error retrieving source apps", zap.Error(err))

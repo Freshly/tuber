@@ -21,15 +21,15 @@ var bolterCmd = &cobra.Command{
 
 func bolter(cmd *cobra.Command, args []string) error {
 	db, err := db()
-	defer db.Close()
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	return pullLocalDB(db)
 }
 
-func pullLocalDB(db *core.Data) error {
+func pullLocalDB(db *core.DB) error {
 	fmt.Println("pulling db from configmaps, takes a sec")
 	configApps, err := getallconfigapps()
 	if err != nil {
@@ -68,7 +68,10 @@ func pullLocalDB(db *core.Data) error {
 			Vars:         []*model.Tuple{},
 		}
 
-		cloudrepo := cloudrepo(configApp, repos.Data)
+		cloudrepo, err := cloudrepo(app, repos.Data)
+		if err != nil {
+			return err
+		}
 		var triggerid string
 		rac := model.ReviewAppsConfig{}
 		if err != nil {
@@ -98,7 +101,7 @@ func pullLocalDB(db *core.Data) error {
 		app.ReviewAppsConfig = &rac
 		app.SourceAppName = sourceAppName
 
-		err = db.Save(app)
+		err = db.SaveApp(app)
 		if err != nil {
 			return err
 		}
@@ -108,13 +111,17 @@ func pullLocalDB(db *core.Data) error {
 	return nil
 }
 
-func cloudrepo(a *model.TuberApp, data map[string]string) string {
+func cloudrepo(a *model.TuberApp, data map[string]string) (string, error) {
+	repo, err := core.RepoFromTag(a.ImageTag)
+	if err != nil {
+		return "", err
+	}
 	for k, v := range data {
-		if v == a.ImageTag {
-			return k
+		if v == repo {
+			return k, nil
 		}
 	}
-	return data[a.ImageTag]
+	return "", nil
 }
 
 func init() {

@@ -16,11 +16,11 @@ type Server struct {
 	projectName        string
 	credentials        []byte
 	logger             *zap.Logger
-	db                 *core.Data
+	db                 *core.DB
 	proto.UnimplementedTuberServer
 }
 
-func NewServer(logger *zap.Logger, creds []byte, db *core.Data, clusterDefaultHost string, projectName string) *Server {
+func NewServer(logger *zap.Logger, creds []byte, db *core.DB, clusterDefaultHost string, projectName string) *Server {
 	return &Server{
 		clusterDefaultHost: clusterDefaultHost,
 		projectName:        projectName,

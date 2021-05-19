@@ -64,7 +64,7 @@ func (s server) reviewApp(c *gin.Context) {
 	c.HTML(http.StatusOK, template, data)
 }
 
-func reviewAppBuilds(db *core.Data, reviewAppName string, triggersProjectName string, cloudbuildClient *cloudbuild.Service) ([]Build, error) {
+func reviewAppBuilds(db *core.DB, reviewAppName string, triggersProjectName string, cloudbuildClient *cloudbuild.Service) ([]Build, error) {
 	app, err := db.App(reviewAppName)
 	if !app.ReviewApp {
 		return nil, fmt.Errorf("review app not found")
