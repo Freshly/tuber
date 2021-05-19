@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import App from 'next/app'
 import { createClient, Provider } from 'urql'
 
@@ -10,6 +10,8 @@ const client = createClient({
 	suspense: true,
 })
 
+const Loading = () => <div>loading...</div>
+
 const AppWrapper = props =>
 	<Provider value={client}>
 		<div className="p-3 dark:bg-gray-800">
@@ -19,7 +21,11 @@ const AppWrapper = props =>
 		</div>
 
 		<div className="container mx-auto py-3">
-			<App {...props} />
+			{typeof window !== 'undefined'
+				? <Suspense fallback={<Loading />}>
+					<App {...props} />
+				</Suspense>
+				: <Loading />}
 		</div>
 	</Provider>
 
