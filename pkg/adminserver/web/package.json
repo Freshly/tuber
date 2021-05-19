@@ -12,6 +12,8 @@
   },
   "devDependencies": {
     "@apollo/client": "^3.3.18",
+    "@graphql-codegen/cli": "^1.21.4",
+    "@graphql-codegen/typescript-urql": "^2.0.6",
     "@types/react": "^17.0.5",
     "@typescript-eslint/eslint-plugin": "^4.23.0",
     "@typescript-eslint/parser": "^4.23.0",
@@ -24,5 +26,8 @@
     "react-dom": "^17.0.2",
     "typescript": "^4.2.4",
     "windicss-webpack-plugin": "^0.5.3"
+  },
+  "dependencies": {
+    "urql": "^2.0.3"
   }
 }
