@@ -1,0 +1,5 @@
+query GetApp($name: String!) {
+  getApp(name: $name) {
+    name
+  }
+}

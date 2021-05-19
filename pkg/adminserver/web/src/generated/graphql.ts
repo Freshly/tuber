@@ -101,6 +101,19 @@ export type Tuple = {
   value: Scalars['String'];
 };
 
+export type GetAppQueryVariables = Exact<{
+  name: Scalars['String'];
+}>;
+
+
+export type GetAppQuery = (
+  { __typename?: 'Query' }
+  & { getApp?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+  )> }
+);
+
 export type GetAppsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -568,6 +581,17 @@ export default {
   }
 } as unknown as IntrospectionQuery;
 
+export const GetAppDocument = gql`
+    query GetApp($name: String!) {
+  getApp(name: $name) {
+    name
+  }
+}
+    `;
+
+export function useGetAppQuery(options: Omit<Urql.UseQueryArgs<GetAppQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<GetAppQuery>({ query: GetAppDocument, ...options });
+};
 export const GetAppsDocument = gql`
     query GetApps {
   getApps {
