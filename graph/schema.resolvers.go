@@ -62,14 +62,22 @@ func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) 
 	return r.Resolver.db.Apps()
 }
 
+func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
+	return r.db.ReviewAppsFor(obj)
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// TuberApp returns generated.TuberAppResolver implementation.
+func (r *Resolver) TuberApp() generated.TuberAppResolver { return &tuberAppResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type tuberAppResolver struct{ *Resolver }
 
 // !!! WARNING !!!
 // The code below was going to be deleted when updating resolvers. It has been copied here so you have
