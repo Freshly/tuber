@@ -1,0 +1,9 @@
+query GetFullApp($name: String!) {
+  getApp(name: $name) {
+    name
+
+    reviewApps {
+      name
+    }
+  }
+}

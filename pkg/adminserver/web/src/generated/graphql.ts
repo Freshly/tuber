@@ -20,12 +20,18 @@ export type AppInput = {
   imageTag: Scalars['String'];
 };
 
+export type CreateReviewAppInput = {
+  name: Scalars['String'];
+  branchName: Scalars['String'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   createApp?: Maybe<TuberApp>;
   updateApp?: Maybe<TuberApp>;
   removeApp?: Maybe<TuberApp>;
   destroyApp?: Maybe<TuberApp>;
+  createReviewApp?: Maybe<TuberApp>;
 };
 
 
@@ -47,6 +53,11 @@ export type MutationRemoveAppArgs = {
 
 export type MutationDestroyAppArgs = {
   key: Scalars['ID'];
+};
+
+
+export type MutationCreateReviewAppArgs = {
+  input: CreateReviewAppInput;
 };
 
 export type Query = {
@@ -100,6 +111,19 @@ export type Tuple = {
   key: Scalars['String'];
   value: Scalars['String'];
 };
+
+export type CreateReviewAppMutationVariables = Exact<{
+  input: CreateReviewAppInput;
+}>;
+
+
+export type CreateReviewAppMutation = (
+  { __typename?: 'Mutation' }
+  & { createReviewApp?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+  )> }
+);
 
 export type GetAppQueryVariables = Exact<{
   name: Scalars['String'];
@@ -214,6 +238,26 @@ export default {
             "args": [
               {
                 "name": "key",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "createReviewApp",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
                 "type": {
                   "kind": "NON_NULL",
                   "ofType": {
@@ -581,6 +625,17 @@ export default {
   }
 } as unknown as IntrospectionQuery;
 
+export const CreateReviewAppDocument = gql`
+    mutation CreateReviewApp($input: CreateReviewAppInput!) {
+  createReviewApp(input: $input) {
+    name
+  }
+}
+    `;
+
+export function useCreateReviewAppMutation() {
+  return Urql.useMutation<CreateReviewAppMutation, CreateReviewAppMutationVariables>(CreateReviewAppDocument);
+};
 export const GetAppDocument = gql`
     query GetApp($name: String!) {
   getApp(name: $name) {

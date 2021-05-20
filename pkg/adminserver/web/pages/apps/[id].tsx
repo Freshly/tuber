@@ -1,6 +1,18 @@
 import { useRouter } from 'next/dist/client/router'
 import React from 'react'
-import { useGetAppQuery } from '../../src/generated/graphql'
+import { useGetAppQuery, useCreateReviewAppMutation } from '../../src/generated/graphql'
+
+
+const CreateForm = () => {
+	const x = useCreateReviewAppMutation()
+
+	console.log({ x })
+
+	return <form>
+		<input name="branchName" />
+		<button type="submit">Create</button>
+	</form>
+}
 
 const ShowApp = () => {
 	const router = useRouter()
@@ -16,6 +28,7 @@ const ShowApp = () => {
 		</p>
 
 		<h2>Create a review app</h2>
+		<CreateForm />
 	</div>
 }
 

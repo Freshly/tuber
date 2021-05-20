@@ -1,0 +1,5 @@
+mutation CreateReviewApp($input: CreateReviewAppInput!) {
+  createReviewApp(input: $input) {
+    name
+  }
+}
