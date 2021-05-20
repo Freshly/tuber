@@ -126,7 +126,11 @@ func (d *DB) Save(m Model) error {
 }
 
 func Q() Query {
-	return Query{}
+	return Query{
+		Strings: make(map[string]string),
+		Bools:   make(map[string]bool),
+		Ints:    make(map[string]int),
+	}
 }
 
 type Query struct {
@@ -266,7 +270,7 @@ func (d *DB) Delete(m Model, key string) error {
 }
 
 func validateAndNormalize(m Model, query Query) (map[string]string, error) {
-	var convertedQueryVals map[string]string
+	convertedQueryVals := make(map[string]string)
 	var queryKeys []string
 
 	for k, v := range query.Strings {
