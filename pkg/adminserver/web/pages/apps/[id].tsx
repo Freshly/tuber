@@ -1,6 +1,7 @@
 import { useRouter } from 'next/dist/client/router'
 import React from 'react'
-import { useGetAppQuery, useCreateReviewAppMutation } from '../../src/generated/graphql'
+import { useGetFullAppQuery, useCreateReviewAppMutation } from '../../src/generated/graphql'
+import { throwError } from '../../src/throwError'
 
 
 const CreateForm = () => {
@@ -17,7 +18,7 @@ const CreateForm = () => {
 const ShowApp = () => {
 	const router = useRouter()
 	const id = router.query.id as string
-	const [{ data: { getApp: app } }] = useGetAppQuery({ variables: { name: id } })
+	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
 
 	return <div>

@@ -14,6 +14,7 @@ export type Scalars = {
   Float: number;
 };
 
+
 export type AppInput = {
   name: Scalars['ID'];
   isIstio: Scalars['Boolean'];
@@ -104,6 +105,7 @@ export type TuberApp = {
   state: State;
   triggerID: Scalars['String'];
   vars: Array<Tuple>;
+  reviewApps?: Maybe<Array<TuberApp>>;
 };
 
 export type Tuple = {
@@ -146,6 +148,23 @@ export type GetAppsQuery = (
   & { getApps: Array<(
     { __typename?: 'TuberApp' }
     & Pick<TuberApp, 'name'>
+  )> }
+);
+
+export type GetFullAppQueryVariables = Exact<{
+  name: Scalars['String'];
+}>;
+
+
+export type GetFullAppQuery = (
+  { __typename?: 'Query' }
+  & { getApp?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { reviewApps?: Maybe<Array<(
+      { __typename?: 'TuberApp' }
+      & Pick<TuberApp, 'name'>
+    )>> }
   )> }
 );
 
@@ -583,6 +602,21 @@ export default {
               }
             },
             "args": []
+          },
+          {
+            "name": "reviewApps",
+            "type": {
+              "kind": "LIST",
+              "ofType": {
+                "kind": "NON_NULL",
+                "ofType": {
+                  "kind": "OBJECT",
+                  "name": "TuberApp",
+                  "ofType": null
+                }
+              }
+            },
+            "args": []
           }
         ],
         "interfaces": []
@@ -657,4 +691,18 @@ export const GetAppsDocument = gql`
 
 export function useGetAppsQuery(options: Omit<Urql.UseQueryArgs<GetAppsQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetAppsQuery>({ query: GetAppsDocument, ...options });
+};
+export const GetFullAppDocument = gql`
+    query GetFullApp($name: String!) {
+  getApp(name: $name) {
+    name
+    reviewApps {
+      name
+    }
+  }
+}
+    `;
+
+export function useGetFullAppQuery(options: Omit<Urql.UseQueryArgs<GetFullAppQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<GetFullAppQuery>({ query: GetFullAppDocument, ...options });
 };
