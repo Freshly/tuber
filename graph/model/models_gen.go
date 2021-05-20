@@ -42,6 +42,7 @@ type TuberApp struct {
 	State            *State            `json:"state"`
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`
+	ReviewApps       []*TuberApp       `json:"reviewApps"`
 }
 
 type Tuple struct {
