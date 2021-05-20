@@ -1,16 +1,29 @@
+/* eslint-disable react/prop-types */
+import app from 'next/app'
 import { useRouter } from 'next/dist/client/router'
-import React from 'react'
+import React, { useRef } from 'react'
 import { useGetFullAppQuery, useCreateReviewAppMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
 
 
-const CreateForm = () => {
-	const x = useCreateReviewAppMutation()
+const CreateForm = ({ app }) => {
+	const [result, create] = useCreateReviewAppMutation()
+	const branchNameRef = useRef(null)
 
-	console.log({ x })
+	const handle = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
 
-	return <form>
-		<input name="branchName" />
+		create({
+			input: {
+				name:       app.name,
+				branchName: branchNameRef.current.value,
+			},
+		})
+	}
+
+
+	return <form onSubmit={handle}>
+		<input name="branchName" ref={branchNameRef} />
 		<button type="submit">Create</button>
 	</form>
 }
@@ -29,7 +42,12 @@ const ShowApp = () => {
 		</p>
 
 		<h2>Create a review app</h2>
-		<CreateForm />
+		<CreateForm app={app} />
+
+		<h2>Review apps</h2>
+		{app.reviewApps && app.reviewApps.map(reviewApp =>
+			<div key={reviewApp.name}>{reviewApp.name}</div>,
+		)}
 	</div>
 }
 
