@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
@@ -119,7 +118,7 @@ func cloudrepo(a *model.TuberApp, data map[string]string) (string, error) {
 		return "", err
 	}
 
-	repo := strings.Split(sourceAppTagGCRRef.Name(), ":")[0]
+	repo := sourceAppTagGCRRef.Context().String()
 
 	for k, v := range data {
 		if v == repo {
