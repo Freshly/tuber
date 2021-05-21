@@ -422,7 +422,12 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema.graphql", Input: `type Tuple {
+	{Name: "schema.graphql", Input: `directive @goField(
+  forceResolver: Boolean
+  name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+type Tuple {
   key: String!
   value: String!
 }
@@ -439,7 +444,7 @@ type TuberApp {
   state: State!
   triggerID: String!
   vars: [Tuple!]!
-  reviewApps: [TuberApp!]
+  reviewApps: [TuberApp!] @goField(forceResolver: true)
 }
 
 input AppInput {
