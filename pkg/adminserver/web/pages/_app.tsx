@@ -14,13 +14,13 @@ const Loading = () => <div>loading...</div>
 
 const AppWrapper = props =>
 	<Provider value={client}>
-		<div className="p-3 dark:bg-gray-800">
-			<div className="container mx-auto">
+		<div className="bg-gray-100 dark:bg-gray-800">
+			<div className="container mx-auto p-3">
 				<h1><Link href="/"><a>Tuber Dashboard</a></Link></h1>
 			</div>
 		</div>
 
-		<div className="container mx-auto py-3">
+		<div className="container mx-auto p-3">
 			{typeof window !== 'undefined'
 				? <Suspense fallback={<Loading />}>
 					<App {...props} />

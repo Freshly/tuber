@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
-import app from 'next/app'
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
+import { Heading } from '../../src/components'
 import { useGetFullAppQuery, useCreateReviewAppMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
 
@@ -26,8 +26,8 @@ const CreateForm = ({ app }) => {
 		{error && <div className="bg-red-700 text-white border-red-700 p-2">
 			{error.message}
 		</div>}
-		<input name="branchName" ref={branchNameRef} />
-		<button type="submit">Create</button>
+		<input className="dark:bg-gray-800 p-1 translate-x-6" type="text" name="branchName" ref={branchNameRef} />
+		<button type="submit" className="rounded-sm p-1 underline">Create</button>
 	</form>
 }
 
@@ -38,16 +38,16 @@ const ShowApp = () => {
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
 
 	return <div>
-		<h1>{app.name}</h1>
+		<Heading>{app.name}</Heading>
 
 		<p>
 			Available at - <a href={hostname}>{hostname}</a> - if it uses your cluster&apos;s default hostname.
 		</p>
 
-		<h2>Create a review app</h2>
+		<Heading>Create a review app</Heading>
 		<CreateForm app={app} />
 
-		<h2>Review apps</h2>
+		<Heading>Review apps</Heading>
 		{app.reviewApps && app.reviewApps.map(reviewApp =>
 			<div key={reviewApp.name}>{reviewApp.name}</div>,
 		)}

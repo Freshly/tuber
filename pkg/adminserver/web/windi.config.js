@@ -1,1 +1,4 @@
-export default { darkMode: 'media' }
+export default {
+	darkMode: 'media',
+	safelist: ['text-lg'],
+}
