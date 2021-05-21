@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/google/go-containerregistry/pkg/name"
 
 	"go.uber.org/zap"
 )
@@ -55,7 +56,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		return "", fmt.Errorf("can't find source app. is %s managed by tuber", appName)
 	}
 
-	repo, err := core.RepoFromTag(sourceApp.ImageTag)
+	sourceAppTagGCRRef, err := name.ParseReference(sourceApp.ImageTag)
 	if err != nil {
 		return "", fmt.Errorf("source app image tag misconfigured: %v", err)
 	}
@@ -78,7 +79,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		}
 	}
 
-	imageTag := repo + ":" + branch
+	imageTag := sourceAppTagGCRRef.Context().Tag(branch).String()
 
 	var vars []*model.Tuple
 	for _, tuple := range sourceApp.ReviewAppsConfig.Vars {

@@ -3,12 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/freshly/tuber/pkg/containers"
-	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/slack"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/google"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -52,16 +52,6 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	location, err := core.GetRepositoryLocation(app)
-	if err != nil {
-		return err
-	}
-
-	sha, err := containers.GetLatestSHA(location, creds)
-	if err != nil {
-		return err
-	}
-
 	data, err := clusterData()
 	if err != nil {
 		return err
@@ -70,19 +60,25 @@ func deploy(cmd *cobra.Command, args []string) error {
 	var ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	split := strings.SplitN(app.ImageTag, ":", 2)
-	if len(split) != 2 {
-		return fmt.Errorf("app image tag invalid")
-	}
-	repo := split[0]
-
 	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
 	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient)
 
-	digest := repo + "@" + sha
-	tag := app.ImageTag
+	ref, err := name.ParseReference(app.ImageTag)
+	if err != nil {
+		return err
+	}
 
-	event, err := events.NewEvent(logger, digest, tag)
+	img, err := remote.Image(ref, remote.WithAuth(google.NewJSONKeyAuthenticator(string(creds))))
+	if err != nil {
+		return err
+	}
+
+	digest, err := img.Digest()
+	if err != nil {
+		return err
+	}
+
+	event, err := events.NewEvent(logger, ref.Context().Digest(digest.String()).String(), app.ImageTag)
 	if err != nil {
 		return fmt.Errorf("app image tag invalid")
 	}
