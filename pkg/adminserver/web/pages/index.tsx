@@ -1,9 +1,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { useGetAppsQuery } from '../src/generated/graphql'
+import { throwError } from '../src/throwError'
 
 const HomePage = () => {
-	const [{ data }] = useGetAppsQuery()
+	const [{ data }] = throwError(useGetAppsQuery())
 
 	return <>
 		{data.getApps.map(app =>
