@@ -8,6 +8,11 @@ type AppInput struct {
 	ImageTag string `json:"imageTag"`
 }
 
+type CreateReviewAppInput struct {
+	Name       string `json:"name"`
+	BranchName string `json:"branchName"`
+}
+
 type Resource struct {
 	Encoded string `json:"encoded"`
 	Kind    string `json:"kind"`
@@ -37,6 +42,8 @@ type TuberApp struct {
 	State            *State            `json:"state"`
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`
+	// ReviewApps is a fake field do not use it yes this is garbage we're aware.
+	ReviewApps []*TuberApp `json:"reviewApps"`
 }
 
 type Tuple struct {

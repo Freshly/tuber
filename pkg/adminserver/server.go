@@ -60,7 +60,7 @@ func (s server) start() error {
 	{
 		tuber.GET("/", s.dashboard)
 
-		tuber.Any("/graphql", gin.WrapH(graph.Handler(s.db)))
+		tuber.Any("/graphql", gin.WrapH(graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName)))
 		tuber.GET("/graphql/playground", gin.WrapF(playground.Handler("GraphQL playground", "/tuber/graphql")))
 
 		apps := tuber.Group("/apps")

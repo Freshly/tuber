@@ -1,3 +1,8 @@
+directive @goField(
+  forceResolver: Boolean
+  name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
 type Tuple {
   key: String!
   value: String!
@@ -15,6 +20,7 @@ type TuberApp {
   state: State!
   triggerID: String!
   vars: [Tuple!]!
+  reviewApps: [TuberApp!] @goField(forceResolver: true)
 }
 
 input AppInput {
@@ -45,9 +51,15 @@ type Query {
   getApps: [TuberApp!]!
 }
 
+input CreateReviewAppInput {
+  name: String!
+  branchName: String!
+}
+
 type Mutation {
   createApp(input: AppInput): TuberApp
   updateApp(key: ID!, input: AppInput): TuberApp
   removeApp(key: ID!): TuberApp
   destroyApp(key: ID!): TuberApp
+  createReviewApp(input: CreateReviewAppInput!): TuberApp
 }

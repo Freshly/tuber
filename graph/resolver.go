@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/freshly/tuber/pkg/core"
+	"go.uber.org/zap"
 )
 
 //go:generate go run github.com/99designs/gqlgen
@@ -11,9 +12,17 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	db *core.DB
+	db          *core.DB
+	logger      *zap.Logger
+	credentials []byte
+	projectName string
 }
 
-func NewResolver(db *core.DB) *Resolver {
-	return &Resolver{db: db}
+func NewResolver(db *core.DB, logger *zap.Logger, credentials []byte, projectName string) *Resolver {
+	return &Resolver{
+		db:          db,
+		logger:      logger,
+		credentials: credentials,
+		projectName: projectName,
+	}
 }
