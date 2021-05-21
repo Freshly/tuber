@@ -42,7 +42,8 @@ type TuberApp struct {
 	State            *State            `json:"state"`
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`
-	ReviewApps       []*TuberApp       `json:"reviewApps"`
+	// ReviewApps is a fake field do not use it yes this is garbage we're aware.
+	ReviewApps []*TuberApp `json:"reviewApps"`
 }
 
 type Tuple struct {
