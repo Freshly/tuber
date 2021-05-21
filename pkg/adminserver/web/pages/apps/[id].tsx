@@ -7,7 +7,7 @@ import { throwError } from '../../src/throwError'
 
 
 const CreateForm = ({ app }) => {
-	const [result, create] = useCreateReviewAppMutation()
+	const [{ error }, create] = useCreateReviewAppMutation()
 	const branchNameRef = useRef(null)
 
 	const handle = (event: React.FormEvent<HTMLFormElement>) => {
@@ -23,6 +23,9 @@ const CreateForm = ({ app }) => {
 
 
 	return <form onSubmit={handle}>
+		{error && <div className="bg-red-700 text-white border-red-700 p-2">
+			{error.message}
+		</div>}
 		<input name="branchName" ref={branchNameRef} />
 		<button type="submit">Create</button>
 	</form>
