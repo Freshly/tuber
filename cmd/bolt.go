@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -112,10 +114,13 @@ func pullLocalDB(db *core.DB) error {
 }
 
 func cloudrepo(a *model.TuberApp, data map[string]string) (string, error) {
-	repo, err := core.RepoFromTag(a.ImageTag)
+	sourceAppTagGCRRef, err := name.ParseReference(a.ImageTag)
 	if err != nil {
 		return "", err
 	}
+
+	repo := strings.Split(sourceAppTagGCRRef.Name(), ":")[0]
+
 	for k, v := range data {
 		if v == repo {
 			return k, nil
