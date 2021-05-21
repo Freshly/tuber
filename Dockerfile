@@ -13,6 +13,7 @@ COPY pkg      ./pkg
 COPY cmd      ./cmd
 COPY main.go  ./main.go
 COPY data     ./data
+COPY graph   ./graph
 COPY .tuber   /.tuber
 
 ENV GO111MODULE on
