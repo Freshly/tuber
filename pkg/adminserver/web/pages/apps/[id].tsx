@@ -21,7 +21,6 @@ const CreateForm = ({ app }) => {
 		})
 	}
 
-
 	return <form onSubmit={handle}>
 		{error && <div className="bg-red-700 text-white border-red-700 p-2">
 			{error.message}
