@@ -5,11 +5,13 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/reviewapps"
 )
 
@@ -52,6 +54,40 @@ func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.Crea
 	return &model.TuberApp{
 		Name: name,
 	}, nil
+}
+
+func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetAppVarInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("Could not find app.")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if app.Vars == nil {
+		app.Vars = make([]*model.Tuple, 0)
+	}
+
+	found := false
+
+	for _, tuple := range app.Vars {
+		if tuple.Key == input.Key {
+			tuple.Value = input.Value
+			found = true
+		}
+	}
+
+	if !found {
+		app.Vars = append(app.Vars, &model.Tuple{Key: input.Key, Value: input.Value})
+	}
+
+	if err := r.Resolver.db.SaveApp(app); err != nil {
+		return nil, fmt.Errorf("Could not save changes: %v", err)
+	}
+
+	return app, nil
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {

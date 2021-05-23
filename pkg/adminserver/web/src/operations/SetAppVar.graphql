@@ -1,0 +1,10 @@
+mutation SetAppVar($input: SetAppVarInput!) {
+  setAppVar(input: $input) {
+    name
+
+    vars {
+      key
+      value
+    }
+  }
+}

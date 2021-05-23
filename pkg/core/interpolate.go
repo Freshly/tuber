@@ -43,7 +43,7 @@ type ClusterData struct {
 }
 
 func releaseData(digest string, app *model.TuberApp, clusterData *ClusterData) (data map[string]string) {
-	return map[string]string{
+	vars := map[string]string{
 		"tuberImage":            digest,
 		"clusterDefaultGateway": clusterData.DefaultGateway,
 		"clusterDefaultHost":    clusterData.DefaultHost,
@@ -51,4 +51,12 @@ func releaseData(digest string, app *model.TuberApp, clusterData *ClusterData) (
 		"clusterAdminHost":      clusterData.AdminHost,
 		"tuberAppName":          app.Name,
 	}
+
+	if app.Vars != nil {
+		for _, tuple := range app.Vars {
+			vars[tuple.Key] = tuple.Value
+		}
+	}
+
+	return vars
 }

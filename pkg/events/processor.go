@@ -69,6 +69,7 @@ func (p Processor) ProcessMessage(event *Event) {
 		report.Error(err, event.errorScope.WithContext("tuber apps lookup"))
 		return
 	}
+
 	if len(apps) == 0 {
 		event.logger.Debug("ignored event")
 		return
@@ -114,6 +115,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		zap.String("imageTag", app.ImageTag),
 		zap.String("action", "release"),
 	)
+
 	errorScope := event.errorScope.AddScope(report.Scope{
 		"name":     app.Name,
 		"imageTag": app.ImageTag,

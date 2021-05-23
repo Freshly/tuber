@@ -56,12 +56,19 @@ input CreateReviewAppInput {
   branchName: String!
 }
 
+input SetAppVarInput {
+  name: ID!
+  key: String!
+  value: String!
+}
+
 type Mutation {
   createApp(input: AppInput): TuberApp
   updateApp(key: ID!, input: AppInput): TuberApp
   removeApp(key: ID!): TuberApp
   destroyApp(key: ID!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
+  setAppVar(input: SetAppVarInput!): TuberApp
 }
 
 schema {

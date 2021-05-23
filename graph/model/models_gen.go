@@ -25,6 +25,12 @@ type ReviewAppsConfig struct {
 	Skips   []*Resource `json:"skips"`
 }
 
+type SetAppVarInput struct {
+	Name  string `json:"name"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 type State struct {
 	Current  []*Resource `json:"Current"`
 	Previous []*Resource `json:"Previous"`
@@ -42,8 +48,7 @@ type TuberApp struct {
 	State            *State            `json:"state"`
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`
-	// ReviewApps is a fake field do not use it yes this is garbage we're aware.
-	ReviewApps []*TuberApp `json:"reviewApps"`
+	ReviewApps       []*TuberApp       `json:"reviewApps"`
 }
 
 type Tuple struct {

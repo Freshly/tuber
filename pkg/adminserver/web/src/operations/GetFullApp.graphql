@@ -1,6 +1,12 @@
 query GetFullApp($name: String!) {
   getApp(name: $name) {
     name
+    reviewApp
+
+    vars {
+      key
+      value
+    }
 
     reviewApps {
       name
