@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localtunnel
+spec:
+  selector:
+    matchLabels:
+      app: localtunnel
+  template:
+    metadata:
+      labels:
+        app: localtunnel
+        sidecar.istio.io/inject: "true"
+        version: "0.0.1"
+    spec:
+      containers:
+      - name: localtunnel
+        image: nginx
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: config-volume
+        configMap:
+          name: localtunnel-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: localtunnel-config
+data:
+  default.conf: |
+    upstream tunnel {
+      server localtuber:3001;
+    }
+
+    server {
+      listen 80 default_server;
+
+      location / {
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+
+        proxy_pass http://tunnel;
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: localtunnel
+spec:
+  ports:
+  - port: 80
+    name: http
+  selector:
+    app: localtunnel
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: localtunnel
+spec:
+  hosts:
+  - "staging.admin.freshlyservices.net"
+  gateways:
+  - "istio-system/iap-gateway"
+  http:
+  - match:
+    - uri:
+        prefix: /localtunnel
+    # rewrite:
+    #   uri: "/"
+    route:
+    - destination:
+        host: localtunnel.default.svc.cluster.local
+        port:
+          number: 80

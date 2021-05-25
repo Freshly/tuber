@@ -11,4 +11,6 @@ module.exports = {
 
 		return config
 	},
+
+	basePath: '/localtunnel',
 }

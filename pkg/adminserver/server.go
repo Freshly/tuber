@@ -2,14 +2,19 @@ package adminserver
 
 import (
 	"context"
+	"embed"
 	"fmt"
-	"time"
+	"log"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"os"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/pkg/core"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	"github.com/go-http-utils/logger"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
@@ -51,43 +56,57 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, triggersProject
 	}.start()
 }
 
+func localDevServer(res http.ResponseWriter, req *http.Request) {
+	remote, err := url.Parse("http://localhost:3002")
+	if err != nil {
+		panic(err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Director = func(proxyReq *http.Request) {
+		proxyReq.Header = req.Header
+		proxyReq.Host = remote.Host
+		proxyReq.URL.Scheme = remote.Scheme
+		proxyReq.URL.Host = remote.Host
+		proxyReq.URL.Path = req.URL.Path
+	}
+
+	proxy.ServeHTTP(res, req)
+}
+
+//go:embed web/out/* web/out/_next/static/chunks/pages/* web/out/_next/static/sQ3cKhpulqPwNQl1aJ7hX/*
+var staticFiles embed.FS
+
+func fixpath(next http.Handler) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// log.Println("hello path", r.URL.Path)
+		r.URL.Path = strings.Replace(r.URL.Path, "/localtunnel", "/web/out", 1)
+		r.URL.RawPath = strings.Replace(r.URL.RawPath, "/localtunnel", "/web/out", 1)
+
+		log.Println("path", r.URL.Path)
+		next.ServeHTTP(w, r)
+	}
+}
+
 func (s server) start() error {
-	var err error
+	mux := http.NewServeMux()
+	mux.HandleFunc("/localtunnel/graphql/playground", playground.Handler("GraphQL playground", "/tuber/graphql"))
+	mux.Handle("/localtunnel/graphql", graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName))
 
-	router := gin.Default()
-
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3002"},
-		AllowMethods:     []string{"POST"},
-		AllowHeaders:     []string{"*"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
-
-	router.LoadHTMLGlob("pkg/adminserver/templates/*")
-
-	tuber := router.Group("/tuber")
-	{
-		tuber.GET("/", s.dashboard)
-
-		tuber.Any("/graphql", gin.WrapH(graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName)))
-		tuber.GET("/graphql/playground", gin.WrapF(playground.Handler("GraphQL playground", "/tuber/graphql")))
-
-		apps := tuber.Group("/apps")
-		{
-			apps.GET("/:appName", s.app)
-			apps.GET("/:appName/reviewapps/:reviewAppName", s.reviewApp)
-			apps.GET("/:appName/reviewapps/:reviewAppName/delete", s.deleteReviewApp)
-			apps.POST("/:appName/createReviewApp", s.createReviewApp)
-		}
-	}
-
-	if s.port == "" {
-		err = router.Run(":3000")
+	if false {
+		mux.HandleFunc("/localtunnel/", localDevServer)
 	} else {
-		err = router.Run(fmt.Sprintf(":%s", s.port))
+		var staticFS = http.FS(staticFiles)
+		fs := http.FileServer(staticFS)
+		mux.HandleFunc("/localtunnel/", fixpath(fs))
 	}
 
-	return err
+	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)
+
+	port := ":3000"
+	if s.port != "" {
+		port = fmt.Sprintf(":%s", s.port)
+	}
+
+	return http.ListenAndServe(port, handler)
 }

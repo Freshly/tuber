@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go/pubsub v1.10.1
 	github.com/99designs/gqlgen v0.13.0
 	github.com/getsentry/sentry-go v0.10.0
-	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.5.0
 	github.com/goccy/go-yaml v1.8.9
 	github.com/golang/protobuf v1.5.2
