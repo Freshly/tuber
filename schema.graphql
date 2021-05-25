@@ -75,3 +75,8 @@ schema {
   query: Query
   mutation: Mutation
 }
+
+schema {
+  query: Query
+  mutation: Mutation
+}

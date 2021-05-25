@@ -7,7 +7,6 @@ import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMuta
 import { throwError } from '../../src/throwError'
 import { PencilAltIcon, PlusCircleIcon, SaveIcon } from '@heroicons/react/outline'
 
-
 const CreateForm = ({ app }) => {
 	const [{ error }, create] = useCreateReviewAppMutation()
 	const branchNameRef = useRef(null)
@@ -23,7 +22,7 @@ const CreateForm = ({ app }) => {
 		})
 	}
 
-	return <form onSubmit={submit}>
+  return <form onSubmit={submit}>
 		{error && <div className="bg-red-700 text-white border-red-700 p-2">
 			{error.message}
 		</div>}
@@ -107,7 +106,6 @@ const ShowApp = () => {
 				? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} />
 				: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
 		</>}
-
 	</div>
 }
 
