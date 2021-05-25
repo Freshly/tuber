@@ -7,6 +7,7 @@ require (
 	github.com/99designs/gqlgen v0.13.0
 	github.com/getsentry/sentry-go v0.10.0
 	github.com/gin-gonic/gin v1.5.0
+	github.com/go-http-utils/logger v0.0.0-20161128092850-f3a42dcdeae6
 	github.com/goccy/go-yaml v1.8.9
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-containerregistry v0.5.0
