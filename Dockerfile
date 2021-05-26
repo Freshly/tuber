@@ -24,18 +24,11 @@ COPY data     ./data
 COPY graph    ./graph
 COPY .tuber   /.tuber
 
-RUN rm -rf ./pkg/adminserver/web/*
-COPY --from=1 /app/out ./pkg/adminserver/web/out
-
-RUN ls pkg/adminserver/web/out/_next/static | grep -E '.{21}' | tr -d "\n" > /.folder_name
-RUN echo `cat /.folder_name`
-RUN sed -i "s/web\/out\/_next\/static\/NEXT_MAGIC_FOLDER_REPLACE/web\/out\/_next\/static\/`cat /.folder_name`/" pkg/adminserver/server.go
-RUN rm /.folder_name
+RUN rm -rf ./pkg/adminserver/web
+COPY --from=1 /app/out /static
 
 ENV GO111MODULE on
 
 RUN go build
-
-RUN rm -rf ./pkg/adminserver/web
 
 CMD ["/app/tuber", "start", "-y"]

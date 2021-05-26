@@ -74,9 +74,6 @@ func localDevServer(res http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(res, req)
 }
 
-//go:embed web/out/* web/out/_next/static/chunks/pages/* web/out/_next/static/NEXT_MAGIC_FOLDER_REPLACE/*
-var staticFiles embed.FS
-
 func fixpath(next http.Handler) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// log.Println("hello path", r.URL.Path)
@@ -96,8 +93,7 @@ func (s server) start() error {
 	if false {
 		mux.HandleFunc("/localtunnel/", localDevServer)
 	} else {
-		var staticFS = http.FS(staticFiles)
-		fs := http.FileServer(staticFS)
+		fs := http.FileServer(http.Dir("/static"))
 		mux.HandleFunc("/localtunnel/", fixpath(fs))
 	}
 

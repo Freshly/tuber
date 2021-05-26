@@ -10,3 +10,18 @@ protoc:
 gen:
   go generate ./...
   cd pkg/adminserver/web && yarn generate
+
+local-image:
+  docker build . -t tuber
+  docker run \
+    --rm \
+    -it \
+    --name tuber \
+    --env-file .env \
+    --expose $TUBER_ADMINSERVER_PORT \
+    -p $TUBER_ADMINSERVER_PORT:$TUBER_ADMINSERVER_PORT \
+    -v $HOME/.kube:/root/.kube \
+    -v $HOME/.config/gcloud:/root/.config/gcloud \
+    -v /usr/lib/google-cloud-sdk:/usr/lib/google-cloud-sdk \
+    tuber \
+    /app/tuber adminserver -y
