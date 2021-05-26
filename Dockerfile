@@ -36,6 +36,6 @@ ENV GO111MODULE on
 
 RUN go build
 
-RUN RUN rm -rf ./pkg/adminserver/web
+RUN rm -rf ./pkg/adminserver/web
 
 CMD ["/app/tuber", "start", "-y"]
