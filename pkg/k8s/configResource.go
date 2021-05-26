@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -45,10 +46,10 @@ func (c *ConfigResource) Save(namespace string) (err error) {
 // GetConfigResource returns a ConfigResource struct with a Data element containing config map entries
 func GetConfigResource(name string, namespace string, kind string) (config *ConfigResource, err error) {
 	result, err := Get(strings.ToLower(kind), name, namespace, "-o", "json")
-
 	if err != nil {
-		return
+		return nil, fmt.Errorf("Could not kubectl get %s %s: %v", kind, name, err)
 	}
+
 	var k8sc k8sConfigResource
 
 	if result == nil {
@@ -71,5 +72,6 @@ func GetConfigResource(name string, namespace string, kind string) (config *Conf
 		config: &k8sc,
 		Data:   data,
 	}
+
 	return
 }

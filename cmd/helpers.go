@@ -146,7 +146,7 @@ func credentials() ([]byte, error) {
 	if err != nil {
 		config, err := k8s.GetSecret("tuber", "tuber-credentials.json")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Error while running k8s.GetSecret: %v", err)
 		}
 		return []byte(config.Data["credentials.json"]), nil
 	}

@@ -55,8 +55,9 @@ func GetSecret(namespace string, secretName string) (*ConfigResource, error) {
 	for k, v := range config.Data {
 		decoded, decodeErr := base64.StdEncoding.DecodeString(v)
 		if decodeErr != nil {
-			return nil, decodeErr
+			return nil, fmt.Errorf("failed to base64 decode: %v", decodeErr)
 		}
+
 		config.Data[k] = string(decoded)
 	}
 

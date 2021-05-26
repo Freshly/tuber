@@ -74,7 +74,7 @@ func localDevServer(res http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(res, req)
 }
 
-//go:embed web/out/* web/out/_next/static/chunks/pages/* web/out/_next/static/sQ3cKhpulqPwNQl1aJ7hX/*
+//go:embed web/out/* web/out/_next/static/chunks/pages/* web/out/_next/static/NEXT_MAGIC_FOLDER_REPLACE/*
 var staticFiles embed.FS
 
 func fixpath(next http.Handler) func(http.ResponseWriter, *http.Request) {
