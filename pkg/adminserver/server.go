@@ -2,19 +2,17 @@ package adminserver
 
 import (
 	"context"
-	"embed"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/go-http-utils/logger"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
@@ -74,27 +72,25 @@ func localDevServer(res http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(res, req)
 }
 
-func fixpath(next http.Handler) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// log.Println("hello path", r.URL.Path)
-		r.URL.Path = strings.Replace(r.URL.Path, "/localtunnel", "/web/out", 1)
-		r.URL.RawPath = strings.Replace(r.URL.RawPath, "/localtunnel", "/web/out", 1)
+func init() {
+	viper.SetDefault("prefix", "/tuber")
+}
 
-		log.Println("path", r.URL.Path)
-		next.ServeHTTP(w, r)
-	}
+func prefix(p string) string {
+	return fmt.Sprintf("%s%s", viper.GetString("prefix"), p)
 }
 
 func (s server) start() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/localtunnel/graphql/playground", playground.Handler("GraphQL playground", "/tuber/graphql"))
-	mux.Handle("/localtunnel/graphql", graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName))
 
-	if false {
-		mux.HandleFunc("/localtunnel/", localDevServer)
+	mux := http.NewServeMux()
+	mux.HandleFunc(prefix("/graphql/playground"), playground.Handler("GraphQL playground", prefix("/graphql")))
+	mux.Handle(prefix("/graphql"), graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName))
+
+	if viper.GetBool("use-devserver") {
+		mux.HandleFunc(prefix("/"), localDevServer)
 	} else {
 		fs := http.FileServer(http.Dir("/static"))
-		mux.HandleFunc("/localtunnel/", fixpath(fs))
+		mux.Handle(prefix("/"), http.StripPrefix(prefix("/"), fs))
 	}
 
 	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)
