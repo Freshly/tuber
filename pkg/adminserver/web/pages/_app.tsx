@@ -6,7 +6,7 @@ import 'windi.css'
 import Link from 'next/link'
 
 const client = createClient({
-	url:      `${process.env.TUBER_PREFIX}/graphql`,
+	url:      `${process.env.TUBER_PREFIX || '/tuber'}/graphql`,
 	suspense: true,
 })
 

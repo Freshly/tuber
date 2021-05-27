@@ -12,5 +12,5 @@ module.exports = {
 		return config
 	},
 
-	basePath: '/localtunnel',
+	basePath: process.env.TUBER_PREFIX || '/tuber',
 }
