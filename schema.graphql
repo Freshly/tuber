@@ -64,16 +64,11 @@ input SetAppVarInput {
 
 type Mutation {
   createApp(input: AppInput): TuberApp
-  updateApp(key: ID!, input: AppInput): TuberApp
+  updateApp(input: AppInput): TuberApp
   removeApp(key: ID!): TuberApp
   destroyApp(key: ID!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetAppVarInput!): TuberApp
-}
-
-schema {
-  query: Query
-  mutation: Mutation
 }
 
 schema {

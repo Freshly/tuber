@@ -1,4 +1,4 @@
-package client
+package graph
 
 import (
 	"context"
@@ -12,11 +12,13 @@ type GraphqlClient struct {
 	client *graphql.Client
 }
 
-func New(clusterURL string) *GraphqlClient {
-	graphqlURL := viper.GetString("graphql-url")
+func NewClient(clusterURL string) *GraphqlClient {
+	graphqlURL := viper.GetString("graphql-host")
 
 	if graphqlURL == "" {
-		graphqlURL = clusterURL + "/graphql"
+		graphqlURL = clusterURL + viper.GetString("prefix") + "/graphql"
+	} else {
+		graphqlURL = graphqlURL + viper.GetString("prefix") + "/graphql"
 	}
 
 	client := graphql.NewClient(graphqlURL)
