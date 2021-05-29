@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"sort"
 
+	"github.com/freshly/tuber/graph"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -74,24 +77,28 @@ func envSet(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	key := args[1]
 	value := args[2]
-	mapName := fmt.Sprintf("%s-env", appName)
 
-	logger, err := createLogger()
-	if err != nil {
-		return err
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	input := &model.SetTupleInput{
+		Name:  appName,
+		Key:   key,
+		Value: value,
 	}
 
-	logger.Info("env: set",
-		zap.String("name", appName),
-		zap.String("key", key),
-		zap.String("action", "change_env"),
-	)
-
-	err = k8s.PatchSecret(mapName, appName, key, value)
-	if err != nil {
-		return err
+	var respData struct {
+		setAppEnv *model.TuberApp
 	}
-	return k8s.Restart("deployments", appName)
+
+	gql := `
+		mutation($input: SetTupleInput!) {
+			setAppEnv(input: $input) {
+				name
+			}
+		}
+	`
+
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 func envUnset(cmd *cobra.Command, args []string) error {

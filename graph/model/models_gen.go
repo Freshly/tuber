@@ -25,7 +25,7 @@ type ReviewAppsConfig struct {
 	Skips   []*Resource `json:"skips"`
 }
 
-type SetAppVarInput struct {
+type SetTupleInput struct {
 	Name  string `json:"name"`
 	Key   string `json:"key"`
 	Value string `json:"value"`

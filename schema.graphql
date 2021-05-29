@@ -56,7 +56,7 @@ input CreateReviewAppInput {
   branchName: String!
 }
 
-input SetAppVarInput {
+input SetTupleInput {
   name: ID!
   key: String!
   value: String!
@@ -68,7 +68,8 @@ type Mutation {
   removeApp(input: AppInput!): TuberApp
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
-  setAppVar(input: SetAppVarInput!): TuberApp
+  setAppVar(input: SetTupleInput!): TuberApp
+  setAppEnv(input: SetTupleInput!): TuberApp
 }
 
 schema {

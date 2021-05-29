@@ -12,6 +12,7 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/db"
+	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
 )
 
@@ -84,7 +85,7 @@ func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.Crea
 	}, nil
 }
 
-func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetAppVarInput) (*model.TuberApp, error) {
+func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -116,6 +117,20 @@ func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetAppVarI
 	}
 
 	return app, nil
+}
+
+func (r *mutationResolver) SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	mapName := fmt.Sprintf("%s-env", input.Name)
+
+	if err := k8s.PatchSecret(mapName, input.Name, input.Key, input.Value); err != nil {
+		return nil, err
+	}
+
+	if err := k8s.Restart("deployments", input.Name); err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: input.Name}, nil
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
