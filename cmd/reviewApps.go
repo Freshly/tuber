@@ -50,17 +50,17 @@ func listReviewApps(cmd *cobra.Command, args []string) (err error) {
 	appName := args[0]
 
 	gql := `
-			query($name: String!) {
-				getApp(name: $name) {
-					name
+		query($name: String!) {
+			getApp(name: $name) {
+				name
 
-					reviewApps {
-						name
-						imageTag
-					}
+				reviewApps {
+					name
+					imageTag
 				}
 			}
-		`
+		}
+	`
 
 	var respData struct {
 		GetApp *model.TuberApp
