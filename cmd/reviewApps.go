@@ -2,12 +2,16 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
+	"github.com/olekukonko/tablewriter"
 
 	"github.com/spf13/cobra"
 )
@@ -31,6 +35,67 @@ var reviewAppsDeleteCmd = &cobra.Command{
 	Short:        "Delete a review app",
 	Args:         cobra.ExactArgs(2),
 	RunE:         delete,
+}
+
+var reviewAppsListCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "list [source app name]",
+	Short:        "Delete a review app",
+	Args:         cobra.ExactArgs(1),
+	RunE:         listReviewApps,
+}
+
+func listReviewApps(cmd *cobra.Command, args []string) (err error) {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	appName := args[0]
+
+	gql := `
+			query($name: String!) {
+				getApp(name: $name) {
+					name
+
+					reviewApps {
+						name
+						imageTag
+					}
+				}
+			}
+		`
+
+	var respData struct {
+		GetApp *model.TuberApp
+	}
+
+	if err := graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName)); err != nil {
+		return err
+	}
+
+	apps := respData.GetApp.ReviewApps
+
+	sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
+	if jsonOutput {
+		out, err := json.Marshal(apps)
+
+		if err != nil {
+			return err
+		}
+
+		os.Stdout.Write(out)
+
+		return nil
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Image"})
+	table.SetBorder(false)
+
+	for _, app := range apps {
+		table.Append([]string{app.Name, app.ImageTag})
+	}
+
+	table.Render()
+	return nil
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -80,4 +145,5 @@ func init() {
 	rootCmd.AddCommand(reviewAppsCmd)
 	reviewAppsCmd.AddCommand(reviewAppsCreateCmd)
 	reviewAppsCmd.AddCommand(reviewAppsDeleteCmd)
+	reviewAppsCmd.AddCommand(reviewAppsListCmd)
 }
