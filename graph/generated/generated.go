@@ -79,6 +79,7 @@ type ComplexityRoot struct {
 
 	TuberApp struct {
 		CloudSourceRepo  func(childComplexity int) int
+		Env              func(childComplexity int) int
 		ImageTag         func(childComplexity int) int
 		Name             func(childComplexity int) int
 		Paused           func(childComplexity int) int
@@ -114,6 +115,7 @@ type QueryResolver interface {
 }
 type TuberAppResolver interface {
 	ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error)
+	Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error)
 }
 
 type executableSchema struct {
@@ -309,6 +311,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TuberApp.CloudSourceRepo(childComplexity), true
 
+	case "TuberApp.env":
+		if e.complexity.TuberApp.Env == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.Env(childComplexity), true
+
 	case "TuberApp.imageTag":
 		if e.complexity.TuberApp.ImageTag == nil {
 			break
@@ -487,6 +496,7 @@ type TuberApp {
   triggerID: String!
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
+  env: [Tuple!] @goField(forceResolver: true)
 }
 
 input AppInput {
@@ -1888,6 +1898,38 @@ func (ec *executionContext) _TuberApp_reviewApps(ctx context.Context, field grap
 	res := resTmp.([]*model.TuberApp)
 	fc.Result = res
 	return ec.marshalOTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_env(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.TuberApp().Env(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tuple)
+	fc.Result = res
+	return ec.marshalOTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tuple_key(ctx context.Context, field graphql.CollectedField, obj *model.Tuple) (ret graphql.Marshaler) {
@@ -3432,6 +3474,17 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 				res = ec._TuberApp_reviewApps(ctx, field, obj)
 				return res
 			})
+		case "env":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TuberApp_env(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4260,6 +4313,46 @@ func (ec *executionContext) marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuber�
 		return graphql.Null
 	}
 	return ec._TuberApp(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tuple) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTuple2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuple(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

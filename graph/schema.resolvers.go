@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -157,6 +158,29 @@ func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) 
 
 func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
 	return r.db.ReviewAppsFor(obj)
+}
+
+func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error) {
+	mapName := fmt.Sprintf("%s-env", obj.Name)
+	config, err := k8s.GetConfigResource(mapName, obj.Name, "Secret")
+
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]*model.Tuple, 0)
+
+	for k, ev := range config.Data {
+		v, err := base64.StdEncoding.DecodeString(ev)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not decode value for %s: %v", k, err)
+		}
+
+		list = append(list, &model.Tuple{Key: k, Value: string(v)})
+	}
+
+	return list, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

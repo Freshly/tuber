@@ -21,6 +21,7 @@ type TuberApp {
   triggerID: String!
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
+  env: [Tuple!] @goField(forceResolver: true)
 }
 
 input AppInput {

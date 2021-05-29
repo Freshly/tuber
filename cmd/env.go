@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"sort"
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/goccy/go-yaml"
 
 	"github.com/spf13/cobra"
 )
@@ -126,45 +125,67 @@ func envUnset(cmd *cobra.Command, args []string) error {
 	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
-func envGet(cmd *cobra.Command, args []string) (err error) {
+func envGet(cmd *cobra.Command, args []string) error {
 	appName := args[0]
-	mapName := fmt.Sprintf("%s-env", appName)
 	key := args[1]
-	config, err := k8s.GetConfigResource(mapName, appName, "Secret")
 
-	if err != nil {
-		return
-	}
-
-	v := config.Data[key]
-	decoded, err := base64.StdEncoding.DecodeString(v)
-
-	if err != nil {
-		return
-	}
-
-	fmt.Println(string(decoded))
-	return
-}
-
-func envList(cmd *cobra.Command, args []string) error {
-	appName := args[0]
-	mapName := fmt.Sprintf("%s-env", appName)
-	config, err := k8s.GetSecret(appName, mapName)
+	m, err := getAllEnvGraphqlQuery(appName)
 	if err != nil {
 		return err
 	}
 
-	var list []string
-	for k, v := range config.Data {
-		list = append(list, k+`: "`+v+`"`)
+	fmt.Println(m[key])
+	return nil
+}
+
+func envList(cmd *cobra.Command, args []string) error {
+	appName := args[0]
+
+	m, err := getAllEnvGraphqlQuery(appName)
+	if err != nil {
+		return err
 	}
 
-	sort.Strings(list)
-	for _, v := range list {
-		fmt.Println(v)
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return err
 	}
+
+	fmt.Print(string(data))
 	return nil
+}
+
+func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	gql := `
+		query($name: String!) {
+			getApp(name: $name) {
+				name
+
+				env {
+					key
+					value
+				}
+			}
+		}
+	`
+
+	var respData struct {
+		GetApp *model.TuberApp
+	}
+
+	if err := graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName)); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]string)
+
+	for _, tuple := range respData.GetApp.Env {
+		m[tuple.Key] = tuple.Value
+	}
+
+	return m, nil
 }
 
 func init() {
