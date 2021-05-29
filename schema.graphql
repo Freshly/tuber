@@ -28,6 +28,7 @@ input AppInput {
   name: ID!
   isIstio: Boolean!
   imageTag: String!
+  paused: Boolean
 }
 
 type State {

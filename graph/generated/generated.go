@@ -503,6 +503,7 @@ input AppInput {
   name: ID!
   isIstio: Boolean!
   imageTag: String!
+  paused: Boolean
 }
 
 type State {
@@ -3116,6 +3117,14 @@ func (ec *executionContext) unmarshalInputAppInput(ctx context.Context, obj inte
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("imageTag"))
 			it.ImageTag, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "paused":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("paused"))
+			it.Paused, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}

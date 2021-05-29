@@ -90,13 +90,7 @@ func (p Processor) ProcessMessage(event *Event) {
 			cond := (*p.locks)[app.Name]
 			cond.L.Lock()
 
-			paused, err := core.ReleasesPaused(app.Name)
-			if err != nil {
-				event.logger.Error("failed to check for paused state", zap.Error(err))
-				return
-			}
-
-			if paused {
+			if app.Paused {
 				p.slackClient.Message(event.logger, "release skipped for "+app.Name+" as it is paused")
 				event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
 				return

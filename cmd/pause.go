@@ -1,7 +1,10 @@
 package cmd
 
 import (
-	"github.com/freshly/tuber/pkg/core"
+	"context"
+
+	"github.com/freshly/tuber/graph"
+	"github.com/freshly/tuber/graph/model"
 
 	"github.com/spf13/cobra"
 )
@@ -14,7 +17,27 @@ var pauseCmd = &cobra.Command{
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
-		return core.PauseDeployments(appName)
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+		b := true
+		input := &model.AppInput{
+			Name:   appName,
+			Paused: &b,
+		}
+
+		var respData struct {
+			updateApp *model.TuberApp
+		}
+
+		gql := `
+			mutation($input: AppInput!) {
+				updateApp(input: $input) {
+					name
+				}
+			}
+		`
+
+		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 	},
 }
 

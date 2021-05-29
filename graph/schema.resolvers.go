@@ -49,6 +49,10 @@ func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) 
 		app.ImageTag = input.ImageTag
 	}
 
+	if input.Paused != nil {
+		app.Paused = *input.Paused
+	}
+
 	if err := r.Resolver.db.SaveApp(app); err != nil {
 		return nil, fmt.Errorf("Could not save changes: %v", err)
 	}
