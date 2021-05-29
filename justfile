@@ -1,5 +1,6 @@
 run *args:
-    go run main.go {{args}}
+  echo $TUBER_PREFIX
+  go run main.go {{args}}
 
 build:
   go build
@@ -10,6 +11,10 @@ protoc:
 gen:
   go generate ./...
   cd pkg/adminserver/web && yarn generate
+
+web *args:
+  echo $TUBER_PREFIX
+  cd pkg/adminserver/web && yarn {{args}}
 
 local-image:
   docker build . -t tuber

@@ -1,17 +1,14 @@
 const WindiCSSWebpackPlugin = require('windicss-webpack-plugin').default
 
+const TUBER_PREFIX = process.env.TUBER_PREFIX || '/tuber'
+
 module.exports = {
 	webpack: config => {
-		config.plugins.push(new WindiCSSWebpackPlugin({
-			scan: {
-				dirs:    ['./', './pages'],
-				exclude: ['node_modules', '.git', '.next/**/*'],
-			},
-		}))
-
+		config.plugins.push(new WindiCSSWebpackPlugin())
 		return config
 	},
 
 	trailingSlash: true,
-	basePath:      process.env.TUBER_PREFIX || '/tuber',
+	basePath:      TUBER_PREFIX,
+	env:           { TUBER_PREFIX },
 }
