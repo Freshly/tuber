@@ -109,10 +109,27 @@ var appsDestroyCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("unimplemented in graphql")
-		// appName := args[0]
-		//
-		// return core.DestroyTuberApp(appName)
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+		appName := args[0]
+
+		input := &model.AppInput{
+			Name: appName,
+		}
+
+		var respData struct {
+			destoryApp *model.TuberApp
+		}
+
+		gql := `
+			mutation($input: AppInput!) {
+				destroyApp(input: $input) {
+					name
+				}
+			}
+		`
+
+		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 	},
 }
 

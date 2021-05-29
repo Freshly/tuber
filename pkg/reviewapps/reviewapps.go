@@ -130,16 +130,15 @@ func DeleteReviewApp(ctx context.Context, db *core.DB, reviewAppName string, cre
 	if err != nil {
 		return fmt.Errorf("review app not found")
 	}
-	if !app.ReviewApp {
-		return fmt.Errorf("review app not found")
+
+	if app.TriggerID != "" {
+		err = deleteReviewAppTrigger(ctx, credentials, projectName, app.TriggerID)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = deleteReviewAppTrigger(ctx, credentials, projectName, app.TriggerID)
-	if err != nil {
-		return err
-	}
-
-	return db.DeleteApp(app)
+	return core.DestroyTuberApp(db, app)
 }
 
 // yoinked from https://gitlab.com/gitlab-org/gitlab-runner/-/blob/0e2ae0001684f681ff901baa85e0d63ec7838568/executors/kubernetes/util.go#L23

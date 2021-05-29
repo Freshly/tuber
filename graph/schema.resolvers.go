@@ -15,7 +15,7 @@ import (
 	"github.com/freshly/tuber/pkg/reviewapps"
 )
 
-func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
+func (r *mutationResolver) CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	err := core.NewAppSetup(input.Name, input.IsIstio)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput)
 	return &model.TuberApp{}, nil
 }
 
-func (r *mutationResolver) UpdateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
+func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -54,12 +54,17 @@ func (r *mutationResolver) UpdateApp(ctx context.Context, input *model.AppInput)
 	return app, nil
 }
 
-func (r *mutationResolver) RemoveApp(ctx context.Context, key string) (*model.TuberApp, error) {
+func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := reviewapps.DeleteReviewApp(ctx, r.Resolver.db, input.Name, r.Resolver.credentials, r.Resolver.projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: input.Name}, nil
 }
 
 func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error) {

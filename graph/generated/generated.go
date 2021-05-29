@@ -45,12 +45,12 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateApp       func(childComplexity int, input *model.AppInput) int
+		CreateApp       func(childComplexity int, input model.AppInput) int
 		CreateReviewApp func(childComplexity int, input model.CreateReviewAppInput) int
-		DestroyApp      func(childComplexity int, key string) int
-		RemoveApp       func(childComplexity int, key string) int
+		DestroyApp      func(childComplexity int, input model.AppInput) int
+		RemoveApp       func(childComplexity int, input model.AppInput) int
 		SetAppVar       func(childComplexity int, input model.SetAppVarInput) int
-		UpdateApp       func(childComplexity int, input *model.AppInput) int
+		UpdateApp       func(childComplexity int, input model.AppInput) int
 	}
 
 	Query struct {
@@ -97,10 +97,10 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error)
-	UpdateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error)
-	RemoveApp(ctx context.Context, key string) (*model.TuberApp, error)
-	DestroyApp(ctx context.Context, key string) (*model.TuberApp, error)
+	CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	UpdateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	RemoveApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error)
 	SetAppVar(ctx context.Context, input model.SetAppVarInput) (*model.TuberApp, error)
 }
@@ -137,7 +137,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateApp(childComplexity, args["input"].(*model.AppInput)), true
+		return e.complexity.Mutation.CreateApp(childComplexity, args["input"].(model.AppInput)), true
 
 	case "Mutation.createReviewApp":
 		if e.complexity.Mutation.CreateReviewApp == nil {
@@ -161,7 +161,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DestroyApp(childComplexity, args["key"].(string)), true
+		return e.complexity.Mutation.DestroyApp(childComplexity, args["input"].(model.AppInput)), true
 
 	case "Mutation.removeApp":
 		if e.complexity.Mutation.RemoveApp == nil {
@@ -173,7 +173,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RemoveApp(childComplexity, args["key"].(string)), true
+		return e.complexity.Mutation.RemoveApp(childComplexity, args["input"].(model.AppInput)), true
 
 	case "Mutation.setAppVar":
 		if e.complexity.Mutation.SetAppVar == nil {
@@ -197,7 +197,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateApp(childComplexity, args["input"].(*model.AppInput)), true
+		return e.complexity.Mutation.UpdateApp(childComplexity, args["input"].(model.AppInput)), true
 
 	case "Query.getApp":
 		if e.complexity.Query.GetApp == nil {
@@ -501,10 +501,10 @@ input SetAppVarInput {
 }
 
 type Mutation {
-  createApp(input: AppInput): TuberApp
-  updateApp(input: AppInput): TuberApp
-  removeApp(key: ID!): TuberApp
-  destroyApp(key: ID!): TuberApp
+  createApp(input: AppInput!): TuberApp
+  updateApp(input: AppInput!): TuberApp
+  removeApp(input: AppInput!): TuberApp
+  destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetAppVarInput!): TuberApp
 }
@@ -524,10 +524,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.AppInput
+	var arg0 model.AppInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalOAppInput2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -554,30 +554,30 @@ func (ec *executionContext) field_Mutation_createReviewApp_args(ctx context.Cont
 func (ec *executionContext) field_Mutation_destroyApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["key"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+	var arg0 model.AppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["key"] = arg0
+	args["input"] = arg0
 	return args, nil
 }
 
 func (ec *executionContext) field_Mutation_removeApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["key"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+	var arg0 model.AppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["key"] = arg0
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -599,10 +599,10 @@ func (ec *executionContext) field_Mutation_setAppVar_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_updateApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.AppInput
+	var arg0 model.AppInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalOAppInput2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -704,7 +704,7 @@ func (ec *executionContext) _Mutation_createApp(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateApp(rctx, args["input"].(*model.AppInput))
+		return ec.resolvers.Mutation().CreateApp(rctx, args["input"].(model.AppInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -743,7 +743,7 @@ func (ec *executionContext) _Mutation_updateApp(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateApp(rctx, args["input"].(*model.AppInput))
+		return ec.resolvers.Mutation().UpdateApp(rctx, args["input"].(model.AppInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -782,7 +782,7 @@ func (ec *executionContext) _Mutation_removeApp(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RemoveApp(rctx, args["key"].(string))
+		return ec.resolvers.Mutation().RemoveApp(rctx, args["input"].(model.AppInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -821,7 +821,7 @@ func (ec *executionContext) _Mutation_destroyApp(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DestroyApp(rctx, args["key"].(string))
+		return ec.resolvers.Mutation().DestroyApp(rctx, args["input"].(model.AppInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3578,6 +3578,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx context.Context, v interface{}) (model.AppInput, error) {
+	res, err := ec.unmarshalInputAppInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4011,14 +4016,6 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalOAppInput2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx context.Context, v interface{}) (*model.AppInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputAppInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

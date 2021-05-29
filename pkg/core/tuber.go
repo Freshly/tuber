@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	yamls "github.com/freshly/tuber/data/tuberapps"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
@@ -8,13 +10,12 @@ import (
 
 // DestroyTuberApp deletes all resources for the given app on the current cluster
 func DestroyTuberApp(db *DB, app *model.TuberApp) error {
-	err := k8s.Delete("namespace", app.Name, app.Name)
-	if err != nil {
-		return err
+	if err := k8s.Delete("namespace", app.Name, app.Name); err != nil {
+		return fmt.Errorf("k8s.Delete failed: %v", err)
 	}
-	err = db.DeleteApp(app)
-	if err != nil {
-		return err
+
+	if err := db.DeleteApp(app); err != nil {
+		return fmt.Errorf("db.DeleteApp failed: %v", err)
 	}
 
 	return nil

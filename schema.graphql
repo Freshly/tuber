@@ -63,10 +63,10 @@ input SetAppVarInput {
 }
 
 type Mutation {
-  createApp(input: AppInput): TuberApp
-  updateApp(input: AppInput): TuberApp
-  removeApp(key: ID!): TuberApp
-  destroyApp(key: ID!): TuberApp
+  createApp(input: AppInput!): TuberApp
+  updateApp(input: AppInput!): TuberApp
+  removeApp(input: AppInput!): TuberApp
+  destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetAppVarInput!): TuberApp
 }
