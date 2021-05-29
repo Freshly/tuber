@@ -102,11 +102,9 @@ func create(cmd *cobra.Command, args []string) error {
 	sourceAppName := args[0]
 	branchName := args[1]
 
-	canDeploy, err := k8s.CanDeploy(sourceAppName)
-	if err != nil {
+	if canDeploy, err := k8s.CanDeploy(sourceAppName); err != nil {
 		return err
-	}
-	if !canDeploy {
+	} else if !canDeploy {
 		return fmt.Errorf("not permitted to create a review app from %s", sourceAppName)
 	}
 
