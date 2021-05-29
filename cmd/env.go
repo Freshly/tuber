@@ -11,7 +11,6 @@ import (
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var envCmd = &cobra.Command{
@@ -104,25 +103,27 @@ func envSet(cmd *cobra.Command, args []string) error {
 func envUnset(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	key := args[1]
-	mapName := fmt.Sprintf("%s-env", appName)
 
-	logger, err := createLogger()
-	if err != nil {
-		return err
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	input := &model.SetTupleInput{
+		Name: appName,
+		Key:  key,
 	}
 
-	logger.Info("env: unset",
-		zap.String("name", appName),
-		zap.String("key", key),
-		zap.String("action", "change_env"),
-	)
-
-	err = k8s.RemoveSecretEntry(mapName, appName, key)
-	if err != nil {
-		return err
+	var respData struct {
+		setAppEnv *model.TuberApp
 	}
 
-	return k8s.Restart("deployments", appName)
+	gql := `
+		mutation($input: SetTupleInput!) {
+			unsetAppEnv(input: $input) {
+				name
+			}
+		}
+	`
+
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 func envGet(cmd *cobra.Command, args []string) (err error) {

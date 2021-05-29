@@ -70,6 +70,7 @@ type Mutation {
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp
   setAppEnv(input: SetTupleInput!): TuberApp
+  unsetAppEnv(input: SetTupleInput!): TuberApp
 }
 
 schema {

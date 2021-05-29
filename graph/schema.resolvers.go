@@ -133,6 +133,20 @@ func (r *mutationResolver) SetAppEnv(ctx context.Context, input model.SetTupleIn
 	return &model.TuberApp{Name: input.Name}, nil
 }
 
+func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	mapName := fmt.Sprintf("%s-env", input.Name)
+
+	if err := k8s.RemoveSecretEntry(mapName, input.Name, input.Key); err != nil {
+		return nil, err
+	}
+
+	if err := k8s.Restart("deployments", input.Name); err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: input.Name}, nil
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
 	return r.Resolver.db.App(name)
 }
