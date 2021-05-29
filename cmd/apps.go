@@ -124,29 +124,31 @@ var appsDestroyCmd = &cobra.Command{
 	Short:        "destroy an app from the current cluster",
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	RunE:         destroyApp,
+}
 
-		appName := args[0]
+func destroyApp(cmd *cobra.Command, args []string) error {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 
-		input := &model.AppInput{
-			Name: appName,
-		}
+	appName := args[0]
 
-		var respData struct {
-			destoryApp *model.TuberApp
-		}
+	input := &model.AppInput{
+		Name: appName,
+	}
 
-		gql := `
-			mutation($input: AppInput!) {
-				destroyApp(input: $input) {
-					name
-				}
+	var respData struct {
+		destroyApp *model.TuberApp
+	}
+
+	gql := `
+		mutation($input: AppInput!) {
+			destroyApp(input: $input) {
+				name
 			}
-		`
+		}
+	`
 
-		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
-	},
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 var appsListCmd = &cobra.Command{
