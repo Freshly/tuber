@@ -72,16 +72,11 @@ func localDevServer(res http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(res, req)
 }
 
-func init() {
-	viper.SetDefault("prefix", "/tuber")
-}
-
 func prefix(p string) string {
 	return fmt.Sprintf("%s%s", viper.GetString("prefix"), p)
 }
 
 func (s server) start() error {
-
 	mux := http.NewServeMux()
 	mux.HandleFunc(prefix("/graphql/playground"), playground.Handler("GraphQL playground", prefix("/graphql")))
 	mux.Handle(prefix("/graphql"), graph.Handler(s.db, s.logger, s.creds, s.triggersProjectName))

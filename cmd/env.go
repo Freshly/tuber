@@ -1,14 +1,15 @@
 package cmd
 
 import (
-	"encoding/base64"
+	"context"
 	"fmt"
-	"sort"
 
+	"github.com/freshly/tuber/graph"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/goccy/go-yaml"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 var envCmd = &cobra.Command{
@@ -74,89 +75,117 @@ func envSet(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	key := args[1]
 	value := args[2]
-	mapName := fmt.Sprintf("%s-env", appName)
 
-	logger, err := createLogger()
-	if err != nil {
-		return err
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	input := &model.SetTupleInput{
+		Name:  appName,
+		Key:   key,
+		Value: value,
 	}
 
-	logger.Info("env: set",
-		zap.String("name", appName),
-		zap.String("key", key),
-		zap.String("action", "change_env"),
-	)
-
-	err = k8s.PatchSecret(mapName, appName, key, value)
-	if err != nil {
-		return err
+	var respData struct {
+		setAppEnv *model.TuberApp
 	}
-	return k8s.Restart("deployments", appName)
+
+	gql := `
+		mutation($input: SetTupleInput!) {
+			setAppEnv(input: $input) {
+				name
+			}
+		}
+	`
+
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 func envUnset(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	key := args[1]
-	mapName := fmt.Sprintf("%s-env", appName)
 
-	logger, err := createLogger()
-	if err != nil {
-		return err
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	input := &model.SetTupleInput{
+		Name: appName,
+		Key:  key,
 	}
 
-	logger.Info("env: unset",
-		zap.String("name", appName),
-		zap.String("key", key),
-		zap.String("action", "change_env"),
-	)
-
-	err = k8s.RemoveSecretEntry(mapName, appName, key)
-	if err != nil {
-		return err
+	var respData struct {
+		setAppEnv *model.TuberApp
 	}
 
-	return k8s.Restart("deployments", appName)
+	gql := `
+		mutation($input: SetTupleInput!) {
+			unsetAppEnv(input: $input) {
+				name
+			}
+		}
+	`
+
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
-func envGet(cmd *cobra.Command, args []string) (err error) {
+func envGet(cmd *cobra.Command, args []string) error {
 	appName := args[0]
-	mapName := fmt.Sprintf("%s-env", appName)
 	key := args[1]
-	config, err := k8s.GetConfigResource(mapName, appName, "Secret")
 
+	m, err := getAllEnvGraphqlQuery(appName)
 	if err != nil {
-		return
+		return err
 	}
 
-	v := config.Data[key]
-	decoded, err := base64.StdEncoding.DecodeString(v)
-
-	if err != nil {
-		return
-	}
-
-	fmt.Println(string(decoded))
-	return
+	fmt.Println(m[key])
+	return nil
 }
 
 func envList(cmd *cobra.Command, args []string) error {
 	appName := args[0]
-	mapName := fmt.Sprintf("%s-env", appName)
-	config, err := k8s.GetSecret(appName, mapName)
+
+	m, err := getAllEnvGraphqlQuery(appName)
 	if err != nil {
 		return err
 	}
 
-	var list []string
-	for k, v := range config.Data {
-		list = append(list, k+`: "`+v+`"`)
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return err
 	}
 
-	sort.Strings(list)
-	for _, v := range list {
-		fmt.Println(v)
-	}
+	fmt.Print(string(data))
 	return nil
+}
+
+func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	gql := `
+		query($name: String!) {
+			getApp(name: $name) {
+				name
+
+				env {
+					key
+					value
+				}
+			}
+		}
+	`
+
+	var respData struct {
+		GetApp *model.TuberApp
+	}
+
+	if err := graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName)); err != nil {
+		return nil, err
+	}
+
+	m := make(map[string]string)
+
+	for _, tuple := range respData.GetApp.Env {
+		m[tuple.Key] = tuple.Value
+	}
+
+	return m, nil
 }
 
 func init() {

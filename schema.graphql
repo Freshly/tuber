@@ -21,12 +21,14 @@ type TuberApp {
   triggerID: String!
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
+  env: [Tuple!] @goField(forceResolver: true)
 }
 
 input AppInput {
   name: ID!
   isIstio: Boolean!
   imageTag: String!
+  paused: Boolean
 }
 
 type State {
@@ -56,24 +58,21 @@ input CreateReviewAppInput {
   branchName: String!
 }
 
-input SetAppVarInput {
+input SetTupleInput {
   name: ID!
   key: String!
   value: String!
 }
 
 type Mutation {
-  createApp(input: AppInput): TuberApp
-  updateApp(key: ID!, input: AppInput): TuberApp
-  removeApp(key: ID!): TuberApp
-  destroyApp(key: ID!): TuberApp
+  createApp(input: AppInput!): TuberApp
+  updateApp(input: AppInput!): TuberApp
+  removeApp(input: AppInput!): TuberApp
+  destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
-  setAppVar(input: SetAppVarInput!): TuberApp
-}
-
-schema {
-  query: Query
-  mutation: Mutation
+  setAppVar(input: SetTupleInput!): TuberApp
+  setAppEnv(input: SetTupleInput!): TuberApp
+  unsetAppEnv(input: SetTupleInput!): TuberApp
 }
 
 schema {

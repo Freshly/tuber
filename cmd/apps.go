@@ -3,11 +3,10 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"sort"
 
-	"github.com/freshly/tuber/graph/client"
+	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/olekukonko/tablewriter"
 
@@ -29,8 +28,7 @@ var appsInstallCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
-
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 		appName := args[0]
 		imageTag := args[1]
 
@@ -41,60 +39,51 @@ var appsInstallCmd = &cobra.Command{
 		}
 
 		var respData struct {
-			createApp []model.TuberApp
+			createApp []*model.TuberApp
 		}
 
 		gql := `
-			mutation($input: AppInput) {
+			mutation($input: AppInput!) {
 				createApp(input: $input) {
 					name
 				}
 			}
 		`
 
-		return graphql.Mutation(context.Background(), gql, nil, input, respData)
+		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 	},
 }
 
-var appsSetBranchCmd = &cobra.Command{
+var appsSetImageTagCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "set-branch [app name] [branch name]",
-	Short:        "set the branch to deploy the app from",
+	Use:          "set-tag [app name ] [image tag]",
+	Short:        "set the docker image tag to deploy the app from",
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("unimplemented in graphql")
-		// appName := args[0]
-		// branch := args[1]
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 
-		// app, err := core.FindApp(appName)
-		//
-		// if err != nil {
-		// 	return err
-		// }
-		//
-		// return core.AddSourceAppConfig(appName, app.Repo, branch)
-	},
-}
+		appName := args[0]
+		imageTag := args[1]
 
-var appsSetRepoCmd = &cobra.Command{
-	SilenceUsage: true,
-	Use:          "set-repo [app name] [docker repo]",
-	Short:        "set the docker repo to listen to for changes",
-	Args:         cobra.ExactArgs(2),
-	PreRunE:      promptCurrentContext,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("unimplemented in graphql")
-		// appName := args[0]
-		// repo := args[1]
-		//
-		// app, err := core.FindApp(appName)
-		//
-		// if err != nil {
-		// 	return err
-		// }
-		//
-		// return core.AddSourceAppConfig(appName, repo, app.Tag)
+		input := &model.AppInput{
+			Name:     appName,
+			ImageTag: imageTag,
+		}
+
+		var respData struct {
+			updateApp *model.TuberApp
+		}
+
+		gql := `
+			mutation($input: AppInput!) {
+				updateApp(input: $input) {
+					name
+				}
+			}
+		`
+
+		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 	},
 }
 
@@ -105,10 +94,27 @@ var appsRemoveCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("unimplemented in graphql")
-		// appName := args[0]
-		//
-		// return core.RemoveSourceAppConfig(appName)
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+		appName := args[0]
+
+		input := &model.AppInput{
+			Name: appName,
+		}
+
+		var respData struct {
+			destoryApp *model.TuberApp
+		}
+
+		gql := `
+			mutation($input: AppInput!) {
+				removeApp(input: $input) {
+					name
+				}
+			}
+		`
+
+		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 	},
 }
 
@@ -118,12 +124,31 @@ var appsDestroyCmd = &cobra.Command{
 	Short:        "destroy an app from the current cluster",
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("unimplemented in graphql")
-		// appName := args[0]
-		//
-		// return core.DestroyTuberApp(appName)
-	},
+	RunE:         destroyApp,
+}
+
+func destroyApp(cmd *cobra.Command, args []string) error {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	appName := args[0]
+
+	input := &model.AppInput{
+		Name: appName,
+	}
+
+	var respData struct {
+		destroyApp *model.TuberApp
+	}
+
+	gql := `
+		mutation($input: AppInput!) {
+			destroyApp(input: $input) {
+				name
+			}
+		}
+	`
+
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 var appsListCmd = &cobra.Command{
@@ -131,7 +156,7 @@ var appsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List tuberapps",
 	RunE: func(*cobra.Command, []string) (err error) {
-		graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 
 		gql := `
 			query {
@@ -187,6 +212,5 @@ func init() {
 	appsCmd.AddCommand(appsRemoveCmd)
 	appsCmd.AddCommand(appsDestroyCmd)
 	appsCmd.AddCommand(appsListCmd)
-	appsCmd.AddCommand(appsSetBranchCmd)
-	appsCmd.AddCommand(appsSetRepoCmd)
+	appsCmd.AddCommand(appsSetImageTagCmd)
 }

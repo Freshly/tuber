@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/freshly/tuber/graph/client"
+	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
@@ -46,48 +46,49 @@ func db() (*core.DB, error) {
 }
 
 func getApp(appName string) (*model.TuberApp, error) {
-	graphql := client.New(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 	gql := `
-query {
-	getApp {
-		cloudSourceRepo
-		imageTag
-		name
-		paused
-		reviewApp
-		reviewAppsConfig{
-			enabled
-			vars {
-				key
-				value
-			}
-			skips {
-				kind
+		query {
+			getApp {
+				cloudSourceRepo
+				imageTag
 				name
+				paused
+				reviewApp
+				reviewAppsConfig{
+					enabled
+					vars {
+						key
+						value
+					}
+					skips {
+						kind
+						name
+					}
+				}
+				slackChanne
+				sourceAppName
+				state {
+					current {
+						kind
+						name
+						encoded
+					}
+					previous {
+						kind
+						name
+						encoded
+					}
+				}
+				triggerID
+				vars {
+					key
+					value
+				}
 			}
 		}
-		slackChanne
-		sourceAppName
-		state {
-			current {
-				kind
-				name
-				encoded
-			}
-			previous {
-				kind
-				name
-				encoded
-			}
-		}
-		triggerID
-		vars {
-			key
-			value
-		}
-	}
-}
-`
+	`
+
 	var respData struct {
 		GetApp *model.TuberApp
 	}

@@ -1,4 +1,4 @@
-package client
+package graph
 
 import (
 	"context"
@@ -12,11 +12,13 @@ type GraphqlClient struct {
 	client *graphql.Client
 }
 
-func New(clusterURL string) *GraphqlClient {
-	graphqlURL := viper.GetString("graphql-url")
+func NewClient(clusterURL string) *GraphqlClient {
+	graphqlURL := viper.GetString("graphql-host")
 
 	if graphqlURL == "" {
-		graphqlURL = clusterURL + "/graphql"
+		graphqlURL = clusterURL + viper.GetString("prefix") + "/graphql"
+	} else {
+		graphqlURL = graphqlURL + viper.GetString("prefix") + "/graphql"
 	}
 
 	client := graphql.NewClient(graphqlURL)
@@ -27,11 +29,32 @@ func New(clusterURL string) *GraphqlClient {
 	}
 }
 
-func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{}) error {
+type callOption struct {
+	vars map[string]string
+}
+
+type callOptionFunc func() callOption
+
+func WithVar(key string, val string) callOptionFunc {
+	return func() callOption {
+		return callOption{
+			vars: map[string]string{key: val},
+		}
+	}
+}
+
+func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{}, options ...callOptionFunc) error {
 	req := graphql.NewRequest(gql)
 
-	// set any variables
-	// req.Var("key", "value")
+	for _, option := range options {
+		res := option()
+
+		if res.vars != nil {
+			for k, v := range res.vars {
+				req.Var(k, v)
+			}
+		}
+	}
 
 	// set header fields
 	req.Header.Set("Cache-Control", "no-cache")

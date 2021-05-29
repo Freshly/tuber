@@ -6,6 +6,7 @@ type AppInput struct {
 	Name     string `json:"name"`
 	IsIstio  bool   `json:"isIstio"`
 	ImageTag string `json:"imageTag"`
+	Paused   *bool  `json:"paused"`
 }
 
 type CreateReviewAppInput struct {
@@ -25,7 +26,7 @@ type ReviewAppsConfig struct {
 	Skips   []*Resource `json:"skips"`
 }
 
-type SetAppVarInput struct {
+type SetTupleInput struct {
 	Name  string `json:"name"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
@@ -49,6 +50,7 @@ type TuberApp struct {
 	TriggerID        string            `json:"triggerID"`
 	Vars             []*Tuple          `json:"vars"`
 	ReviewApps       []*TuberApp       `json:"reviewApps"`
+	Env              []*Tuple          `json:"env"`
 }
 
 type Tuple struct {

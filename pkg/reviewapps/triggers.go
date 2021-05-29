@@ -52,10 +52,8 @@ func deleteReviewAppTrigger(ctx context.Context, creds []byte, project string, t
 
 	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
 
-	deleteCall := service.Delete(project, triggerID)
-	_, err = deleteCall.Do()
-	if err != nil {
-		return err
+	if _, err := service.Delete(project, triggerID).Do(); err != nil {
+		return fmt.Errorf("failed to delete on cloudbuild api: %v", err)
 	}
 
 	return nil

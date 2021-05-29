@@ -2,11 +2,16 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
 
+	"github.com/freshly/tuber/graph"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
-	"github.com/freshly/tuber/pkg/proto"
 	"github.com/freshly/tuber/pkg/reviewapps"
+	"github.com/olekukonko/tablewriter"
 
 	"github.com/spf13/cobra"
 )
@@ -32,119 +37,111 @@ var reviewAppsDeleteCmd = &cobra.Command{
 	RunE:         delete,
 }
 
+var reviewAppsListCmd = &cobra.Command{
+	SilenceUsage: true,
+	Use:          "list [source app name]",
+	Short:        "Delete a review app",
+	Args:         cobra.ExactArgs(1),
+	RunE:         listReviewApps,
+}
+
+func listReviewApps(cmd *cobra.Command, args []string) (err error) {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	appName := args[0]
+
+	gql := `
+		query($name: String!) {
+			getApp(name: $name) {
+				name
+
+				reviewApps {
+					name
+					imageTag
+				}
+			}
+		}
+	`
+
+	var respData struct {
+		GetApp *model.TuberApp
+	}
+
+	if err := graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName)); err != nil {
+		return err
+	}
+
+	apps := respData.GetApp.ReviewApps
+
+	sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
+
+	if jsonOutput {
+		out, err := json.Marshal(apps)
+
+		if err != nil {
+			return err
+		}
+
+		os.Stdout.Write(out)
+
+		return nil
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Name", "Image"})
+	table.SetBorder(false)
+
+	for _, app := range apps {
+		table.Append([]string{app.Name, app.ImageTag})
+	}
+
+	table.Render()
+	return nil
+}
+
 func create(cmd *cobra.Command, args []string) error {
 	sourceAppName := args[0]
-	branch := args[1]
+	branchName := args[1]
 
-	tuberConf, err := getTuberConfig()
-	if err != nil {
+	if canDeploy, err := k8s.CanDeploy(sourceAppName); err != nil {
 		return err
-	}
-
-	clusterConf := tuberConf.CurrentClusterConfig()
-	if clusterConf.URL == "" {
-		return fmt.Errorf("no tuber url found for current cluster. run `tuber config`")
-	}
-
-	client, conn, err := reviewapps.NewClient(clusterConf.URL)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	// TODO: convert to graphql
-	// _, err = core.FindApp(sourceAppName)
-	// if err != nil {
-	// 	return fmt.Errorf("source app not found")
-	// }
-
-	canDeploy, err := k8s.CanDeploy(sourceAppName)
-	if err != nil {
-		return err
-	}
-	if !canDeploy {
+	} else if !canDeploy {
 		return fmt.Errorf("not permitted to create a review app from %s", sourceAppName)
 	}
 
-	config, err := k8s.GetConfig()
-	if err != nil {
-		return err
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	appName := args[0]
+
+	input := &model.CreateReviewAppInput{
+		Name:       appName,
+		BranchName: branchName,
 	}
 
-	req := proto.CreateReviewAppRequest{
-		AppName: sourceAppName,
-		Branch:  branch,
-		Token:   config.AccessToken,
+	var respData struct {
+		destoryApp *model.TuberApp
 	}
 
-	res, err := client.CreateReviewApp(context.Background(), &req)
-	if err != nil {
-		return err
-	}
+	gql := `
+		mutation($input: CreateReviewAppInput!) {
+			createReviewApp(input: $input) {
+				name
+			}
+		}
+	`
 
-	if res.Error != "" {
-		return fmt.Errorf(res.Error)
-	}
-
-	fmt.Println("Created review app")
-	fmt.Println(res.Hostname)
-
-	return nil
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 func delete(cmd *cobra.Command, args []string) error {
 	sourceAppName := args[0]
 	branch := args[1]
 	reviewAppName := reviewapps.ReviewAppName(sourceAppName, branch)
-
-	tuberConf, err := getTuberConfig()
-	if err != nil {
-		return err
-	}
-
-	clusterConf := tuberConf.CurrentClusterConfig()
-	if clusterConf.URL == "" {
-		return fmt.Errorf("no tuber url found for current cluster. run `tuber config`")
-	}
-
-	client, conn, err := reviewapps.NewClient(clusterConf.URL)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	// TODO: convert to graphql
-	// _, err = core.FindReviewApp(reviewAppName)
-	// if err != nil {
-	// 	return fmt.Errorf("review app not found")
-	// }
-
-	config, err := k8s.GetConfig()
-	if err != nil {
-		return err
-	}
-
-	req := proto.DeleteReviewAppRequest{
-		AppName: reviewAppName,
-		Token:   config.AccessToken,
-	}
-
-	res, err := client.DeleteReviewApp(context.Background(), &req)
-	if err != nil {
-		return err
-	}
-
-	if res.Error != "" {
-		return fmt.Errorf(res.Error)
-	}
-
-	fmt.Println("Deleted review app")
-
-	return nil
+	return destroyApp(cmd, []string{reviewAppName})
 }
 
 func init() {
 	rootCmd.AddCommand(reviewAppsCmd)
 	reviewAppsCmd.AddCommand(reviewAppsCreateCmd)
 	reviewAppsCmd.AddCommand(reviewAppsDeleteCmd)
+	reviewAppsCmd.AddCommand(reviewAppsListCmd)
 }

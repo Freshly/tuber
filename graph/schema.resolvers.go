@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -12,10 +13,11 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/db"
+	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
 )
 
-func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput) (*model.TuberApp, error) {
+func (r *mutationResolver) CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	err := core.NewAppSetup(input.Name, input.IsIstio)
 	if err != nil {
 		return nil, err
@@ -33,16 +35,48 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input *model.AppInput)
 	return &model.TuberApp{}, nil
 }
 
-func (r *mutationResolver) UpdateApp(ctx context.Context, key string, input *model.AppInput) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("Could not find app.")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.ImageTag != "" {
+		app.ImageTag = input.ImageTag
+	}
+
+	if input.Paused != nil {
+		app.Paused = *input.Paused
+	}
+
+	if err := r.Resolver.db.SaveApp(app); err != nil {
+		return nil, fmt.Errorf("Could not save changes: %v", err)
+	}
+
+	return app, nil
 }
 
-func (r *mutationResolver) RemoveApp(ctx context.Context, key string) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	app := &model.TuberApp{Name: input.Name}
+	err := r.Resolver.db.DeleteApp(app)
+	if err != nil {
+		return nil, err
+	}
+
+	return app, nil
 }
 
-func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := reviewapps.DeleteReviewApp(ctx, r.Resolver.db, input.Name, r.Resolver.credentials, r.Resolver.projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: input.Name}, nil
 }
 
 func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error) {
@@ -56,7 +90,7 @@ func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.Crea
 	}, nil
 }
 
-func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetAppVarInput) (*model.TuberApp, error) {
+func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -90,16 +124,67 @@ func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetAppVarI
 	return app, nil
 }
 
+func (r *mutationResolver) SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	mapName := fmt.Sprintf("%s-env", input.Name)
+
+	if err := k8s.PatchSecret(mapName, input.Name, input.Key, input.Value); err != nil {
+		return nil, err
+	}
+
+	if err := k8s.Restart("deployments", input.Name); err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: input.Name}, nil
+}
+
+func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	mapName := fmt.Sprintf("%s-env", input.Name)
+
+	if err := k8s.RemoveSecretEntry(mapName, input.Name, input.Key); err != nil {
+		return nil, err
+	}
+
+	if err := k8s.Restart("deployments", input.Name); err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: input.Name}, nil
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
 	return r.Resolver.db.App(name)
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	return r.Resolver.db.Apps()
+	return r.Resolver.db.SourceApps()
 }
 
 func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
 	return r.db.ReviewAppsFor(obj)
+}
+
+func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error) {
+	mapName := fmt.Sprintf("%s-env", obj.Name)
+	config, err := k8s.GetConfigResource(mapName, obj.Name, "Secret")
+
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]*model.Tuple, 0)
+
+	for k, ev := range config.Data {
+		v, err := base64.StdEncoding.DecodeString(ev)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not decode value for %s: %v", k, err)
+		}
+
+		list = append(list, &model.Tuple{Key: k, Value: string(v)})
+	}
+
+	return list, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -114,13 +199,3 @@ func (r *Resolver) TuberApp() generated.TuberAppResolver { return &tuberAppResol
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type tuberAppResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) DeleteApp(ctx context.Context, appID string) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
-}
