@@ -55,7 +55,13 @@ func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) 
 }
 
 func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+	app := &model.TuberApp{Name: input.Name}
+	err := r.Resolver.db.DeleteApp(app)
+	if err != nil {
+		return nil, err
+	}
+
+	return app, nil
 }
 
 func (r *mutationResolver) DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {

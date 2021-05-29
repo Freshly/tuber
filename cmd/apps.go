@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"sort"
 
@@ -44,8 +43,8 @@ var appsInstallCmd = &cobra.Command{
 		}
 
 		gql := `
-			mutation($input: AppInput) {
-				updateApp(input: $input) {
+			mutation($input: AppInput!) {
+				createApp(input: $input) {
 					name
 				}
 			}
@@ -77,7 +76,7 @@ var appsSetImageTagCmd = &cobra.Command{
 		}
 
 		gql := `
-			mutation($input: AppInput) {
+			mutation($input: AppInput!) {
 				updateApp(input: $input) {
 					name
 				}
@@ -95,10 +94,27 @@ var appsRemoveCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return fmt.Errorf("unimplemented in graphql")
-		// appName := args[0]
-		//
-		// return core.RemoveSourceAppConfig(appName)
+		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+		appName := args[0]
+
+		input := &model.AppInput{
+			Name: appName,
+		}
+
+		var respData struct {
+			destoryApp *model.TuberApp
+		}
+
+		gql := `
+			mutation($input: AppInput!) {
+				removeApp(input: $input) {
+					name
+				}
+			}
+		`
+
+		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 	},
 }
 
