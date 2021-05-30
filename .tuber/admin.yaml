@@ -58,7 +58,6 @@ spec:
             - "/app/tuber"
           args:
             - "adminserver"
-            - "-y"
       volumes:
         - name: tuber-credentials
           secret:
