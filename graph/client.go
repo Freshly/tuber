@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/freshly/tuber/pkg/iap"
 	"github.com/machinebox/graphql"
 	"github.com/spf13/viper"
 )
@@ -56,8 +57,13 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 		}
 	}
 
-	// set header fields
+	token, err := iap.CreateIDToken()
+	if err != nil {
+		return err
+	}
+
 	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	if err := g.client.Run(ctx, req, &target); err != nil {
 		return err
@@ -77,8 +83,13 @@ func (g *GraphqlClient) Mutation(ctx context.Context, gql string, key *int, inpu
 		req.Var("input", input)
 	}
 
-	// set header fields
+	token, err := iap.CreateIDToken()
+	if err != nil {
+		return err
+	}
+
 	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	if err := g.client.Run(ctx, req, &target); err != nil {
 		return err

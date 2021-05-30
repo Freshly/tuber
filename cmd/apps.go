@@ -155,6 +155,7 @@ var appsListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list",
 	Short:        "List tuberapps",
+	PreRunE:      displayCurrentContext,
 	RunE: func(*cobra.Command, []string) (err error) {
 		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 

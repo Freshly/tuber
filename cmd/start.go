@@ -2,17 +2,13 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
-	"github.com/freshly/tuber/pkg/reviewapps"
-	"github.com/freshly/tuber/pkg/server"
 	"github.com/freshly/tuber/pkg/slack"
 
 	"github.com/spf13/cobra"
@@ -25,10 +21,9 @@ func init() {
 }
 
 var startCmd = &cobra.Command{
-	Use:     "start",
-	Short:   "Start tuber's pub/sub server",
-	RunE:    start,
-	PreRunE: promptCurrentContext,
+	Use:   "start",
+	Short: "Start tuber's pub/sub server",
+	RunE:  start,
 }
 
 // Attaches interrupt and terminate signals to a cancel function
@@ -98,10 +93,6 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	if viper.GetBool("reviewapps-enabled") {
-		go startReviewAppsServer(logger, db, creds)
-	}
-
 	err = listener.Start()
 	if err != nil {
 		startupLogger.Warn("listener shutdown", zap.Error(err))
@@ -112,26 +103,4 @@ func start(cmd *cobra.Command, args []string) error {
 	<-ctx.Done()
 	logger.Info("Shutting down...")
 	return nil
-}
-
-func startReviewAppsServer(logger *zap.Logger, db *core.DB, creds []byte) {
-	logger = logger.With(zap.String("action", "grpc"))
-
-	projectName := viper.GetString("review-apps-triggers-project-name")
-	if projectName == "" {
-		err := fmt.Errorf("no reviewapps project name configured")
-		logger.Error("grpc server failed to start: no reviewapps project name configured")
-		report.Error(err, report.Scope{"during": "grpc server startup"})
-		panic(err)
-	}
-
-	srv := reviewapps.NewServer(logger, creds, db, viper.GetString("cluster-default-host"), projectName)
-
-	logger.Debug("starting GRPC server")
-	err := server.Start(3000, srv)
-	if err != nil {
-		logger.Error("grpc server failed to start")
-		report.Error(err, report.Scope{"during": "grpc server startup"})
-		panic(err)
-	}
 }

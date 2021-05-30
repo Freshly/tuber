@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
+	"github.com/freshly/tuber/pkg/iap"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
 
@@ -243,7 +245,19 @@ func tuberConfigDir() (string, error) {
 	return filepath.Join(basePath, "tuber"), nil
 }
 
+func checkAuth() error {
+	if !iap.RefreshTokenExists() {
+		return errors.New("Tuber is not authorized. Please run `tuber auth`")
+	}
+
+	return nil
+}
+
 func promptCurrentContext(cmd *cobra.Command, args []string) error {
+	if err := checkAuth(); err != nil {
+		return err
+	}
+
 	skipConfirmation, err := cmd.Flags().GetBool("confirm")
 	if err != nil {
 		return err
@@ -276,6 +290,10 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 }
 
 func displayCurrentContext(cmd *cobra.Command, args []string) error {
+	if err := checkAuth(); err != nil {
+		return err
+	}
+
 	skipConfirmation, err := cmd.Flags().GetBool("confirm")
 	if err != nil {
 		return err
