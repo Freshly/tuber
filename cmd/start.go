@@ -93,6 +93,8 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
+	go startAdminServer(ctx, db, logger, creds)
+
 	err = listener.Start()
 	if err != nil {
 		startupLogger.Warn("listener shutdown", zap.Error(err))
