@@ -10,6 +10,8 @@ spec:
   selector:
     matchLabels:
       app: tuber
+  strategy:
+    type: Recreate
   template:
     metadata:
       annotations:
@@ -19,16 +21,30 @@ spec:
     spec:
       serviceAccountName: tuber
       containers:
-      - image: "{{ .tuberImage }}"
-        name: tuber
-        volumeMounts:
-          - name: tuber-credentials
-            readOnly: true
-            mountPath: "/etc/tuber-credentials"
-        envFrom:
-          - secretRef:
-              name: tuber-env
+        - image: "{{ .tuberImage }}"
+          name: tuber
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: tuber-credentials
+              readOnly: true
+              mountPath: "/etc/tuber-credentials"
+            - name: tuber-bolt
+              mountPath: "/etc/tuber-bolt"
+          envFrom:
+            - secretRef:
+                name: tuber-env
+          ports:
+            - 3000
       volumes:
         - name: tuber-credentials
           secret:
             secretName: tuber-credentials.json
+        - name: tuber-bolt
+          persistentVolumeClaim:
+            claimName: tuber

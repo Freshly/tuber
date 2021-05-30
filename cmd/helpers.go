@@ -36,14 +36,17 @@ func db() (*core.DB, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		path = wd + "/localbolt"
 	} else {
 		path = "/etc/tuber-bolt/db"
 	}
+
 	database, err := tuberbolt.NewDefaultDB(path, model.TuberApp{}.DBRoot())
 	if err != nil {
 		return nil, err
 	}
+
 	return core.NewDB(database), nil
 }
 
