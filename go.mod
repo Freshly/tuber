@@ -5,7 +5,7 @@ go 1.16
 require (
 	cloud.google.com/go/pubsub v1.10.1
 	github.com/99designs/gqlgen v0.13.0
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/getsentry/sentry-go v0.10.0
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-http-utils/logger v0.0.0-20161128092850-f3a42dcdeae6
@@ -21,9 +21,8 @@ require (
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
 	go.etcd.io/bbolt v1.3.5
-	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
+	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602
 	google.golang.org/api v0.43.0
 	google.golang.org/grpc v1.36.1 // indirect
