@@ -115,7 +115,8 @@ func clusterData() (*core.ClusterData, error) {
 	defaultHost := viper.GetString("cluster-default-host")
 	adminGateway := viper.GetString("cluster-admin-gateway")
 	adminHost := viper.GetString("cluster-admin-host")
-	if defaultGateway == "" || defaultHost == "" {
+
+	if defaultGateway == "" || defaultHost == "" || adminGateway == "" || adminHost == "" {
 		config, err := k8s.GetSecret("tuber", "tuber-env")
 		if err != nil {
 			return nil, err

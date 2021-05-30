@@ -73,11 +73,12 @@ func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
 			break
 		}
 	}
+
 	return tuberYamls, nil
 }
 
 func findTuberYamls(layer v1.Layer) (*AppYamls, error) {
-	var yamls AppYamls
+	var yamls *AppYamls
 	uncompressed, err := layer.Uncompressed()
 	if err != nil {
 		return nil, err
@@ -86,7 +87,7 @@ func findTuberYamls(layer v1.Layer) (*AppYamls, error) {
 	for {
 		header, err := archive.Next()
 		if err == io.EOF {
-			return &yamls, nil
+			return yamls, nil
 		}
 
 		if err != nil {
@@ -101,6 +102,11 @@ func findTuberYamls(layer v1.Layer) (*AppYamls, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			if yamls == nil {
+				yamls = &AppYamls{}
+			}
+
 			if strings.HasPrefix(fileName, ".tuber/prerelease/") {
 				yamls.Prerelease = append(yamls.Prerelease, string(raw))
 			} else if strings.HasPrefix(fileName, ".tuber/postrelease/") {

@@ -44,7 +44,7 @@ spec:
             - secretRef:
                 name: tuber-env
           ports:
-            - 3000
+            - containerPort: 3000
       volumes:
         - name: tuber-credentials
           secret:
