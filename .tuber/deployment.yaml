@@ -23,6 +23,10 @@ spec:
       containers:
         - image: "{{ .tuberImage }}"
           name: tuber
+          command:
+            - "/app/tuber"
+            - "start"
+            - "--debug"
           resources:
             requests:
               memory: "64Mi"
