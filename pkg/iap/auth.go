@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/freshly/tuber/pkg/iap/internal"
@@ -17,8 +18,17 @@ import (
 
 var refreshTokenFile string
 
+func mustTuberConfigDir() string {
+	basePath, err := os.UserConfigDir()
+	if err != nil {
+		panic(err)
+	}
+
+	return filepath.Join(basePath, "tuber")
+}
+
 func init() {
-	refreshTokenFile = path.Join(os.Getenv("HOME"), ".config", "tuber", "refresh_token")
+	refreshTokenFile = path.Join(mustTuberConfigDir(), "refresh_token")
 }
 
 func RefreshTokenExists() bool {
