@@ -746,6 +746,8 @@ export const DestroyAppDocument = gql`
 export function useDestroyAppMutation() {
   return Urql.useMutation<DestroyAppMutation, DestroyAppMutationVariables>(DestroyAppDocument);
 };
+
+
 export const GetAppDocument = gql`
     query GetApp($name: String!) {
   getApp(name: $name) {
