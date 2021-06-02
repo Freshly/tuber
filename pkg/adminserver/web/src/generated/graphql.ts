@@ -139,6 +139,19 @@ export type CreateReviewAppMutation = (
   )> }
 );
 
+export type DestroyAppMutationVariables = Exact<{
+  key: Scalars['ID'];
+}>;
+
+
+export type DestroyAppMutation = (
+  { __typename?: 'Mutation' }
+  & { destroyApp?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+  )> }
+);
+
 export type GetAppQueryVariables = Exact<{
   name: Scalars['String'];
 }>;
@@ -721,6 +734,17 @@ export const CreateReviewAppDocument = gql`
 
 export function useCreateReviewAppMutation() {
   return Urql.useMutation<CreateReviewAppMutation, CreateReviewAppMutationVariables>(CreateReviewAppDocument);
+};
+export const DestroyAppDocument = gql`
+    mutation DestroyApp($key: ID!) {
+  destroyApp(key: $key) {
+    name
+  }
+}
+    `;
+
+export function useDestroyAppMutation() {
+  return Urql.useMutation<DestroyAppMutation, DestroyAppMutationVariables>(DestroyAppDocument);
 };
 export const GetAppDocument = gql`
     query GetApp($name: String!) {

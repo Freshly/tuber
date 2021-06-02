@@ -1,0 +1,5 @@
+mutation DestroyApp($key: ID!) {
+  destroyApp(key: $key) {
+    name
+  }
+}

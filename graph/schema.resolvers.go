@@ -42,7 +42,12 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, key string) (*model.Tu
 }
 
 func (r *mutationResolver) DestroyApp(ctx context.Context, key string) (*model.TuberApp, error) {
-	panic(fmt.Errorf("not implemented"))
+	err := reviewapps.DeleteReviewApp(ctx, r.Resolver.db, key, r.Resolver.credentials, r.Resolver.projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TuberApp{Name: key}, nil
 }
 
 func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error) {
