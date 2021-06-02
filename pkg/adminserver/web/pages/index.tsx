@@ -9,7 +9,11 @@ const HomePage = () => {
 	return <>
 		{data.getApps.map(app =>
 			<div key={app.name}>
-				<Link href={`/apps/${app.name}`}>{app.name}</Link>
+				<Link href={`/apps/${app.name}`} passHref>
+					<a className="hover:bg-white block p-2 leading-4">
+						{app.name}
+					</a>
+				</Link>
 			</div>,
 		)}
 	</>

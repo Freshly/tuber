@@ -1,4 +1,4 @@
-mutation SetAppVar($input: SetAppVarInput!) {
+mutation SetAppVar($input: SetTupleInput!) {
   setAppVar(input: $input) {
     name
 
