@@ -72,7 +72,8 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) 
 
 func (r *mutationResolver) DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	err := reviewapps.DeleteReviewApp(ctx, r.Resolver.db, input.Name, r.Resolver.credentials, r.Resolver.projectName)
-	if err != nil {
+
+  if err != nil {
 		return nil, err
 	}
 
