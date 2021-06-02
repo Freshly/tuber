@@ -1,11 +1,10 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { FC, useRef, useState } from 'react'
-import { Heading } from '../../src/components'
-import { TextInput } from '../../src/components/TextInput'
-import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, SetAppVarMutation, Exact, SetTupleInput } from '../../src/generated/graphql'
+import { Heading, TextInput } from '../../src/components'
+import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, SetAppVarMutation, Exact, SetTupleInput, useDestroyAppMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
-import { PencilAltIcon, PlusCircleIcon, SaveIcon } from '@heroicons/react/outline'
+import { PencilAltIcon, PlusCircleIcon, SaveIcon, TrashIcon } from '@heroicons/react/outline'
 import { UseMutationResponse } from 'urql'
 
 const CreateForm = ({ app }) => {
@@ -27,7 +26,7 @@ const CreateForm = ({ app }) => {
 		{error && <div className="bg-red-700 text-white border-red-700 p-2">
 			{error.message}
 		</div>}
-		<TextInput name="branchName" ref={branchNameRef} placeholder="branch name" />
+		<TextInput name="branchName" ref={branchNameRef} placeholder="branch name" required />
 		<button type="submit" className="rounded-sm p-1 underline">Create</button>
 	</form>
 }
@@ -99,6 +98,7 @@ const ShowApp = () => {
 	const router = useRouter()
 	const id = router.query.id as string
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
+	const [{ error }, destroy] = useDestroyAppMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
 	const [addNew, setAddNew] = useState<boolean>(false)
 
@@ -112,17 +112,22 @@ const ShowApp = () => {
 		{app.reviewApp || <>
 			<Heading>Create a review app</Heading>
 			<CreateForm app={app} />
-
 			<Heading>Review apps</Heading>
+			{error && <div className="bg-red-700 text-white border-red-700 p-2">
+				{error.message}
+			</div>}
 			{app.reviewApps && app.reviewApps.map(reviewApp =>
-				<div key={reviewApp.name}>{reviewApp.name}</div>,
+				<div key={reviewApp.name}>
+					<span>{reviewApp.name}</span>
+					<TrashIcon className="w-5" onClick={() => destroy({ key: reviewApp.name })}/>
+				</div>,
 			)}
 
 			<Heading>YAML Interpolation Vars</Heading>
 			{app.vars.map(appVar => <AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppVarMutation} />)}
 
 			{addNew
-				? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} />
+				? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppVarMutation} />
 				: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
 		</>}
 	</div>

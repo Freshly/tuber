@@ -72,6 +72,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	triggerID, err := CreateAndRunTrigger(ctx, logger, credentials, projectName, branch, sourceApp.CloudSourceRepo, reviewAppName)
 	if err != nil {
+		logger.Error("failed to create or run review app", zap.Error(err))
 		triggerCleanupErr := deleteReviewAppTrigger(ctx, credentials, projectName, triggerID)
 		if triggerCleanupErr != nil {
 			logger.Error("error removing trigger", zap.Error(triggerCleanupErr))
