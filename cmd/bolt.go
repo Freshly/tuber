@@ -68,6 +68,9 @@ func pullLocalDB(db *core.DB) error {
 
 	for _, configApp := range configApps {
 		appState, err := currentState(configApp)
+		if err != nil {
+			return err
+		}
 
 		app := &model.TuberApp{
 			ImageTag:     configApp.ImageTag,
@@ -235,9 +238,7 @@ func getallconfigapps() ([]*model.TuberApp, error) {
 	}
 	var configapps []*model.TuberApp
 
-	for _, app := range sourceApps {
-		configapps = append(configapps, app)
-	}
+	configapps = append(configapps, sourceApps...)
 
 	if viper.GetBool("reviewapps-enabled") {
 		reviewAppsConfig, err := k8s.GetConfigResource("tuber-review-apps", "tuber", "ConfigMap")
@@ -250,9 +251,7 @@ func getallconfigapps() ([]*model.TuberApp, error) {
 			return nil, err
 		}
 
-		for _, app := range reviewApps {
-			configapps = append(configapps, app)
-		}
+		configapps = append(configapps, reviewApps...)
 	}
 
 	return configapps, nil
