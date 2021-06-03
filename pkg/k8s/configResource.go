@@ -47,7 +47,7 @@ func (c *ConfigResource) Save(namespace string) (err error) {
 func GetConfigResource(name string, namespace string, kind string) (config *ConfigResource, err error) {
 	result, err := Get(strings.ToLower(kind), name, namespace, "-o", "json")
 	if err != nil {
-		return nil, fmt.Errorf("Could not kubectl get %s %s: %v", kind, name, err)
+		return nil, fmt.Errorf("could not kubectl get %s %s: %v", kind, name, err)
 	}
 
 	var k8sc k8sConfigResource

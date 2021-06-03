@@ -39,7 +39,7 @@ func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) 
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
-			return nil, errors.New("Could not find app.")
+			return nil, errors.New("could not find app")
 		}
 
 		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
@@ -54,7 +54,7 @@ func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) 
 	}
 
 	if err := r.Resolver.db.SaveApp(app); err != nil {
-		return nil, fmt.Errorf("Could not save changes: %v", err)
+		return nil, fmt.Errorf("could not save changes: %v", err)
 	}
 
 	return app, nil
@@ -95,7 +95,7 @@ func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleIn
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
-			return nil, errors.New("Could not find app.")
+			return nil, errors.New("could not find app")
 		}
 
 		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
@@ -119,7 +119,7 @@ func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleIn
 	}
 
 	if err := r.Resolver.db.SaveApp(app); err != nil {
-		return nil, fmt.Errorf("Could not save changes: %v", err)
+		return nil, fmt.Errorf("could not save changes: %v", err)
 	}
 
 	return app, nil

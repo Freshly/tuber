@@ -60,6 +60,9 @@ func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
 	var tuberYamls *AppYamls
 	for i := len(layers) - 1; i >= 0; i-- {
 		size, err := layers[i].Size()
+		if err != nil {
+			return nil, err
+		}
 		if size > maxSize {
 			continue
 		}

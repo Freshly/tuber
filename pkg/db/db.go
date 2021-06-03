@@ -30,7 +30,6 @@ func NewDB(path string, filemode os.FileMode, boltOptions *bolt.Options, startup
 			errChan <- err
 		}
 		dbChan <- db
-		return
 	}(dbChan, errChan)
 
 	select {
@@ -288,13 +287,13 @@ func validateAndNormalize(m Model, query Query) (map[string]string, error) {
 
 	strings, bools, ints := m.DBIndexes()
 	var indexKeys []string
-	for k, _ := range strings {
+	for k := range strings {
 		indexKeys = append(indexKeys, k)
 	}
-	for k, _ := range bools {
+	for k := range bools {
 		indexKeys = append(indexKeys, k)
 	}
-	for k, _ := range ints {
+	for k := range ints {
 		indexKeys = append(indexKeys, k)
 	}
 

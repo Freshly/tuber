@@ -47,7 +47,7 @@ type Event struct {
 	tag        string
 	logger     *zap.Logger
 	errorScope report.Scope
-	sha        string
+	// sha        string
 }
 
 func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
@@ -144,5 +144,4 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	p.slackClient.Message(logger, ":white_check_mark: release complete for "+app.Name)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
-	return
 }

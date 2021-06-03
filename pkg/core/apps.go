@@ -5,11 +5,10 @@ import (
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/db"
-	tuberbolt "github.com/freshly/tuber/pkg/db"
 )
 
 type DB struct {
-	db *tuberbolt.DB
+	db *db.DB
 }
 
 func NewDB(db *db.DB) *DB {

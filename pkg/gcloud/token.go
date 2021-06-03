@@ -18,6 +18,9 @@ func GetAccessToken(credentials []byte) (accessToken string, err error) {
 
 	ctx := context.Background()
 	token, err := config.TokenSource(ctx).Token()
+	if err != nil {
+		return "", err
+	}
 
 	return token.AccessToken, nil
 }

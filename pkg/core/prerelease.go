@@ -33,6 +33,7 @@ func RunPrerelease(resources []appResource, app *model.TuberApp) error {
 
 		return k8s.Delete("pod", resource.name, app.Name)
 	}
+
 	return fmt.Errorf("unhandled prerelease run exit")
 }
 
