@@ -84,8 +84,6 @@ func CreateIDToken() (string, error) {
 		return "", err
 	}
 
-	spew.Dump(token)
-
 	vals, ok := token.Raw.(map[string]interface{})
 	if !ok {
 		return "", errors.New("could not assert raw token values")

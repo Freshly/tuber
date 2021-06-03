@@ -12,3 +12,12 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           golangci_lint_flags: "-E golint goimports"
+  go-build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - run: go build

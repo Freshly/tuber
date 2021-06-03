@@ -1,5 +1,4 @@
 run *args:
-  echo $TUBER_PREFIX
   go run main.go {{args}}
 
 build:
