@@ -153,6 +153,10 @@ func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTuple
 	return &model.TuberApp{Name: input.Name}, nil
 }
 
+func (r *mutationResolver) ExcludedResources(ctx context.Context) ([]*model.Resource, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
 	return r.Resolver.db.App(name)
 }

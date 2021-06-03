@@ -45,14 +45,15 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateApp       func(childComplexity int, input model.AppInput) int
-		CreateReviewApp func(childComplexity int, input model.CreateReviewAppInput) int
-		DestroyApp      func(childComplexity int, input model.AppInput) int
-		RemoveApp       func(childComplexity int, input model.AppInput) int
-		SetAppEnv       func(childComplexity int, input model.SetTupleInput) int
-		SetAppVar       func(childComplexity int, input model.SetTupleInput) int
-		UnsetAppEnv     func(childComplexity int, input model.SetTupleInput) int
-		UpdateApp       func(childComplexity int, input model.AppInput) int
+		CreateApp         func(childComplexity int, input model.AppInput) int
+		CreateReviewApp   func(childComplexity int, input model.CreateReviewAppInput) int
+		DestroyApp        func(childComplexity int, input model.AppInput) int
+		ExcludedResources func(childComplexity int) int
+		RemoveApp         func(childComplexity int, input model.AppInput) int
+		SetAppEnv         func(childComplexity int, input model.SetTupleInput) int
+		SetAppVar         func(childComplexity int, input model.SetTupleInput) int
+		UnsetAppEnv       func(childComplexity int, input model.SetTupleInput) int
+		UpdateApp         func(childComplexity int, input model.AppInput) int
 	}
 
 	Query struct {
@@ -67,9 +68,9 @@ type ComplexityRoot struct {
 	}
 
 	ReviewAppsConfig struct {
-		Enabled func(childComplexity int) int
-		Skips   func(childComplexity int) int
-		Vars    func(childComplexity int) int
+		Enabled           func(childComplexity int) int
+		ExcludedResources func(childComplexity int) int
+		Vars              func(childComplexity int) int
 	}
 
 	State struct {
@@ -108,6 +109,7 @@ type MutationResolver interface {
 	SetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
+	ExcludedResources(ctx context.Context) ([]*model.Resource, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -168,6 +170,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DestroyApp(childComplexity, args["input"].(model.AppInput)), true
+
+	case "Mutation.excludedResources":
+		if e.complexity.Mutation.ExcludedResources == nil {
+			break
+		}
+
+		return e.complexity.Mutation.ExcludedResources(childComplexity), true
 
 	case "Mutation.removeApp":
 		if e.complexity.Mutation.RemoveApp == nil {
@@ -276,12 +285,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ReviewAppsConfig.Enabled(childComplexity), true
 
-	case "ReviewAppsConfig.skips":
-		if e.complexity.ReviewAppsConfig.Skips == nil {
+	case "ReviewAppsConfig.excludedResources":
+		if e.complexity.ReviewAppsConfig.ExcludedResources == nil {
 			break
 		}
 
-		return e.complexity.ReviewAppsConfig.Skips(childComplexity), true
+		return e.complexity.ReviewAppsConfig.ExcludedResources(childComplexity), true
 
 	case "ReviewAppsConfig.vars":
 		if e.complexity.ReviewAppsConfig.Vars == nil {
@@ -520,7 +529,7 @@ type Resource {
 type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
-  skips: [Resource!]!
+  excludedResources: [Resource!]!
 }
 
 type Query {
@@ -548,6 +557,7 @@ type Mutation {
   setAppVar(input: SetTupleInput!): TuberApp
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
+  excludedResources: [Resource!]!
 }
 
 schema {
@@ -1062,6 +1072,41 @@ func (ec *executionContext) _Mutation_unsetAppEnv(ctx context.Context, field gra
 	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_excludedResources(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ExcludedResources(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Resource)
+	fc.Result = res
+	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_getApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1382,7 +1427,7 @@ func (ec *executionContext) _ReviewAppsConfig_vars(ctx context.Context, field gr
 	return ec.marshalNTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ReviewAppsConfig_skips(ctx context.Context, field graphql.CollectedField, obj *model.ReviewAppsConfig) (ret graphql.Marshaler) {
+func (ec *executionContext) _ReviewAppsConfig_excludedResources(ctx context.Context, field graphql.CollectedField, obj *model.ReviewAppsConfig) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1400,7 +1445,7 @@ func (ec *executionContext) _ReviewAppsConfig_skips(ctx context.Context, field g
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Skips, nil
+		return obj.ExcludedResources, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3237,6 +3282,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_setAppEnv(ctx, field)
 		case "unsetAppEnv":
 			out.Values[i] = ec._Mutation_unsetAppEnv(ctx, field)
+		case "excludedResources":
+			out.Values[i] = ec._Mutation_excludedResources(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3361,8 +3411,8 @@ func (ec *executionContext) _ReviewAppsConfig(ctx context.Context, sel ast.Selec
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "skips":
-			out.Values[i] = ec._ReviewAppsConfig_skips(ctx, field, obj)
+		case "excludedResources":
+			out.Values[i] = ec._ReviewAppsConfig_excludedResources(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
