@@ -36,7 +36,7 @@ func RunPrerelease(resources []appResource, app *model.TuberApp) error {
 		}
 	}
 
-	return fmt.Errorf("unhandled prerelease run exit")
+	return nil
 }
 
 func waitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout time.Duration) error {
