@@ -123,35 +123,35 @@ const ShowApp = () => {
 
 				{app.reviewApps && app.reviewApps.map(reviewApp =>
 					<div key={reviewApp.name}>
-						<span>{reviewApp.name}</span>
+						<a href={`/tuber/apps/${reviewApp.name}`}>{reviewApp.name}</a>
 						<TrashIcon className="w-5" onClick={() => destroyApp({ input: { name: reviewApp.name } })}/>
 					</div>,
 				)}
 			</div>
-
-			<div className="border-b pb-2 mb-2">
-				<Heading>YAML Interpolation Vars</Heading>
-				{app.vars.map(appVar => <AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppVarMutation} />)}
-
-				{addNew
-					? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppVarMutation} />
-					: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
-			</div>
-
-			<div className="border-b pb-2 mb-2">
-				<Heading> Environment Variables </Heading>
-				{app.env.map(appVar =>
-					<div key={appVar.key}>
-						<AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppEnvMutation} />
-						<TrashIcon className="w-5" onClick={() => unsetAppEnv({ input: { name: app.name, key: appVar.key, value: appVar.value } })}/>
-					</div>,
-				)}
-
-				{addNew
-					? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppEnvMutation} />
-					: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
-			</div>
 		</>}
+
+		<div className="border-b pb-2 mb-2">
+			<Heading>YAML Interpolation Vars</Heading>
+			{app.vars.map(appVar => <AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppVarMutation} />)}
+
+			{addNew
+				? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppVarMutation} />
+				: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
+		</div>
+
+		<div className="border-b pb-2 mb-2">
+			<Heading> Environment Variables </Heading>
+			{app.env.map(appVar =>
+				<div key={appVar.key}>
+					<AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppEnvMutation} />
+					<TrashIcon className="w-5" onClick={() => unsetAppEnv({ input: { name: app.name, key: appVar.key, value: appVar.value } })}/>
+				</div>,
+			)}
+
+			{addNew
+				? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppEnvMutation} />
+				: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
+		</div>
 	</div>
 }
 
