@@ -2,7 +2,7 @@
 import { useRouter } from 'next/dist/client/router'
 import React, { FC, useRef, useState } from 'react'
 import { Heading, TextInput } from '../../src/components'
-import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, SetAppVarMutation, Exact, SetTupleInput, useDestroyAppMutation } from '../../src/generated/graphql'
+import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, useSetAppEnvMutation, Exact, SetTupleInput, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
 import { PencilAltIcon, PlusCircleIcon, SaveIcon, TrashIcon } from '@heroicons/react/outline'
 import { UseMutationResponse } from 'urql'
@@ -98,7 +98,8 @@ const ShowApp = () => {
 	const router = useRouter()
 	const id = router.query.id as string
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
-	const [{ error }, destroy] = useDestroyAppMutation()
+	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
+	const [{ error: unsetAppVarError }, unsetAppEnv] = useUnsetAppEnvMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
 	const [addNew, setAddNew] = useState<boolean>(false)
 
@@ -116,14 +117,14 @@ const ShowApp = () => {
 				<Heading>Create a review app</Heading>
 				<CreateForm app={app} />
 				<Heading>Review apps</Heading>
-				{error && <div className="bg-red-700 text-white border-red-700 p-2">
-					{error.message}
+				{destroyAppError && <div className="bg-red-700 text-white border-red-700 p-2">
+					{destroyAppError.message}
 				</div>}
 
 				{app.reviewApps && app.reviewApps.map(reviewApp =>
 					<div key={reviewApp.name}>
 						<span>{reviewApp.name}</span>
-						<TrashIcon className="w-5" onClick={() => destroy({ input: { name: reviewApp.name } })}/>
+						<TrashIcon className="w-5" onClick={() => destroyApp({ input: { name: reviewApp.name } })}/>
 					</div>,
 				)}
 			</div>
@@ -134,6 +135,20 @@ const ShowApp = () => {
 
 				{addNew
 					? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppVarMutation} />
+					: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
+			</div>
+
+			<div className="border-b pb-2 mb-2">
+				<Heading> Environment Variables </Heading>
+				{app.env.map(appVar =>
+					<div key={appVar.key}>
+						<AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppEnvMutation} />
+						<TrashIcon className="w-5" onClick={() => unsetAppEnv({ input: { name: app.name, key: appVar.key, value: appVar.value } })}/>
+					</div>,
+				)}
+
+				{addNew
+					? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppEnvMutation} />
 					: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
 			</div>
 		</>}
