@@ -31,5 +31,6 @@ module.exports = {
 		'object-curly-spacing':      ['error', 'always'],
 		'key-spacing':               ['error', { align: 'value' }],
 		'comma-spacing':             ['error'],
+		'react/prop-types':          'off',
 	},
 }
