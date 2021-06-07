@@ -8,6 +8,11 @@ query GetFullApp($name: String!) {
       value
     }
 
+    env {
+      key
+      value
+    }
+
     reviewApps {
       name
     }
