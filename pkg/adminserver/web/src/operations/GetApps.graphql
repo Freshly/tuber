@@ -1,5 +1,7 @@
 query GetApps {
   getApps {
     name
+    paused
+    imageTag
   }
 }

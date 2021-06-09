@@ -186,7 +186,7 @@ export type GetAppsQuery = (
   { __typename?: 'Query' }
   & { getApps: Array<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name'>
+    & Pick<TuberApp, 'name' | 'paused' | 'imageTag'>
   )> }
 );
 
@@ -881,6 +881,8 @@ export const GetAppsDocument = gql`
     query GetApps {
   getApps {
     name
+    paused
+    imageTag
   }
 }
     `;

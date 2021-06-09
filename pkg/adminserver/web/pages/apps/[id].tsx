@@ -42,7 +42,7 @@ const ShowApp = () => {
 	const [addNew, setAddNew] = useState<boolean>(false)
 
 	return <div>
-		<div className="border-b pb-2 mb-2">
+		<div className="border-b-2 pb-2 mb-2">
 			<Heading>{app.name}</Heading>
 
 			<p>
