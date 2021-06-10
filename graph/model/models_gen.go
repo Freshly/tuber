@@ -21,9 +21,8 @@ type Resource struct {
 }
 
 type ReviewAppsConfig struct {
-	Enabled           bool        `json:"enabled"`
-	Vars              []*Tuple    `json:"vars"`
-	ExcludedResources []*Resource `json:"excludedResources"`
+	Enabled bool     `json:"enabled"`
+	Vars    []*Tuple `json:"vars"`
 }
 
 type SetTupleInput struct {
@@ -38,19 +37,20 @@ type State struct {
 }
 
 type TuberApp struct {
-	CloudSourceRepo  string            `json:"cloudSourceRepo"`
-	ImageTag         string            `json:"imageTag"`
-	Name             string            `json:"name"`
-	Paused           bool              `json:"paused"`
-	ReviewApp        bool              `json:"reviewApp"`
-	ReviewAppsConfig *ReviewAppsConfig `json:"reviewAppsConfig"`
-	SlackChannel     string            `json:"slackChannel"`
-	SourceAppName    string            `json:"sourceAppName"`
-	State            *State            `json:"state"`
-	TriggerID        string            `json:"triggerID"`
-	Vars             []*Tuple          `json:"vars"`
-	ReviewApps       []*TuberApp       `json:"reviewApps"`
-	Env              []*Tuple          `json:"env"`
+	CloudSourceRepo   string            `json:"cloudSourceRepo"`
+	ImageTag          string            `json:"imageTag"`
+	Name              string            `json:"name"`
+	Paused            bool              `json:"paused"`
+	ReviewApp         bool              `json:"reviewApp"`
+	ReviewAppsConfig  *ReviewAppsConfig `json:"reviewAppsConfig"`
+	SlackChannel      string            `json:"slackChannel"`
+	SourceAppName     string            `json:"sourceAppName"`
+	State             *State            `json:"state"`
+	TriggerID         string            `json:"triggerID"`
+	Vars              []*Tuple          `json:"vars"`
+	ReviewApps        []*TuberApp       `json:"reviewApps"`
+	Env               []*Tuple          `json:"env"`
+	ExcludedResources []*Resource       `json:"excludedResources"`
 }
 
 type Tuple struct {

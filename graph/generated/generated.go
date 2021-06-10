@@ -69,9 +69,8 @@ type ComplexityRoot struct {
 	}
 
 	ReviewAppsConfig struct {
-		Enabled           func(childComplexity int) int
-		ExcludedResources func(childComplexity int) int
-		Vars              func(childComplexity int) int
+		Enabled func(childComplexity int) int
+		Vars    func(childComplexity int) int
 	}
 
 	State struct {
@@ -80,19 +79,20 @@ type ComplexityRoot struct {
 	}
 
 	TuberApp struct {
-		CloudSourceRepo  func(childComplexity int) int
-		Env              func(childComplexity int) int
-		ImageTag         func(childComplexity int) int
-		Name             func(childComplexity int) int
-		Paused           func(childComplexity int) int
-		ReviewApp        func(childComplexity int) int
-		ReviewApps       func(childComplexity int) int
-		ReviewAppsConfig func(childComplexity int) int
-		SlackChannel     func(childComplexity int) int
-		SourceAppName    func(childComplexity int) int
-		State            func(childComplexity int) int
-		TriggerID        func(childComplexity int) int
-		Vars             func(childComplexity int) int
+		CloudSourceRepo   func(childComplexity int) int
+		Env               func(childComplexity int) int
+		ExcludedResources func(childComplexity int) int
+		ImageTag          func(childComplexity int) int
+		Name              func(childComplexity int) int
+		Paused            func(childComplexity int) int
+		ReviewApp         func(childComplexity int) int
+		ReviewApps        func(childComplexity int) int
+		ReviewAppsConfig  func(childComplexity int) int
+		SlackChannel      func(childComplexity int) int
+		SourceAppName     func(childComplexity int) int
+		State             func(childComplexity int) int
+		TriggerID         func(childComplexity int) int
+		Vars              func(childComplexity int) int
 	}
 
 	Tuple struct {
@@ -299,13 +299,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ReviewAppsConfig.Enabled(childComplexity), true
 
-	case "ReviewAppsConfig.excludedResources":
-		if e.complexity.ReviewAppsConfig.ExcludedResources == nil {
-			break
-		}
-
-		return e.complexity.ReviewAppsConfig.ExcludedResources(childComplexity), true
-
 	case "ReviewAppsConfig.vars":
 		if e.complexity.ReviewAppsConfig.Vars == nil {
 			break
@@ -340,6 +333,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TuberApp.Env(childComplexity), true
+
+	case "TuberApp.excludedResources":
+		if e.complexity.TuberApp.ExcludedResources == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.ExcludedResources(childComplexity), true
 
 	case "TuberApp.imageTag":
 		if e.complexity.TuberApp.ImageTag == nil {
@@ -520,6 +520,7 @@ type TuberApp {
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
   env: [Tuple!] @goField(forceResolver: true)
+  excludedResources: [Resource!]!
 }
 
 input AppInput {
@@ -543,7 +544,6 @@ type Resource {
 type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
-  excludedResources: [Resource!]!
 }
 
 type Query {
@@ -1496,41 +1496,6 @@ func (ec *executionContext) _ReviewAppsConfig_vars(ctx context.Context, field gr
 	return ec.marshalNTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ReviewAppsConfig_excludedResources(ctx context.Context, field graphql.CollectedField, obj *model.ReviewAppsConfig) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ReviewAppsConfig",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ExcludedResources, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Resource)
-	fc.Result = res
-	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _State_Current(ctx context.Context, field graphql.CollectedField, obj *model.State) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2045,6 +2010,41 @@ func (ec *executionContext) _TuberApp_env(ctx context.Context, field graphql.Col
 	res := resTmp.([]*model.Tuple)
 	fc.Result = res
 	return ec.marshalOTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_excludedResources(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExcludedResources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Resource)
+	fc.Result = res
+	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tuple_key(ctx context.Context, field graphql.CollectedField, obj *model.Tuple) (ret graphql.Marshaler) {
@@ -3482,11 +3482,6 @@ func (ec *executionContext) _ReviewAppsConfig(ctx context.Context, sel ast.Selec
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "excludedResources":
-			out.Values[i] = ec._ReviewAppsConfig_excludedResources(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3615,6 +3610,11 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 				res = ec._TuberApp_env(ctx, field, obj)
 				return res
 			})
+		case "excludedResources":
+			out.Values[i] = ec._TuberApp_excludedResources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

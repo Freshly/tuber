@@ -108,7 +108,6 @@ export type ReviewAppsConfig = {
   __typename?: 'ReviewAppsConfig';
   enabled: Scalars['Boolean'];
   vars: Array<Tuple>;
-  excludedResources: Array<Resource>;
 };
 
 export type SetTupleInput = {
@@ -138,6 +137,7 @@ export type TuberApp = {
   vars: Array<Tuple>;
   reviewApps?: Maybe<Array<TuberApp>>;
   env?: Maybe<Array<Tuple>>;
+  excludedResources: Array<Resource>;
 };
 
 export type Tuple = {
@@ -620,24 +620,6 @@ export default {
               }
             },
             "args": []
-          },
-          {
-            "name": "excludedResources",
-            "type": {
-              "kind": "NON_NULL",
-              "ofType": {
-                "kind": "LIST",
-                "ofType": {
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "kind": "OBJECT",
-                    "name": "Resource",
-                    "ofType": null
-                  }
-                }
-              }
-            },
-            "args": []
           }
         ],
         "interfaces": []
@@ -841,6 +823,24 @@ export default {
                   "kind": "OBJECT",
                   "name": "Tuple",
                   "ofType": null
+                }
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "excludedResources",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "LIST",
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "Resource",
+                    "ofType": null
+                  }
                 }
               }
             },

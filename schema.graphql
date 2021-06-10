@@ -22,6 +22,7 @@ type TuberApp {
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
   env: [Tuple!] @goField(forceResolver: true)
+  excludedResources: [Resource!]!
 }
 
 input AppInput {
@@ -45,7 +46,6 @@ type Resource {
 type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
-  excludedResources: [Resource!]!
 }
 
 type Query {

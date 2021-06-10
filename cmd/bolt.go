@@ -73,11 +73,12 @@ func pullLocalDB(db *core.DB) error {
 		}
 
 		app := &model.TuberApp{
-			ImageTag:     configApp.ImageTag,
-			Name:         configApp.Name,
-			ReviewApp:    configApp.ReviewApp,
-			SlackChannel: "",
-			Vars:         []*model.Tuple{},
+			ImageTag:          configApp.ImageTag,
+			Name:              configApp.Name,
+			ReviewApp:         configApp.ReviewApp,
+			ExcludedResources: configApp.ExcludedResources,
+			SlackChannel:      "",
+			Vars:              []*model.Tuple{},
 		}
 
 		cloudrepo, err := cloudrepo(app, repos.Data)
@@ -97,7 +98,9 @@ func pullLocalDB(db *core.DB) error {
 		} else {
 			rac.Enabled = reviewAppsEnabled
 			rac.Vars = []*model.Tuple{}
-			rac.ExcludedResources = []*model.Resource{}
+
+			// TODO: move me somewhere?
+			// rac.ExcludedResources = []*model.Resource{}
 		}
 
 		var paused bool
