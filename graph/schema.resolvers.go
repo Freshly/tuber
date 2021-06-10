@@ -125,6 +125,35 @@ func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleIn
 	return app, nil
 }
 
+func (r *mutationResolver) UnsetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if app.Vars == nil {
+		return app, nil
+	}
+
+	var vars []*model.Tuple
+	for _, tuple := range app.Vars {
+		if tuple.Key != input.Key {
+			vars = append(vars, tuple)
+		}
+	}
+	app.Vars = vars
+
+	if err := r.Resolver.db.SaveApp(app); err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
 func (r *mutationResolver) SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
 	mapName := fmt.Sprintf("%s-env", input.Name)
 

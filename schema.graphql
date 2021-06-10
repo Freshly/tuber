@@ -71,6 +71,7 @@ type Mutation {
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp
+  unsetAppVar(input: SetTupleInput!): TuberApp
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   excludedResources: [Resource!]!
