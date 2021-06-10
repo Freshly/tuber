@@ -6,6 +6,7 @@ import (
 	osExec "os/exec"
 	"runtime"
 
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +15,7 @@ var configCmd = &cobra.Command{
 	Use:          "config",
 	Short:        "open local tuber config in your default editor",
 	Args:         cobra.NoArgs,
-	RunE:         config,
+	RunE:         writeConfig,
 }
 
 var defaultTuberConfig = `# clusters:
@@ -23,15 +24,15 @@ var defaultTuberConfig = `# clusters:
 #     url: that_clusters_tuber_url
 `
 
-func config(cmd *cobra.Command, args []string) error {
-	configPath, err := tuberConfigPath()
+func writeConfig(cmd *cobra.Command, args []string) error {
+	configPath, err := config.Path()
 	if err != nil {
 		return err
 	}
 
 	_, err = os.Stat(configPath)
 	if err != nil {
-		dir, err := tuberConfigDir()
+		dir, err := config.Dir()
 		if err != nil {
 			return err
 		}

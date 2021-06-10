@@ -6,6 +6,7 @@ import (
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/goccy/go-yaml"
 
@@ -76,7 +77,7 @@ func envSet(cmd *cobra.Command, args []string) error {
 	key := args[1]
 	value := args[2]
 
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 	input := &model.SetTupleInput{
 		Name:  appName,
@@ -103,7 +104,7 @@ func envUnset(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	key := args[1]
 
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 	input := &model.SetTupleInput{
 		Name: appName,
@@ -156,7 +157,7 @@ func envList(cmd *cobra.Command, args []string) error {
 }
 
 func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 	gql := `
 		query($name: String!) {

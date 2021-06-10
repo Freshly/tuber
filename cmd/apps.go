@@ -8,6 +8,7 @@ import (
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/spf13/cobra"
@@ -28,7 +29,7 @@ var appsInstallCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+		graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 		appName := args[0]
 		imageTag := args[1]
 
@@ -61,7 +62,7 @@ var appsSetImageTagCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+		graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 		appName := args[0]
 		imageTag := args[1]
@@ -94,7 +95,7 @@ var appsRemoveCmd = &cobra.Command{
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+		graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 		appName := args[0]
 
@@ -128,7 +129,7 @@ var appsDestroyCmd = &cobra.Command{
 }
 
 func destroyApp(cmd *cobra.Command, args []string) error {
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 	appName := args[0]
 
@@ -157,7 +158,7 @@ var appsListCmd = &cobra.Command{
 	Short:        "List tuberapps",
 	PreRunE:      displayCurrentContext,
 	RunE: func(*cobra.Command, []string) (err error) {
-		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+		graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 		gql := `
 			query {

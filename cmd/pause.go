@@ -5,6 +5,7 @@ import (
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/config"
 
 	"github.com/spf13/cobra"
 )
@@ -17,7 +18,7 @@ var pauseCmd = &cobra.Command{
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
-		graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+		graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 		b := true
 		input := &model.AppInput{

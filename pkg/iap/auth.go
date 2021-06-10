@@ -7,9 +7,8 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/iap/internal"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -18,37 +17,34 @@ import (
 
 var refreshTokenFile string
 
-func mustTuberConfigDir() string {
-	basePath, err := os.UserConfigDir()
+func init() {
+	dir, err := config.Dir()
 	if err != nil {
 		panic(err)
 	}
 
-	return filepath.Join(basePath, "tuber")
-}
-
-func init() {
-	refreshTokenFile = path.Join(mustTuberConfigDir(), "refresh_token")
+	refreshTokenFile = path.Join(dir, "refresh_token")
 }
 
 func RefreshTokenExists() bool {
-	spew.Dump(refreshTokenFile)
 	_, err := os.Stat(refreshTokenFile)
 	return !os.IsNotExist(err)
 }
 
-func config() *oauth2.Config {
+func newConfig() *oauth2.Config {
+	cnf := config.MustLoad()
+
 	return &oauth2.Config{
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		ClientID:     viper.GetString("oauth-client-id"),
-		ClientSecret: viper.GetString("oauth-client-secret"),
+		ClientID:     cnf.Auth.OAuthClientID,
+		ClientSecret: cnf.Auth.OAuthSecret,
 		Scopes:       []string{"openid", "email"},
 		Endpoint:     google.Endpoint,
 	}
 }
 
 func CreateRefreshToken() error {
-	c := config()
+	c := newConfig()
 
 	fmt.Println("Go to the following URL and paste the code back here, ok?")
 	fmt.Println(c.AuthCodeURL("", oauth2.AccessTypeOffline))
@@ -72,7 +68,7 @@ func CreateIDToken() (string, error) {
 		return "", err
 	}
 
-	c := config()
+	c := newConfig()
 	v := url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {string(refreshToken)},

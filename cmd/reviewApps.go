@@ -9,6 +9,7 @@ import (
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
 	"github.com/olekukonko/tablewriter"
@@ -46,7 +47,7 @@ var reviewAppsListCmd = &cobra.Command{
 }
 
 func listReviewApps(cmd *cobra.Command, args []string) (err error) {
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 	appName := args[0]
 
 	gql := `
@@ -108,7 +109,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not permitted to create a review app from %s", sourceAppName)
 	}
 
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 
 	appName := args[0]
 
