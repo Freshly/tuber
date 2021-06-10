@@ -1,11 +1,10 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { FC, useRef, useState } from 'react'
-import { Heading, TextInput } from '../../src/components'
+import { Heading, TextInput, TextInputGroup } from '../../src/components'
 import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, useSetAppEnvMutation, Exact, SetTupleInput, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
 import { PencilAltIcon, PlusCircleIcon, SaveIcon, TrashIcon } from '@heroicons/react/outline'
-import VarsForm from '../../src/components/VariableSection'
 
 
 const CreateForm = ({ app }) => {
@@ -37,18 +36,35 @@ const ShowApp = () => {
 	const id = router.query.id as string
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
 	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
-	const [{ error: unsetAppVarError }, unsetAppEnv] = useUnsetAppEnvMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
-	const [addNew, setAddNew] = useState<boolean>(false)
 
 	return <div>
-		<div className="border-b-2 pb-2 mb-2">
-			<Heading>{app.name}</Heading>
+		<section className="p-3 mb-2 bg-white shadow-md rounded-sm">
+			<h1 className="text-2xl">{app.name}</h1>
+			<small>
+				<a href={hostname}>{hostname}</a>
+			</small>
+		</section>
 
-			<p>
-				Available at - <a href={hostname}>{hostname}</a> - if it uses your cluster&apos;s default hostname.
-			</p>
-		</div>
+		<section>
+			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+				<h2 className="border-b-2">YAML Interpolation Vars</h2>
+				<TextInputGroup
+					vars={app.vars} appName={app.name}
+					useSet={useSetAppVarMutation}
+					useUnset={useSetAppEnvMutation} // TODO: implement unset app var
+				/>
+			</div>
+
+			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+				<h2 className="border-b-2"> Environment Variables </h2>
+				<TextInputGroup
+					vars={app.env} appName={app.name}
+					useSet={useSetAppEnvMutation}
+					useUnset={useUnsetAppEnvMutation}
+				/>
+			</div>
+		</section>
 
 		{app.reviewApp || <>
 			<div className="border-b pb-2 mb-2">
@@ -67,24 +83,6 @@ const ShowApp = () => {
 				)}
 			</div>
 		</>}
-
-		<div className="border-b pb-2 mb-2">
-			<Heading>YAML Interpolation Vars</Heading>
-			<VarsForm
-				vars={app.vars} appName={app.name}
-				setMutation={useSetAppVarMutation}
-				unsetMutation={useUnsetAppEnvMutation}
-			/>
-		</div>
-
-		<div className="border-b pb-2 mb-2">
-			<Heading> Environment Variables </Heading>
-			<VarsForm
-				vars={app.env} appName={app.name}
-				setMutation={useSetAppEnvMutation}
-				unsetMutation={useUnsetAppEnvMutation}
-			/>
-		</div>
 	</div>
 }
 

@@ -50,7 +50,7 @@ const VarsForm: FC<VarsFormProps> = ({ vars, appName, setMutation, unsetMutation
 		</div>}
 
 		{vars.map(variable => 
-			<form key={variable.key} onSubmit={submit}>
+			<form key={variable.key} onSubmit={submit} className="flex">
 				<TextInput
 					name="key"
 					disabled={!editing}
