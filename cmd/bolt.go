@@ -98,9 +98,6 @@ func pullLocalDB(db *core.DB) error {
 		} else {
 			rac.Enabled = reviewAppsEnabled
 			rac.Vars = []*model.Tuple{}
-
-			// TODO: move me somewhere?
-			// rac.ExcludedResources = []*model.Resource{}
 		}
 
 		var paused bool
