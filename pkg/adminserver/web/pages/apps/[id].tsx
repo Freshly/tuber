@@ -1,10 +1,10 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
-import React, { FC, useRef, useState } from 'react'
+import React, { useRef } from 'react'
 import { Heading, TextInput, TextInputGroup } from '../../src/components'
-import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, useSetAppEnvMutation, Exact, SetTupleInput, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
+import { useGetFullAppQuery, useCreateReviewAppMutation, useSetAppVarMutation, useUnsetAppVarMutation, useSetAppEnvMutation, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
-import { PencilAltIcon, PlusCircleIcon, SaveIcon, TrashIcon } from '@heroicons/react/outline'
+import { TrashIcon } from '@heroicons/react/outline'
 
 
 const CreateForm = ({ app }) => {
@@ -52,7 +52,7 @@ const ShowApp = () => {
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
 					useSet={useSetAppVarMutation}
-					useUnset={useSetAppEnvMutation} // TODO: implement unset app var
+					useUnset={useUnsetAppVarMutation}
 				/>
 			</div>
 

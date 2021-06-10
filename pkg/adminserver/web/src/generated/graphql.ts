@@ -35,6 +35,7 @@ export type Mutation = {
   destroyApp?: Maybe<TuberApp>;
   createReviewApp?: Maybe<TuberApp>;
   setAppVar?: Maybe<TuberApp>;
+  unsetAppVar?: Maybe<TuberApp>;
   setAppEnv?: Maybe<TuberApp>;
   unsetAppEnv?: Maybe<TuberApp>;
   excludedResources: Array<Resource>;
@@ -67,6 +68,11 @@ export type MutationCreateReviewAppArgs = {
 
 
 export type MutationSetAppVarArgs = {
+  input: SetTupleInput;
+};
+
+
+export type MutationUnsetAppVarArgs = {
   input: SetTupleInput;
 };
 
@@ -264,6 +270,23 @@ export type UnsetAppEnvMutation = (
   )> }
 );
 
+export type UnsetAppVarMutationVariables = Exact<{
+  input: SetTupleInput;
+}>;
+
+
+export type UnsetAppVarMutation = (
+  { __typename?: 'Mutation' }
+  & { unsetAppVar?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { env?: Maybe<Array<(
+      { __typename?: 'Tuple' }
+      & Pick<Tuple, 'key' | 'value'>
+    )>> }
+  )> }
+);
+
 import { IntrospectionQuery } from 'graphql';
 export default {
   "__schema": {
@@ -381,6 +404,26 @@ export default {
           },
           {
             "name": "setAppVar",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "unsetAppVar",
             "type": {
               "kind": "OBJECT",
               "name": "TuberApp",
@@ -957,4 +1000,19 @@ export const UnsetAppEnvDocument = gql`
 
 export function useUnsetAppEnvMutation() {
   return Urql.useMutation<UnsetAppEnvMutation, UnsetAppEnvMutationVariables>(UnsetAppEnvDocument);
+};
+export const UnsetAppVarDocument = gql`
+    mutation UnsetAppVar($input: SetTupleInput!) {
+  unsetAppVar(input: $input) {
+    name
+    env {
+      key
+      value
+    }
+  }
+}
+    `;
+
+export function useUnsetAppVarMutation() {
+  return Urql.useMutation<UnsetAppVarMutation, UnsetAppVarMutationVariables>(UnsetAppVarDocument);
 };
