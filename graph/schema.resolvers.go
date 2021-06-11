@@ -182,7 +182,7 @@ func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTuple
 	return &model.TuberApp{Name: input.Name}, nil
 }
 
-func (r *mutationResolver) ExcludedResources(ctx context.Context) ([]*model.Resource, error) {
+func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.Resource, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -233,3 +233,13 @@ func (r *Resolver) TuberApp() generated.TuberAppResolver { return &tuberAppResol
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type tuberAppResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *mutationResolver) ExcludedResources(ctx context.Context) ([]*model.Resource, error) {
+	panic(fmt.Errorf("not implemented"))
+}

@@ -65,6 +65,12 @@ input SetTupleInput {
   value: String!
 }
 
+input SetResourceInput {
+  appName: ID!
+  name: String!
+  kind: String!
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -75,7 +81,7 @@ type Mutation {
   unsetAppVar(input: SetTupleInput!): TuberApp
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
-  excludedResources: [Resource!]!
+  setExcludedResource(input: SetResourceInput!): Resource!
 }
 
 schema {

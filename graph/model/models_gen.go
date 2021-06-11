@@ -26,6 +26,12 @@ type ReviewAppsConfig struct {
 	ExcludedResources []*Resource `json:"excludedResources"`
 }
 
+type SetResourceInput struct {
+	AppName string `json:"appName"`
+	Name    string `json:"name"`
+	Kind    string `json:"kind"`
+}
+
 type SetTupleInput struct {
 	Name  string `json:"name"`
 	Key   string `json:"key"`

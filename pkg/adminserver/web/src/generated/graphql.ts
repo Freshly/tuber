@@ -38,7 +38,7 @@ export type Mutation = {
   unsetAppVar?: Maybe<TuberApp>;
   setAppEnv?: Maybe<TuberApp>;
   unsetAppEnv?: Maybe<TuberApp>;
-  excludedResources: Array<Resource>;
+  setExcludedResource: Resource;
 };
 
 
@@ -86,6 +86,11 @@ export type MutationUnsetAppEnvArgs = {
   input: SetTupleInput;
 };
 
+
+export type MutationSetExcludedResourceArgs = {
+  input: SetResourceInput;
+};
+
 export type Query = {
   __typename?: 'Query';
   getApp?: Maybe<TuberApp>;
@@ -109,6 +114,12 @@ export type ReviewAppsConfig = {
   enabled: Scalars['Boolean'];
   vars: Array<Tuple>;
   excludedResources: Array<Resource>;
+};
+
+export type SetResourceInput = {
+  appName: Scalars['ID'];
+  name: Scalars['String'];
+  kind: Scalars['String'];
 };
 
 export type SetTupleInput = {
@@ -484,22 +495,27 @@ export default {
             ]
           },
           {
-            "name": "excludedResources",
+            "name": "setExcludedResource",
             "type": {
               "kind": "NON_NULL",
               "ofType": {
-                "kind": "LIST",
-                "ofType": {
+                "kind": "OBJECT",
+                "name": "Resource",
+                "ofType": null
+              }
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
                   "kind": "NON_NULL",
                   "ofType": {
-                    "kind": "OBJECT",
-                    "name": "Resource",
-                    "ofType": null
+                    "kind": "SCALAR",
+                    "name": "Any"
                   }
                 }
               }
-            },
-            "args": []
+            ]
           }
         ],
         "interfaces": []
