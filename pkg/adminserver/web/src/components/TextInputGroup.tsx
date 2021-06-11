@@ -2,7 +2,9 @@ import React, { FC, useState } from 'react'
 import { SetTupleInput, Exact, Tuple } from '../generated/graphql'
 import { UseMutationResponse } from 'urql'
 import { TextInputPair } from './TextInputPair'
-import { PlusCircleIcon } from '@heroicons/react/outline'
+import { AddButton } from './AddButton'
+
+const compare = (a, b) => a.key > b.key ? 1 : -1
 
 type Props = {
 	vars: Pick<Tuple, 'key' | 'value'>[]
@@ -14,8 +16,6 @@ type Props = {
 export const TextInputGroup: FC<Props> = ({ vars, appName, useSet, useUnset }) => {
 	const [addNew, setAddNew] = useState<boolean>(false)
 	const finished = () => setAddNew(false)
-
-	const compare = (a, b) => a.key > b.key ? 1 : -1
 
 	return <>
 		{vars.sort(compare).map(variable => 
@@ -41,6 +41,6 @@ export const TextInputGroup: FC<Props> = ({ vars, appName, useSet, useUnset }) =
 				appName={appName}
 				isNew={true}
 			/>
-			: <button className="mt-3 flex align-middle" onClick={() => setAddNew(true)}><PlusCircleIcon className="w-5 mr-1 text-green-700 inline-block"/> Add New</button>}
+			: <AddButton onClick={() => setAddNew(true)} />}
 	</>
 }

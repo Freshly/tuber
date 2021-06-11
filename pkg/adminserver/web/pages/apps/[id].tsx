@@ -1,10 +1,17 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Heading, TextInput, TextInputGroup } from '../../src/components'
-import { useGetFullAppQuery, useCreateReviewAppMutation, useSetAppVarMutation, useUnsetAppVarMutation, useSetAppEnvMutation, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
+import { Heading, TextInput, TextInputGroup, ExcludedResources } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
+import {
+	useGetFullAppQuery, 
+	useDestroyAppMutation,
+	useCreateReviewAppMutation,
+	useSetExcludedResourceMutation,
+	useSetAppVarMutation, useUnsetAppVarMutation, 
+	useSetAppEnvMutation, useUnsetAppEnvMutation, 
+} from '../../src/generated/graphql'
 
 
 const CreateForm = ({ app }) => {
@@ -83,6 +90,12 @@ const ShowApp = () => {
 				)}
 			</div>
 		</>}
+
+		<ExcludedResources 
+			appName={app.name}
+			resources={app.reviewAppsConfig.excludedResources} 
+			useSet={useSetExcludedResourceMutation}
+		/>
 	</div>
 }
 

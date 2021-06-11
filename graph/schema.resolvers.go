@@ -182,8 +182,24 @@ func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTuple
 	return &model.TuberApp{Name: input.Name}, nil
 }
 
-func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.Resource, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.AppName)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	res := &model.Resource{Name: input.Name, Kind: input.Kind}
+	app.ReviewAppsConfig.ExcludedResources = append(app.ReviewAppsConfig.ExcludedResources, res)
+
+	if err := r.Resolver.db.SaveApp(app); err != nil {
+		return nil, err
+	}
+
+	return app, nil
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {

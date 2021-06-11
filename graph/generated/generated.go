@@ -112,7 +112,7 @@ type MutationResolver interface {
 	UnsetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
-	SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.Resource, error)
+	SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -592,7 +592,7 @@ type Mutation {
   unsetAppVar(input: SetTupleInput!): TuberApp
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
-  setExcludedResource(input: SetResourceInput!): Resource!
+  setExcludedResource(input: SetResourceInput!): TuberApp
 }
 
 schema {
@@ -1208,14 +1208,11 @@ func (ec *executionContext) _Mutation_setExcludedResource(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Resource)
+	res := resTmp.(*model.TuberApp)
 	fc.Result = res
-	return ec.marshalNResource2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResource(ctx, field.Selections, res)
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3468,9 +3465,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_unsetAppEnv(ctx, field)
 		case "setExcludedResource":
 			out.Values[i] = ec._Mutation_setExcludedResource(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4059,10 +4053,6 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNResource2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResource(ctx context.Context, sel ast.SelectionSet, v model.Resource) graphql.Marshaler {
-	return ec._Resource(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Resource) graphql.Marshaler {

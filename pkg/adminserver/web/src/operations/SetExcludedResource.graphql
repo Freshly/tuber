@@ -1,0 +1,10 @@
+mutation SetExcludedResource($input: SetResourceInput!) {
+	setExcludedResource(input: $input) {
+    reviewAppsConfig {
+      excludedResources {
+        name
+        kind
+      }
+    }
+	}
+}

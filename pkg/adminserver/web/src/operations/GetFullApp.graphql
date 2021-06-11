@@ -16,5 +16,12 @@ query GetFullApp($name: String!) {
     reviewApps {
       name
     }
+
+    reviewAppsConfig {
+      excludedResources {
+        name
+        kind
+      }
+    }
   }
 }
