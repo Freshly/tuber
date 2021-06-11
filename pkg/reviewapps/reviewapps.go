@@ -91,16 +91,17 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 	}
 
 	reviewApp := &model.TuberApp{
-		CloudSourceRepo: sourceApp.CloudSourceRepo,
-		ImageTag:        imageTag,
-		Name:            reviewAppName,
-		Paused:          false,
-		ReviewApp:       true,
-		SlackChannel:    sourceApp.SlackChannel,
-		SourceAppName:   sourceApp.Name,
-		State:           nil,
-		TriggerID:       triggerID,
-		Vars:            vars,
+		CloudSourceRepo:   sourceApp.CloudSourceRepo,
+		ImageTag:          imageTag,
+		Name:              reviewAppName,
+		Paused:            false,
+		ReviewApp:         true,
+		SlackChannel:      sourceApp.SlackChannel,
+		SourceAppName:     sourceApp.Name,
+		State:             nil,
+		TriggerID:         triggerID,
+		Vars:              vars,
+		ExcludedResources: sourceApp.ReviewAppsConfig.ExcludedResources,
 	}
 
 	err = db.SaveApp(reviewApp)
