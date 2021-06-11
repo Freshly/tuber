@@ -69,8 +69,9 @@ type ComplexityRoot struct {
 	}
 
 	ReviewAppsConfig struct {
-		Enabled func(childComplexity int) int
-		Vars    func(childComplexity int) int
+		Enabled           func(childComplexity int) int
+		ExcludedResources func(childComplexity int) int
+		Vars              func(childComplexity int) int
 	}
 
 	State struct {
@@ -298,6 +299,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ReviewAppsConfig.Enabled(childComplexity), true
+
+	case "ReviewAppsConfig.excludedResources":
+		if e.complexity.ReviewAppsConfig.ExcludedResources == nil {
+			break
+		}
+
+		return e.complexity.ReviewAppsConfig.ExcludedResources(childComplexity), true
 
 	case "ReviewAppsConfig.vars":
 		if e.complexity.ReviewAppsConfig.Vars == nil {
@@ -544,6 +552,7 @@ type Resource {
 type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
+  excludedResources: [Resource!]!
 }
 
 type Query {
@@ -1494,6 +1503,41 @@ func (ec *executionContext) _ReviewAppsConfig_vars(ctx context.Context, field gr
 	res := resTmp.([]*model.Tuple)
 	fc.Result = res
 	return ec.marshalNTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ReviewAppsConfig_excludedResources(ctx context.Context, field graphql.CollectedField, obj *model.ReviewAppsConfig) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ReviewAppsConfig",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ExcludedResources, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Resource)
+	fc.Result = res
+	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _State_Current(ctx context.Context, field graphql.CollectedField, obj *model.State) (ret graphql.Marshaler) {
@@ -3479,6 +3523,11 @@ func (ec *executionContext) _ReviewAppsConfig(ctx context.Context, sel ast.Selec
 			}
 		case "vars":
 			out.Values[i] = ec._ReviewAppsConfig_vars(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "excludedResources":
+			out.Values[i] = ec._ReviewAppsConfig_excludedResources(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

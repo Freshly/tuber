@@ -21,8 +21,9 @@ type Resource struct {
 }
 
 type ReviewAppsConfig struct {
-	Enabled bool     `json:"enabled"`
-	Vars    []*Tuple `json:"vars"`
+	Enabled           bool        `json:"enabled"`
+	Vars              []*Tuple    `json:"vars"`
+	ExcludedResources []*Resource `json:"excludedResources"`
 }
 
 type SetTupleInput struct {

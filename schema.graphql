@@ -46,6 +46,7 @@ type Resource {
 type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
+  excludedResources: [Resource!]!
 }
 
 type Query {
