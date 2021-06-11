@@ -250,6 +250,27 @@ type parsedResource struct {
 	Metadata   metadata `yaml:"metadata"`
 }
 
+func (r releaser) exclude(res []appResource) []appResource {
+	included := []appResource{}
+
+	for _, rs := range res {
+		excluded := false
+
+		for _, ex := range r.app.ExcludedResources {
+			if rs.name == ex.Name && rs.kind == ex.Kind {
+				excluded = true
+				break
+			}
+		}
+
+		if !excluded {
+			included = append(included, rs)
+		}
+	}
+
+	return included
+}
+
 func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResource, []appResource, error) {
 	d := releaseData(r.digest, r.app, r.data)
 
@@ -257,16 +278,19 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResourc
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	prereleaseResources = r.exclude(prereleaseResources)
 
 	releaseResources, err := r.yamlToAppResource(r.releaseYamls, d)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	releaseResources = r.exclude(releaseResources)
 
 	postreleaseResources, err := r.yamlToAppResource(r.postreleaseYamls, d)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	postreleaseResources = r.exclude(postreleaseResources)
 
 	var workloads []appResource
 	var configs []appResource
