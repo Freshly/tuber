@@ -445,18 +445,20 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 		return
 	}
 
-	if resource.watchUrl == "" || r.app.ReviewApp {
+	if resource.watchUrl == "" {
 		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
 		}
 	} else {
-		go func() {
+		wg.Add(1)
+		go func(errors chan rolloutError, wg *sync.WaitGroup) {
 			err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 			if err != nil {
 				errors <- rolloutError{err: err, resource: resource}
 			}
-		}()
+			wg.Done()
+		}(errors, wg)
 		err := r.monitorUrl(resource)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
@@ -466,6 +468,7 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 
 func (r releaser) monitorUrl(resource appResource) error {
 	timeout := time.Now().Add(resource.watchDuration)
+	r.logger.Debug("pinging " + resource.watchUrl)
 	for {
 		if time.Now().After(timeout) {
 			return nil

@@ -118,7 +118,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	yamls, err := gcr.GetTuberLayer(event.digest, p.creds)
 	if err != nil {
-		p.slackClient.Message(logger, "image not found for "+app.Name)
+		p.slackClient.Message(logger, "image or tuber layer not found for "+app.Name)
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
 		return

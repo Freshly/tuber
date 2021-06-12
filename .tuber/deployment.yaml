@@ -26,7 +26,6 @@ spec:
           command:
             - "/app/tuber"
             - "start"
-            - "--debug"
           resources:
             requests:
               memory: "64Mi"
