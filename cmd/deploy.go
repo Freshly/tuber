@@ -42,10 +42,14 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer db.Close()
-	// err = pullLocalDB(db)
-	// if err != nil {
-	// 	return err
-	// }
+	remoteApp, err := getApp(appName)
+	if err != nil {
+		return err
+	}
+	err = db.SaveApp(remoteApp)
+	if err != nil {
+		return err
+	}
 
 	app, err := db.App(appName)
 	if err != nil {

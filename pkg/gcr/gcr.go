@@ -62,7 +62,6 @@ func GetTuberLayer(tagOrDigest string, creds []byte) (*AppYamls, error) {
 }
 
 func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
-	var tuberYamls *AppYamls
 	for i := len(layers) - 1; i >= 0; i-- {
 		size, err := layers[i].Size()
 		if err != nil {
@@ -77,16 +76,11 @@ func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
 			return nil, err
 		}
 		if yamls != nil {
-			tuberYamls = yamls
-			break
+			return yamls, nil
 		}
 	}
 
-	if tuberYamls == nil {
-		return nil, fmt.Errorf("tuber yamls not found")
-	}
-
-	return tuberYamls, nil
+	return nil, fmt.Errorf("tuber yamls not found")
 }
 
 func findTuberYamls(layer v1.Layer) (*AppYamls, error) {
