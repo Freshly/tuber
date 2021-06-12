@@ -173,7 +173,7 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.reconcileState(decodedStateBeforeApply, appliedWorkloads, appliedConfigs)
+	err = r.reconcileState(decodedStateBeforeApply, appliedWorkloads, appliedConfigs, appliedPostreleaseResources)
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -540,8 +540,9 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 	return nil
 }
 
-func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource) error {
+func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource, appliedPostreleaseResources []appResource) error {
 	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
+	appliedResources = append(appliedWorkloads, appliedPostreleaseResources...)
 
 	type stateResource struct {
 		Metadata struct {
@@ -572,7 +573,7 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 				return ErrorContext{err: err, context: "parse resource removed from state", scope: scope, logger: logger}
 			}
 
-			if parsed.Metadata.OwnerReferences != nil {
+			if parsed.Metadata.OwnerReferences == nil {
 				deleteErr := k8s.Delete(cached.kind, cached.name, r.app.Name)
 				if deleteErr != nil {
 					return ErrorContext{err: err, context: "delete resource removed from state", scope: scope, logger: logger}
