@@ -28,7 +28,7 @@ func RunPrerelease(resources []appResource, app *model.TuberApp) error {
 			if deleteErr != nil {
 				return fmt.Errorf(err.Error() + "\n also failed delete:" + deleteErr.Error())
 			}
-			return deleteErr
+			return err
 		}
 
 		if err := k8s.Delete("pod", resource.name, app.Name); err != nil {
@@ -40,7 +40,13 @@ func RunPrerelease(resources []appResource, app *model.TuberApp) error {
 }
 
 func waitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout time.Duration) error {
+	containerStatusesTemplate := fmt.Sprintf(
+		`go-template="%s"`,
+		"{{range .status.containerStatuses}}{{if .state.terminated.reason}}{{.state.terminated.reason}}{{end}}{{end}}",
+	)
+
 	phaseTemplate := fmt.Sprintf(`go-template="%s"`, "{{.status.phase}}")
+
 	failureTemplate := fmt.Sprintf(
 		`go-template="%s"`,
 		"{{range .status.containerStatuses}}{{.state.terminated.message}}{{end}}",
@@ -54,7 +60,17 @@ func waitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout
 		if time.Now().After(timeout) {
 			return fmt.Errorf("timeout")
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
+
+		statuses, err := k8s.Get(kind, name, app.Name, "-o", containerStatusesTemplate)
+		if err != nil {
+			return err
+		}
+
+		completedContainerFound := strings.Contains(strings.Trim(string(statuses), `"`), "Completed")
+		if completedContainerFound {
+			break
+		}
 
 		status, err := k8s.Get(kind, name, app.Name, "-o", phaseTemplate)
 		if err != nil {
@@ -74,4 +90,6 @@ func waitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout
 			continue
 		}
 	}
+
+	return nil
 }
