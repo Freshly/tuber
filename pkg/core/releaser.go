@@ -542,7 +542,7 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 
 func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource, appliedPostreleaseResources []appResource) error {
 	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
-	appliedResources = append(appliedWorkloads, appliedPostreleaseResources...)
+	appliedResources = append(appliedResources, appliedPostreleaseResources...)
 
 	type stateResource struct {
 		Metadata struct {
