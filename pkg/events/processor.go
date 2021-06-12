@@ -47,7 +47,6 @@ type Event struct {
 	tag        string
 	logger     *zap.Logger
 	errorScope report.Scope
-	// sha        string
 }
 
 func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
