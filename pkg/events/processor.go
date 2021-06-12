@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
+	"github.com/getsentry/sentry-go"
 
 	"go.uber.org/zap"
 )
@@ -80,6 +81,8 @@ func (p Processor) ProcessMessage(event *Event) {
 		wg.Add(1)
 
 		go func(app *model.TuberApp) {
+			// todo: if this actually fixes sentry, errors package needs this functionality
+			defer sentry.Recover()
 			defer wg.Done()
 			if _, ok := (*p.locks)[app.Name]; !ok {
 				var mutex sync.Mutex
