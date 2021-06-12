@@ -82,7 +82,7 @@ func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
 		}
 	}
 
-	if tuberYamls != nil {
+	if tuberYamls == nil {
 		return nil, fmt.Errorf("tuber yamls not found")
 	}
 
