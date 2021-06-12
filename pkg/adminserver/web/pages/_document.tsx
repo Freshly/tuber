@@ -10,7 +10,9 @@ class MyDocument extends Document {
 	render() {
 		return (
 			<Html>
-				<Head />
+				<Head>
+					<link rel="shortcut icon" href="/tuber/favicon.ico" />
+				</Head>
 				<body className="font-sans text-gray-900 dark:text-gray-50 bg-gray-50 dark:bg-gray-900">
 					<Main />
 					<NextScript />

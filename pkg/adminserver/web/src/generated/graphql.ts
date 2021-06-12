@@ -35,6 +35,7 @@ export type Mutation = {
   destroyApp?: Maybe<TuberApp>;
   createReviewApp?: Maybe<TuberApp>;
   setAppVar?: Maybe<TuberApp>;
+  unsetAppVar?: Maybe<TuberApp>;
   setAppEnv?: Maybe<TuberApp>;
   unsetAppEnv?: Maybe<TuberApp>;
   excludedResources: Array<Resource>;
@@ -67,6 +68,11 @@ export type MutationCreateReviewAppArgs = {
 
 
 export type MutationSetAppVarArgs = {
+  input: SetTupleInput;
+};
+
+
+export type MutationUnsetAppVarArgs = {
   input: SetTupleInput;
 };
 
@@ -186,7 +192,7 @@ export type GetAppsQuery = (
   { __typename?: 'Query' }
   & { getApps: Array<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name'>
+    & Pick<TuberApp, 'name' | 'paused' | 'imageTag'>
   )> }
 );
 
@@ -203,9 +209,29 @@ export type GetFullAppQuery = (
     & { vars: Array<(
       { __typename?: 'Tuple' }
       & Pick<Tuple, 'key' | 'value'>
-    )>, reviewApps?: Maybe<Array<(
+    )>, env?: Maybe<Array<(
+      { __typename?: 'Tuple' }
+      & Pick<Tuple, 'key' | 'value'>
+    )>>, reviewApps?: Maybe<Array<(
       { __typename?: 'TuberApp' }
       & Pick<TuberApp, 'name'>
+    )>> }
+  )> }
+);
+
+export type SetAppEnvMutationVariables = Exact<{
+  input: SetTupleInput;
+}>;
+
+
+export type SetAppEnvMutation = (
+  { __typename?: 'Mutation' }
+  & { setAppEnv?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { env?: Maybe<Array<(
+      { __typename?: 'Tuple' }
+      & Pick<Tuple, 'key' | 'value'>
     )>> }
   )> }
 );
@@ -224,6 +250,40 @@ export type SetAppVarMutation = (
       { __typename?: 'Tuple' }
       & Pick<Tuple, 'key' | 'value'>
     )> }
+  )> }
+);
+
+export type UnsetAppEnvMutationVariables = Exact<{
+  input: SetTupleInput;
+}>;
+
+
+export type UnsetAppEnvMutation = (
+  { __typename?: 'Mutation' }
+  & { unsetAppEnv?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { env?: Maybe<Array<(
+      { __typename?: 'Tuple' }
+      & Pick<Tuple, 'key' | 'value'>
+    )>> }
+  )> }
+);
+
+export type UnsetAppVarMutationVariables = Exact<{
+  input: SetTupleInput;
+}>;
+
+
+export type UnsetAppVarMutation = (
+  { __typename?: 'Mutation' }
+  & { unsetAppVar?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { env?: Maybe<Array<(
+      { __typename?: 'Tuple' }
+      & Pick<Tuple, 'key' | 'value'>
+    )>> }
   )> }
 );
 
@@ -344,6 +404,26 @@ export default {
           },
           {
             "name": "setAppVar",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "unsetAppVar",
             "type": {
               "kind": "OBJECT",
               "name": "TuberApp",
@@ -844,6 +924,8 @@ export const GetAppsDocument = gql`
     query GetApps {
   getApps {
     name
+    paused
+    imageTag
   }
 }
     `;
@@ -860,6 +942,10 @@ export const GetFullAppDocument = gql`
       key
       value
     }
+    env {
+      key
+      value
+    }
     reviewApps {
       name
     }
@@ -869,6 +955,21 @@ export const GetFullAppDocument = gql`
 
 export function useGetFullAppQuery(options: Omit<Urql.UseQueryArgs<GetFullAppQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetFullAppQuery>({ query: GetFullAppDocument, ...options });
+};
+export const SetAppEnvDocument = gql`
+    mutation SetAppEnv($input: SetTupleInput!) {
+  setAppEnv(input: $input) {
+    name
+    env {
+      key
+      value
+    }
+  }
+}
+    `;
+
+export function useSetAppEnvMutation() {
+  return Urql.useMutation<SetAppEnvMutation, SetAppEnvMutationVariables>(SetAppEnvDocument);
 };
 export const SetAppVarDocument = gql`
     mutation SetAppVar($input: SetTupleInput!) {
@@ -884,4 +985,34 @@ export const SetAppVarDocument = gql`
 
 export function useSetAppVarMutation() {
   return Urql.useMutation<SetAppVarMutation, SetAppVarMutationVariables>(SetAppVarDocument);
+};
+export const UnsetAppEnvDocument = gql`
+    mutation UnsetAppEnv($input: SetTupleInput!) {
+  unsetAppEnv(input: $input) {
+    name
+    env {
+      key
+      value
+    }
+  }
+}
+    `;
+
+export function useUnsetAppEnvMutation() {
+  return Urql.useMutation<UnsetAppEnvMutation, UnsetAppEnvMutationVariables>(UnsetAppEnvDocument);
+};
+export const UnsetAppVarDocument = gql`
+    mutation UnsetAppVar($input: SetTupleInput!) {
+  unsetAppVar(input: $input) {
+    name
+    env {
+      key
+      value
+    }
+  }
+}
+    `;
+
+export function useUnsetAppVarMutation() {
+  return Urql.useMutation<UnsetAppVarMutation, UnsetAppVarMutationVariables>(UnsetAppVarDocument);
 };

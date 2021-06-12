@@ -1,11 +1,11 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
-import React, { FC, useRef, useState } from 'react'
-import { Heading, TextInput } from '../../src/components'
-import { useGetFullAppQuery, useCreateReviewAppMutation, Tuple, useSetAppVarMutation, SetAppVarMutation, Exact, SetTupleInput, useDestroyAppMutation } from '../../src/generated/graphql'
+import React, { useRef } from 'react'
+import { Heading, TextInput, TextInputGroup } from '../../src/components'
+import { useGetFullAppQuery, useCreateReviewAppMutation, useSetAppVarMutation, useUnsetAppVarMutation, useSetAppEnvMutation, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
-import { PencilAltIcon, PlusCircleIcon, SaveIcon, TrashIcon } from '@heroicons/react/outline'
-import { UseMutationResponse } from 'urql'
+import { TrashIcon } from '@heroicons/react/outline'
+
 
 const CreateForm = ({ app }) => {
 	const [{ error, fetching }, create] = useCreateReviewAppMutation()
@@ -31,110 +31,56 @@ const CreateForm = ({ app }) => {
 	</form>
 }
 
-type AppVarFormProps = {
-	appVar: Tuple
-	defaultEdit?: boolean
-	name: string
-	finished?: () => void
-	mutation: () => UseMutationResponse<any, Exact<{
-		input: SetTupleInput
-	}>>
-}
-
-const AppVarForm: FC<AppVarFormProps> = ({ name, appVar, defaultEdit = false, finished, mutation }) => {
-	const [editing, setEditing] = useState<boolean>(defaultEdit)
-	const [{ error }, save] = mutation()
-	const keyRef = useRef(null)
-	const valueRef = useRef(null)
-	const formRef = useRef(null)
-
-	const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-		event.preventDefault()
-
-		const result = await save({
-			input: {
-				name,
-				key:   keyRef.current.value,
-				value: valueRef.current.value,
-			},
-		})
-
-		if (!result.error) {
-			setEditing(false)
-			finished && finished()
-		}
-	}
-
-	return <form ref={formRef} onSubmit={submit}>
-		{error && <div className="bg-red-700 text-white border-red-700 p-2">
-			{error.message}
-		</div>}
-
-		<TextInput
-			name="key"
-			disabled={!editing || !defaultEdit}
-			required
-			ref={keyRef}
-			defaultValue={appVar.key}
-			placeholder="key"
-		/>
-
-		<TextInput
-			name="value"
-			disabled={!editing}
-			required
-			ref={valueRef}
-			defaultValue={appVar.value}
-			placeholder="value"
-		/>
-
-		{editing
-			? <button type="submit"><SaveIcon className="w-5" /></button>
-			: <PencilAltIcon className="w-5" onClick={() => setEditing(true)} />}
-	</form>
-}
-
 const ShowApp = () => {
 	const router = useRouter()
 	const id = router.query.id as string
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
-	const [{ error }, destroy] = useDestroyAppMutation()
+	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
-	const [addNew, setAddNew] = useState<boolean>(false)
 
 	return <div>
-		<div className="border-b pb-2 mb-2">
-			<Heading>{app.name}</Heading>
+		<section className="p-3 mb-2">
+			<h1 className="text-2xl">{app.name}</h1>
+			<small>
+				<a href={hostname} target="_blank" rel="noreferrer">{hostname}</a>
+			</small>
+		</section>
 
-			<p>
-				Available at - <a href={hostname}>{hostname}</a> - if it uses your cluster&apos;s default hostname.
-			</p>
-		</div>
+		<section>
+			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+				<h2 className="border-b-2">YAML Interpolation Vars</h2>
+				<TextInputGroup
+					vars={app.vars} appName={app.name}
+					useSet={useSetAppVarMutation}
+					useUnset={useUnsetAppVarMutation}
+				/>
+			</div>
+
+			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+				<h2 className="border-b-2"> Environment Variables </h2>
+				<TextInputGroup
+					vars={app.env} appName={app.name}
+					useSet={useSetAppEnvMutation}
+					useUnset={useUnsetAppEnvMutation}
+				/>
+			</div>
+		</section>
 
 		{app.reviewApp || <>
-			<div className="border-b pb-2 mb-2">
+			<div className="border-b p-3 mb-2 bg-white shadow-md rounded-sm">
 				<Heading>Create a review app</Heading>
 				<CreateForm app={app} />
 				<Heading>Review apps</Heading>
-				{error && <div className="bg-red-700 text-white border-red-700 p-2">
-					{error.message}
+				{destroyAppError && <div className="bg-red-700 text-white border-red-700 p-2">
+					{destroyAppError.message}
 				</div>}
 
 				{app.reviewApps && app.reviewApps.map(reviewApp =>
 					<div key={reviewApp.name}>
-						<span>{reviewApp.name}</span>
-						<TrashIcon className="w-5" onClick={() => destroy({ input: { name: reviewApp.name } })}/>
+						<a href={`/tuber/apps/${reviewApp.name}`}>{reviewApp.name}</a>
+						<TrashIcon className="w-5" onClick={() => destroyApp({ input: { name: reviewApp.name } })}/>
 					</div>,
 				)}
-			</div>
-
-			<div className="border-b pb-2 mb-2">
-				<Heading>YAML Interpolation Vars</Heading>
-				{app.vars.map(appVar => <AppVarForm key={appVar.key} name={app.name} appVar={appVar} mutation={useSetAppVarMutation} />)}
-
-				{addNew
-					? <AppVarForm name={app.name} appVar={{} as Tuple} defaultEdit finished={() => setAddNew(false)} mutation={useSetAppVarMutation} />
-					: <PlusCircleIcon className="w-5" onClick={() => setAddNew(true)} />}
 			</div>
 		</>}
 	</div>

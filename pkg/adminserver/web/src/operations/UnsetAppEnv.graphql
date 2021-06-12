@@ -1,0 +1,10 @@
+mutation UnsetAppEnv($input: SetTupleInput!) {
+  unsetAppEnv(input: $input) {
+    name
+
+    env {
+      key
+      value
+    }
+  }
+}

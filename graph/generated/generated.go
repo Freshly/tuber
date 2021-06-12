@@ -53,6 +53,7 @@ type ComplexityRoot struct {
 		SetAppEnv         func(childComplexity int, input model.SetTupleInput) int
 		SetAppVar         func(childComplexity int, input model.SetTupleInput) int
 		UnsetAppEnv       func(childComplexity int, input model.SetTupleInput) int
+		UnsetAppVar       func(childComplexity int, input model.SetTupleInput) int
 		UpdateApp         func(childComplexity int, input model.AppInput) int
 	}
 
@@ -107,6 +108,7 @@ type MutationResolver interface {
 	DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error)
 	SetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
+	UnsetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	ExcludedResources(ctx context.Context) ([]*model.Resource, error)
@@ -225,6 +227,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UnsetAppEnv(childComplexity, args["input"].(model.SetTupleInput)), true
+
+	case "Mutation.unsetAppVar":
+		if e.complexity.Mutation.UnsetAppVar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unsetAppVar_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnsetAppVar(childComplexity, args["input"].(model.SetTupleInput)), true
 
 	case "Mutation.updateApp":
 		if e.complexity.Mutation.UpdateApp == nil {
@@ -555,6 +569,7 @@ type Mutation {
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp
+  unsetAppVar(input: SetTupleInput!): TuberApp
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   excludedResources: [Resource!]!
@@ -663,6 +678,21 @@ func (ec *executionContext) field_Mutation_setAppVar_args(ctx context.Context, r
 }
 
 func (ec *executionContext) field_Mutation_unsetAppEnv_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SetTupleInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNSetTupleInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐSetTupleInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unsetAppVar_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 model.SetTupleInput
@@ -981,6 +1011,45 @@ func (ec *executionContext) _Mutation_setAppVar(ctx context.Context, field graph
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().SetAppVar(rctx, args["input"].(model.SetTupleInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_unsetAppVar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_unsetAppVar_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UnsetAppVar(rctx, args["input"].(model.SetTupleInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3278,6 +3347,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createReviewApp(ctx, field)
 		case "setAppVar":
 			out.Values[i] = ec._Mutation_setAppVar(ctx, field)
+		case "unsetAppVar":
+			out.Values[i] = ec._Mutation_unsetAppVar(ctx, field)
 		case "setAppEnv":
 			out.Values[i] = ec._Mutation_setAppEnv(ctx, field)
 		case "unsetAppEnv":
