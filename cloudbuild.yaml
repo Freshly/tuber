@@ -25,7 +25,7 @@ steps:
 - name: gcr.io/cloud-builders/docker
   waitFor: ['-']
   entrypoint: "bash"
-  id: "docker build"
+  id: "docker build fe"
   dir: pkg/adminserver/web
   args:
     - "-c"
