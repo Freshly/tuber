@@ -82,11 +82,22 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	imageTag := sourceAppTagGCRRef.Context().Tag(branch).String()
 
-	vars := sourceApp.Vars
+	var mapVars map[string]string
+
+	for _, tuple := range sourceApp.Vars {
+		mapVars[tuple.Key] = tuple.Value
+	}
+
 	for _, tuple := range sourceApp.ReviewAppsConfig.Vars {
+		mapVars[tuple.Key] = tuple.Value
+	}
+
+	var vars []*model.Tuple
+
+	for k, v := range mapVars {
 		vars = append(vars, &model.Tuple{
-			Key:   tuple.Key,
-			Value: tuple.Value,
+			Key:   k,
+			Value: v,
 		})
 	}
 
@@ -101,7 +112,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		State:             nil,
 		TriggerID:         triggerID,
 		Vars:              vars,
-		ExcludedResources: sourceApp.ReviewAppsConfig.ExcludedResources,
+		ExcludedResources: sourceApp.ExcludedResources,
 	}
 
 	err = db.SaveApp(reviewApp)
