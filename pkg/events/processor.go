@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
+	"github.com/getsentry/sentry-go"
 
 	"go.uber.org/zap"
 )
@@ -47,7 +48,6 @@ type Event struct {
 	tag        string
 	logger     *zap.Logger
 	errorScope report.Scope
-	// sha        string
 }
 
 func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
@@ -81,6 +81,9 @@ func (p Processor) ProcessMessage(event *Event) {
 		wg.Add(1)
 
 		go func(app *model.TuberApp) {
+			// todo: if this actually fixes sentry, errors package needs this functionality
+			// todo: it does (lol) as in, the one in start _does not help mid-release panics_
+			defer sentry.Recover()
 			defer wg.Done()
 			if _, ok := (*p.locks)[app.Name]; !ok {
 				var mutex sync.Mutex
@@ -119,7 +122,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	yamls, err := gcr.GetTuberLayer(event.digest, p.creds)
 	if err != nil {
-		p.slackClient.Message(logger, "image not found for "+app.Name)
+		p.slackClient.Message(logger, "image or tuber layer not found for "+app.Name)
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
 		return
