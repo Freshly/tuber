@@ -82,7 +82,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	imageTag := sourceAppTagGCRRef.Context().Tag(branch).String()
 
-	var mapVars map[string]string
+	mapVars := make(map[string]string)
 
 	for _, tuple := range sourceApp.Vars {
 		mapVars[tuple.Key] = tuple.Value
