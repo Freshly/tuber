@@ -83,9 +83,6 @@ func (s server) start() error {
 
 	if viper.GetBool("use-devserver") {
 		mux.HandleFunc(prefix("/"), localDevServer)
-	} else {
-		fs := http.FileServer(http.Dir("pkg/adminserver/web/out"))
-		mux.Handle(prefix("/"), http.StripPrefix(prefix("/"), fs))
 	}
 
 	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)
