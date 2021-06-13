@@ -56,6 +56,10 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		return "", fmt.Errorf("can't find source app. is %s managed by tuber", appName)
 	}
 
+	if sourceApp.ReviewAppsConfig == nil || !sourceApp.ReviewAppsConfig.Enabled {
+		return "", fmt.Errorf("source app is not enabled for review apps")
+	}
+
 	sourceAppTagGCRRef, err := name.ParseReference(sourceApp.ImageTag)
 	if err != nil {
 		return "", fmt.Errorf("source app image tag misconfigured: %v", err)
