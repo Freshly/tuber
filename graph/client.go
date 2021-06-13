@@ -3,7 +3,6 @@ package graph
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/freshly/tuber/pkg/iap"
 	"github.com/machinebox/graphql"
