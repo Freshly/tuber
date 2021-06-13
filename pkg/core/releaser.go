@@ -26,6 +26,7 @@ type releaser struct {
 	releaseYamls     []string
 	prereleaseYamls  []string
 	postreleaseYamls []string
+	tags             []string
 	db               *DB
 }
 
@@ -58,6 +59,7 @@ func (r releaser) releaseError(err error) error {
 	} else {
 		context = "unknown"
 	}
+	scope.AddScope(report.Scope{"tags": strings.Join(r.tags, ",")})
 
 	logger.Error("release error", zap.Error(err), zap.String("context", context))
 	report.Error(err, scope)
@@ -74,6 +76,7 @@ func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.
 		releaseYamls:     yamls.Release,
 		prereleaseYamls:  yamls.Prerelease,
 		postreleaseYamls: yamls.PostRelease,
+		tags:             yamls.Tags,
 		app:              app,
 		digest:           digest,
 		data:             data,
@@ -589,6 +592,7 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 
 	updatedApp.State.Previous = updatedApp.State.Current
 	updatedApp.State.Current = appliedResources.encode()
+	updatedApp.CurrentTags = r.tags
 
 	err := r.db.SaveApp(updatedApp)
 	if err != nil {
