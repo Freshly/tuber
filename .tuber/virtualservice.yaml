@@ -15,4 +15,12 @@ spec:
               number: 3000
       match:
         - uri:
+            prefix: /tuber/graphql
+    - route:
+        - destination:
+            host: tuber-frontend.tuber-frontend
+            port:
+              number: 3000
+      match:
+        - uri:
             prefix: /tuber

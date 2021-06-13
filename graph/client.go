@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/freshly/tuber/pkg/iap"
 	"github.com/machinebox/graphql"
@@ -23,7 +24,10 @@ func NewClient(clusterURL string) *GraphqlClient {
 	}
 
 	client := graphql.NewClient(graphqlURL)
-	client.Log = func(s string) { log.Println(s) }
+
+	if os.Getenv("DEBUG") != "" {
+		client.Log = func(s string) { log.Println(s) }
+	}
 
 	return &GraphqlClient{
 		client: client,

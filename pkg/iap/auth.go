@@ -9,7 +9,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/freshly/tuber/pkg/iap/internal"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -32,7 +31,6 @@ func init() {
 }
 
 func RefreshTokenExists() bool {
-	spew.Dump(refreshTokenFile)
 	_, err := os.Stat(refreshTokenFile)
 	return !os.IsNotExist(err)
 }
