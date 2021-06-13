@@ -10,6 +10,7 @@ type Tuple {
 
 type TuberApp {
   cloudSourceRepo: String!
+  currentTags: [String!]
   imageTag: String!
   name: ID!
   paused: Boolean!
@@ -22,6 +23,7 @@ type TuberApp {
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
   env: [Tuple!] @goField(forceResolver: true)
+
 }
 
 input AppInput {
