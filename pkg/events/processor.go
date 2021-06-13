@@ -82,6 +82,7 @@ func (p Processor) ProcessMessage(event *Event) {
 
 		go func(app *model.TuberApp) {
 			// todo: if this actually fixes sentry, errors package needs this functionality
+			// todo: it does (lol) as in, the one in start _does not help mid-release panics_
 			defer sentry.Recover()
 			defer wg.Done()
 			if _, ok := (*p.locks)[app.Name]; !ok {

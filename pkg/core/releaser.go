@@ -583,9 +583,11 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 	}
 
 	updatedApp := r.app
-	if r.app.State != nil {
-		updatedApp.State.Previous = r.app.State.Current
+	if updatedApp.State == nil {
+		updatedApp.State = &model.State{}
 	}
+
+	updatedApp.State.Previous = updatedApp.State.Current
 	updatedApp.State.Current = appliedResources.encode()
 
 	err := r.db.SaveApp(updatedApp)
