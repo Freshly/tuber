@@ -76,6 +76,14 @@ func prefix(p string) string {
 	return fmt.Sprintf("%s%s", viper.GetString("prefix"), p)
 }
 
+type fallback404 struct {
+	handler http.Handler
+}
+
+func (h *fallback404) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+
+}
+
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(prefix("/graphql/playground"), playground.Handler("GraphQL playground", prefix("/graphql")))
@@ -85,7 +93,7 @@ func (s server) start() error {
 		mux.HandleFunc(prefix("/"), localDevServer)
 	} else {
 		fs := http.FileServer(http.Dir("/static"))
-		mux.Handle(prefix("/"), http.StripPrefix(prefix("/"), fs))
+		mux.Handle(prefix("/"), &fallback404{handler: http.StripPrefix(prefix("/"), fs)})
 	}
 
 	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)
