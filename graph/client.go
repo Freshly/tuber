@@ -25,7 +25,7 @@ func NewClient(clusterURL string) *GraphqlClient {
 
 	client := graphql.NewClient(graphqlURL)
 
-	if os.Getenv("DEBUG") != "" {
+	if viper.GetBool("debug") {
 		client.Log = func(s string) { log.Println(s) }
 	}
 
