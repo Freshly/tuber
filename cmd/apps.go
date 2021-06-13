@@ -234,7 +234,7 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 	for _, tuple := range app.Vars {
 		vars = append(vars, tuple.Key+": "+tuple.Value)
 	}
-	table.Append([]string{"Vars", strings.Join(vars, "\n\n")})
+	table.Append([]string{"Vars", strings.Join(vars, "\n")})
 	table.Append([]string{"Paused", strconv.FormatBool(app.Paused)})
 	table.Append([]string{"Is Review App", strconv.FormatBool(app.ReviewApp)})
 	if !app.ReviewApp && app.ReviewAppsConfig != nil {
