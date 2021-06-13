@@ -24,7 +24,7 @@ import (
 )
 
 var address string
-var appName string
+var appNameFlag string
 var pod string
 var podRunningTimeout string
 var workload string
@@ -334,7 +334,7 @@ func fetchWorkload() string {
 	if workload != "" {
 		return workload
 	}
-	return appName
+	return appNameFlag
 }
 
 func fetchPodname() (string, error) {
@@ -342,7 +342,7 @@ func fetchPodname() (string, error) {
 		return pod, nil
 	}
 	template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
-	l, err := k8s.Get("deployment", fetchWorkload(), appName, "-o", "go-template", "--template", template)
+	l, err := k8s.Get("deployment", fetchWorkload(), appNameFlag, "-o", "go-template", "--template", template)
 	if err != nil {
 		return "", err
 	}
@@ -350,7 +350,7 @@ func fetchPodname() (string, error) {
 	labels := strings.TrimSuffix(string(l), ",")
 
 	jsonPath := fmt.Sprintf(`-o=jsonpath="%s"`, `{.items[0].metadata.name}`)
-	podNameByte, err := k8s.GetCollection("pods", appName, "-l", labels, jsonPath)
+	podNameByte, err := k8s.GetCollection("pods", appNameFlag, "-l", labels, jsonPath)
 	if err != nil {
 		return "", err
 	}
