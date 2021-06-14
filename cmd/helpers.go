@@ -10,6 +10,7 @@ import (
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/core"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/iap"
@@ -49,7 +50,7 @@ func db() (*core.DB, error) {
 }
 
 func getApp(appName string) (*model.TuberApp, error) {
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
 	gql := `
 		query {
 			getApp(name: "%s") {
