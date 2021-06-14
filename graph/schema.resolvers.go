@@ -18,6 +18,7 @@ import (
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
+	"go.uber.org/zap"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
@@ -265,6 +266,7 @@ func (r *mutationResolver) Rollback(ctx context.Context, input model.AppNameInpu
 	for _, resource := range decodedResources {
 		applyErr := k8s.Apply(resource.decoded, resource.resource.Name)
 		if applyErr != nil {
+			r.logger.Debug("rollback apply error", zap.Error(applyErr.err))
 			errors = append(errors, rollbackErr{err: applyErr, resource: resource.resource})
 			continue
 		}
