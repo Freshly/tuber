@@ -23,7 +23,10 @@ func NewClient(clusterURL string) *GraphqlClient {
 	}
 
 	client := graphql.NewClient(graphqlURL)
-	client.Log = func(s string) { log.Println(s) }
+
+	if viper.GetBool("debug") {
+		client.Log = func(s string) { log.Println(s) }
+	}
 
 	return &GraphqlClient{
 		client: client,

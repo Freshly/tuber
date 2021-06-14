@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
@@ -22,7 +24,7 @@ import (
 )
 
 var address string
-var appName string
+var appNameFlag string
 var pod string
 var podRunningTimeout string
 var workload string
@@ -48,65 +50,65 @@ func db() (*core.DB, error) {
 	return core.NewDB(database), nil
 }
 
-// func getApp(appName string) (*model.TuberApp, error) {
-// 	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
-// 	gql := `
-// 		query {
-// 			getApp {
-// 				cloudSourceRepo
-// 				imageTag
-// 				name
-// 				paused
-// 				reviewApp
-// 				reviewAppsConfig{
-// 					enabled
-// 					vars {
-// 						key
-// 						value
-// 					}
-// 					skips {
-// 						kind
-// 						name
-// 					}
-// 				}
-// 				slackChanne
-// 				sourceAppName
-// 				state {
-// 					current {
-// 						kind
-// 						name
-// 						encoded
-// 					}
-// 					previous {
-// 						kind
-// 						name
-// 						encoded
-// 					}
-// 				}
-// 				triggerID
-// 				vars {
-// 					key
-// 					value
-// 				}
-// 			}
-// 		}
-// 	`
+func getApp(appName string) (*model.TuberApp, error) {
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	gql := `
+		query {
+			getApp(name: "%s") {
+				cloudSourceRepo
+				imageTag
+				name
+				paused
+				reviewApp
+				reviewAppsConfig{
+					enabled
+					vars {
+						key
+						value
+					}
+					excludedResources {
+						kind
+						name
+					}
+				}
+				slackChannel
+				sourceAppName
+				state {
+					Current {
+						kind
+						name
+						encoded
+					}
+					Previous {
+						kind
+						name
+						encoded
+					}
+				}
+				triggerID
+				vars {
+					key
+					value
+				}
+			}
+		}
+	`
 
-// 	var respData struct {
-// 		GetApp *model.TuberApp
-// 	}
+	var respData struct {
+		GetApp *model.TuberApp
+	}
 
-// 	err := graphql.Query(context.Background(), gql, &respData)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	err := graphql.Query(context.Background(), fmt.Sprintf(gql, appName), &respData)
+	if err != nil {
+		return nil, err
+	}
 
-// 	if respData.GetApp == nil {
-// 		return nil, fmt.Errorf("error retrieving app")
-// 	}
+	if respData.GetApp == nil {
+		return nil, fmt.Errorf("error retrieving app")
+	}
 
-// 	return respData.GetApp, nil
-// }
+	return respData.GetApp, nil
+}
 
 func clusterData() (*core.ClusterData, error) {
 	defaultGateway := viper.GetString("cluster-default-gateway")
@@ -332,7 +334,7 @@ func fetchWorkload() string {
 	if workload != "" {
 		return workload
 	}
-	return appName
+	return appNameFlag
 }
 
 func fetchPodname() (string, error) {
@@ -340,7 +342,7 @@ func fetchPodname() (string, error) {
 		return pod, nil
 	}
 	template := `{{range $k, $v := $.spec.selector.matchLabels}}{{$k}}={{$v}},{{end}}`
-	l, err := k8s.Get("deployment", fetchWorkload(), appName, "-o", "go-template", "--template", template)
+	l, err := k8s.Get("deployment", fetchWorkload(), appNameFlag, "-o", "go-template", "--template", template)
 	if err != nil {
 		return "", err
 	}
@@ -348,7 +350,7 @@ func fetchPodname() (string, error) {
 	labels := strings.TrimSuffix(string(l), ",")
 
 	jsonPath := fmt.Sprintf(`-o=jsonpath="%s"`, `{.items[0].metadata.name}`)
-	podNameByte, err := k8s.GetCollection("pods", appName, "-l", labels, jsonPath)
+	podNameByte, err := k8s.GetCollection("pods", appNameFlag, "-l", labels, jsonPath)
 	if err != nil {
 		return "", err
 	}

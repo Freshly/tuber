@@ -80,20 +80,20 @@ type ComplexityRoot struct {
 	}
 
 	TuberApp struct {
-		CloudSourceRepo   func(childComplexity int) int
-		Env               func(childComplexity int) int
-		ExcludedResources func(childComplexity int) int
-		ImageTag          func(childComplexity int) int
-		Name              func(childComplexity int) int
-		Paused            func(childComplexity int) int
-		ReviewApp         func(childComplexity int) int
-		ReviewApps        func(childComplexity int) int
-		ReviewAppsConfig  func(childComplexity int) int
-		SlackChannel      func(childComplexity int) int
-		SourceAppName     func(childComplexity int) int
-		State             func(childComplexity int) int
-		TriggerID         func(childComplexity int) int
-		Vars              func(childComplexity int) int
+		CloudSourceRepo  func(childComplexity int) int
+		CurrentTags      func(childComplexity int) int
+		Env              func(childComplexity int) int
+		ImageTag         func(childComplexity int) int
+		Name             func(childComplexity int) int
+		Paused           func(childComplexity int) int
+		ReviewApp        func(childComplexity int) int
+		ReviewApps       func(childComplexity int) int
+		ReviewAppsConfig func(childComplexity int) int
+		SlackChannel     func(childComplexity int) int
+		SourceAppName    func(childComplexity int) int
+		State            func(childComplexity int) int
+		TriggerID        func(childComplexity int) int
+		Vars             func(childComplexity int) int
 	}
 
 	Tuple struct {
@@ -340,6 +340,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TuberApp.CloudSourceRepo(childComplexity), true
 
+	case "TuberApp.currentTags":
+		if e.complexity.TuberApp.CurrentTags == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.CurrentTags(childComplexity), true
+
 	case "TuberApp.env":
 		if e.complexity.TuberApp.Env == nil {
 			break
@@ -521,6 +528,7 @@ type Tuple {
 
 type TuberApp {
   cloudSourceRepo: String!
+  currentTags: [String!]
   imageTag: String!
   name: ID!
   paused: Boolean!
@@ -533,7 +541,6 @@ type TuberApp {
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
   env: [Tuple!] @goField(forceResolver: true)
-  excludedResources: [Resource!]!
 }
 
 input AppInput {
@@ -1673,6 +1680,38 @@ func (ec *executionContext) _TuberApp_cloudSourceRepo(ctx context.Context, field
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_currentTags(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CurrentTags, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TuberApp_imageTag(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
@@ -3653,6 +3692,8 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "currentTags":
+			out.Values[i] = ec._TuberApp_currentTags(ctx, field, obj)
 		case "imageTag":
 			out.Values[i] = ec._TuberApp_imageTag(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4498,6 +4539,42 @@ func (ec *executionContext) unmarshalOString2string(ctx context.Context, v inter
 
 func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	return graphql.MarshalString(v)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

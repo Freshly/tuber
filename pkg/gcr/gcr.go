@@ -2,6 +2,7 @@ package gcr
 
 import (
 	"archive/tar"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -46,6 +47,9 @@ func GetTuberLayer(tagOrDigest string, creds []byte) (*AppYamls, error) {
 	if err != nil {
 		return nil, err
 	}
+	if repoImages == nil {
+		return nil, fmt.Errorf("no repo images found")
+	}
 
 	digest, err := img.Digest()
 	if err != nil {
@@ -53,11 +57,11 @@ func GetTuberLayer(tagOrDigest string, creds []byte) (*AppYamls, error) {
 	}
 
 	yamls.Tags = repoImages.Manifests[digest.String()].Tags
+
 	return yamls, nil
 }
 
 func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
-	var tuberYamls *AppYamls
 	for i := len(layers) - 1; i >= 0; i-- {
 		size, err := layers[i].Size()
 		if err != nil {
@@ -72,12 +76,11 @@ func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {
 			return nil, err
 		}
 		if yamls != nil {
-			tuberYamls = yamls
-			break
+			return yamls, nil
 		}
 	}
 
-	return tuberYamls, nil
+	return nil, fmt.Errorf("tuber yamls not found")
 }
 
 func findTuberYamls(layer v1.Layer) (*AppYamls, error) {

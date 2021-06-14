@@ -45,6 +45,7 @@ type State struct {
 
 type TuberApp struct {
 	CloudSourceRepo   string            `json:"cloudSourceRepo"`
+	CurrentTags       []string          `json:"currentTags"`
 	ImageTag          string            `json:"imageTag"`
 	Name              string            `json:"name"`
 	Paused            bool              `json:"paused"`

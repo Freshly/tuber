@@ -1,16 +1,16 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Heading, TextInput, TextInputGroup, ExcludedResources } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
-	useGetFullAppQuery, 
+	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
 	useSetExcludedResourceMutation,
-	useSetAppVarMutation, useUnsetAppVarMutation, 
-	useSetAppEnvMutation, useUnsetAppEnvMutation, 
+	useSetAppVarMutation, useUnsetAppVarMutation,
+	useSetAppEnvMutation, useUnsetAppEnvMutation,
 } from '../../src/generated/graphql'
 
 
@@ -54,27 +54,27 @@ const ShowApp = () => {
 		</section>
 
 		<section>
-			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+			<Card className="mb-2">
 				<h2 className="border-b-2">YAML Interpolation Vars</h2>
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
 					useSet={useSetAppVarMutation}
 					useUnset={useUnsetAppVarMutation}
 				/>
-			</div>
+			</Card>
 
-			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+			<Card className="mb-2">
 				<h2 className="border-b-2"> Environment Variables </h2>
 				<TextInputGroup
 					vars={app.env} appName={app.name}
 					useSet={useSetAppEnvMutation}
 					useUnset={useUnsetAppEnvMutation}
 				/>
-			</div>
+			</Card>
 		</section>
 
 		{app.reviewApp || <>
-			<div className="border-b p-3 mb-2 bg-white shadow-md rounded-sm">
+			<Card className="mb-2">
 				<Heading>Create a review app</Heading>
 				<CreateForm app={app} />
 				<Heading>Review apps</Heading>
@@ -88,12 +88,12 @@ const ShowApp = () => {
 						<TrashIcon className="w-5" onClick={() => destroyApp({ input: { name: reviewApp.name } })}/>
 					</div>,
 				)}
-			</div>
+			</Card>
 		</>}
 
-		<ExcludedResources 
+		<ExcludedResources
 			appName={app.name}
-			resources={app.reviewAppsConfig.excludedResources} 
+			resources={app.reviewAppsConfig.excludedResources}
 			useSet={useSetExcludedResourceMutation}
 		/>
 	</div>
