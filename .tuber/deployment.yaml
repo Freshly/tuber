@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tuber
-  namespace: tuber
   annotations:
     "tuber/rolloutTimeout": 30m
 spec:
@@ -26,7 +25,6 @@ spec:
           command:
             - "/app/tuber"
             - "start"
-            - "--debug"
           resources:
             requests:
               memory: "64Mi"

@@ -10,6 +10,7 @@ import (
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -54,6 +55,8 @@ func start(cmd *cobra.Command, args []string) error {
 	defer db.Close()
 
 	initErrorReporters()
+	defer sentry.Recover()
+
 	scope := report.Scope{"during": "startup"}
 	startupLogger := logger.With(zap.String("action", "startup"))
 

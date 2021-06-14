@@ -173,7 +173,7 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.reconcileState(decodedStateBeforeApply, appliedWorkloads, appliedConfigs)
+	err = r.reconcileState(decodedStateBeforeApply, appliedWorkloads, appliedConfigs, appliedPostreleaseResources)
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -445,18 +445,20 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 		return
 	}
 
-	if resource.watchUrl == "" || r.app.ReviewApp {
+	if resource.watchUrl == "" {
 		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
 		}
 	} else {
-		go func() {
+		wg.Add(1)
+		go func(errors chan rolloutError, wg *sync.WaitGroup) {
 			err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 			if err != nil {
 				errors <- rolloutError{err: err, resource: resource}
 			}
-		}()
+			wg.Done()
+		}(errors, wg)
 		err := r.monitorUrl(resource)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
@@ -466,6 +468,7 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 
 func (r releaser) monitorUrl(resource appResource) error {
 	timeout := time.Now().Add(resource.watchDuration)
+	r.logger.Debug("pinging " + resource.watchUrl)
 	for {
 		if time.Now().After(timeout) {
 			return nil
@@ -537,8 +540,9 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 	return nil
 }
 
-func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource) error {
+func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource, appliedPostreleaseResources []appResource) error {
 	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
+	appliedResources = append(appliedResources, appliedPostreleaseResources...)
 
 	type stateResource struct {
 		Metadata struct {
@@ -569,7 +573,7 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 				return ErrorContext{err: err, context: "parse resource removed from state", scope: scope, logger: logger}
 			}
 
-			if parsed.Metadata.OwnerReferences != nil {
+			if parsed.Metadata.OwnerReferences == nil {
 				deleteErr := k8s.Delete(cached.kind, cached.name, r.app.Name)
 				if deleteErr != nil {
 					return ErrorContext{err: err, context: "delete resource removed from state", scope: scope, logger: logger}
@@ -579,7 +583,11 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 	}
 
 	updatedApp := r.app
-	updatedApp.State.Previous = r.app.State.Current
+	if updatedApp.State == nil {
+		updatedApp.State = &model.State{}
+	}
+
+	updatedApp.State.Previous = updatedApp.State.Current
 	updatedApp.State.Current = appliedResources.encode()
 
 	err := r.db.SaveApp(updatedApp)
