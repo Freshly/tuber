@@ -234,12 +234,9 @@ export type GetFullAppQuery = (
     )>>, reviewApps?: Maybe<Array<(
       { __typename?: 'TuberApp' }
       & Pick<TuberApp, 'name'>
-    )>>, reviewAppsConfig?: Maybe<(
-      { __typename?: 'ReviewAppsConfig' }
-      & { excludedResources: Array<(
-        { __typename?: 'Resource' }
-        & Pick<Resource, 'name' | 'kind'>
-      )> }
+    )>>, excludedResources: Array<(
+      { __typename?: 'Resource' }
+      & Pick<Resource, 'name' | 'kind'>
     )> }
   )> }
 );
@@ -287,12 +284,9 @@ export type SetExcludedResourceMutation = (
   { __typename?: 'Mutation' }
   & { setExcludedResource?: Maybe<(
     { __typename?: 'TuberApp' }
-    & { reviewAppsConfig?: Maybe<(
-      { __typename?: 'ReviewAppsConfig' }
-      & { excludedResources: Array<(
-        { __typename?: 'Resource' }
-        & Pick<Resource, 'name' | 'kind'>
-      )> }
+    & { excludedResources: Array<(
+      { __typename?: 'Resource' }
+      & Pick<Resource, 'name' | 'kind'>
     )> }
   )> }
 );
@@ -340,12 +334,9 @@ export type UnsetExcludedResourceMutation = (
   { __typename?: 'Mutation' }
   & { unsetExcludedResource?: Maybe<(
     { __typename?: 'TuberApp' }
-    & { reviewAppsConfig?: Maybe<(
-      { __typename?: 'ReviewAppsConfig' }
-      & { excludedResources: Array<(
-        { __typename?: 'Resource' }
-        & Pick<Resource, 'name' | 'kind'>
-      )> }
+    & { excludedResources: Array<(
+      { __typename?: 'Resource' }
+      & Pick<Resource, 'name' | 'kind'>
     )> }
   )> }
 );
@@ -1066,11 +1057,9 @@ export const GetFullAppDocument = gql`
     reviewApps {
       name
     }
-    reviewAppsConfig {
-      excludedResources {
-        name
-        kind
-      }
+    excludedResources {
+      name
+      kind
     }
   }
 }
@@ -1112,11 +1101,9 @@ export function useSetAppVarMutation() {
 export const SetExcludedResourceDocument = gql`
     mutation SetExcludedResource($input: SetResourceInput!) {
   setExcludedResource(input: $input) {
-    reviewAppsConfig {
-      excludedResources {
-        name
-        kind
-      }
+    excludedResources {
+      name
+      kind
     }
   }
 }
@@ -1158,11 +1145,9 @@ export function useUnsetAppVarMutation() {
 export const UnsetExcludedResourceDocument = gql`
     mutation UnsetExcludedResource($input: SetResourceInput!) {
   unsetExcludedResource(input: $input) {
-    reviewAppsConfig {
-      excludedResources {
-        name
-        kind
-      }
+    excludedResources {
+      name
+      kind
     }
   }
 }
