@@ -6,6 +6,7 @@ import (
 	osExec "os/exec"
 	"runtime"
 
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -14,24 +15,28 @@ var configCmd = &cobra.Command{
 	Use:          "config",
 	Short:        "open local tuber config in your default editor",
 	Args:         cobra.NoArgs,
-	RunE:         config,
+	RunE:         openConfig,
 }
 
 var defaultTuberConfig = `# clusters:
-#   someShorthandName: 
-#     name: some_full_cluster_name
-#     url: that_clusters_tuber_url
+#   - shorthand: some-shorthand-name
+#     name: fully_qualified_gke_cluster_name <- run 'kubectl config current-context'
+#     url: https://tuber-url-for-this-cluster-without-slash-tuber.com
+#     iap_client_id: client id from the OAuth client
+# auth:
+#   oauth_client_id: client id for the OAuth application
+#   oauth_secret: secret (public - this is NOT used for auth) from the OAuth client
 `
 
-func config(cmd *cobra.Command, args []string) error {
-	configPath, err := tuberConfigPath()
+func openConfig(cmd *cobra.Command, args []string) error {
+	configPath, err := config.Path()
 	if err != nil {
 		return err
 	}
 
 	_, err = os.Stat(configPath)
 	if err != nil {
-		dir, err := tuberConfigDir()
+		dir, err := config.Dir()
 		if err != nil {
 			return err
 		}

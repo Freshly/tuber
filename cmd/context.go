@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -21,7 +22,7 @@ func currentContext(*cobra.Command, []string) error {
 		return err
 	}
 
-	config, err := getTuberConfig()
+	config, err := config.Load()
 	if err != nil {
 		fmt.Println(currentCluster)
 		return nil

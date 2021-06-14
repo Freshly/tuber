@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ var switchClusterCmd = &cobra.Command{
 }
 
 func switchCluster(cmd *cobra.Command, args []string) error {
-	config, err := getTuberConfig()
+	config, err := config.Load()
 	if err != nil {
 		return err
 	}
