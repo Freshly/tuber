@@ -1,14 +1,6 @@
 FROM bitnami/kubectl:1.15-ol-7
 
-FROM node:16-alpine3.11
-
-ENV TUBER_PREFIX=/tuber
-COPY pkg/adminserver/web /app
-WORKDIR /app
-RUN yarn
-RUN yarn build
-
-FROM golang:1.16.4-alpine3.13
+FROM golang:1.16.5-alpine3.13
 
 COPY --from=0 /opt/bitnami/kubectl/bin/kubectl /usr/bin/kubectl
 
@@ -23,11 +15,6 @@ COPY main.go  ./main.go
 COPY data     ./data
 COPY graph    ./graph
 COPY .tuber   /.tuber
-
-RUN rm -rf ./pkg/adminserver/web
-COPY --from=1 /app/out /static
-
-ENV GO111MODULE on
 
 RUN go build
 
