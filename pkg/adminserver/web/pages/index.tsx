@@ -9,7 +9,7 @@ const HomePage = () => {
 
 	return <section className="shadow-xl">
 		{data.getApps.map(app =>
-			<div key={app.name} className="border-b bg-white block p-4 leading-4 flex justify-between">
+			<div key={app.name} className="border-b bg-white dark:bg-gray-800 block p-4 leading-4 flex justify-between">
 				<div>
 					<div className="pb-2 text-blue-500">
 						<Link href={`/apps/${app.name}`} passHref>
@@ -24,7 +24,7 @@ const HomePage = () => {
 				<div>
 					<small className="mr-1">{app.imageTag}</small>
 					<ClipboardCopyIcon
-						className="w-4 inline" 
+						className="w-4 inline"
 						onClick={() => { navigator.clipboard.writeText(app.imageTag) }}
 					/>
 				</div>
