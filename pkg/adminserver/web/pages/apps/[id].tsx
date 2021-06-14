@@ -47,7 +47,7 @@ const ShowApp = () => {
 		</section>
 
 		<section>
-			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+			<div className="p-3 mb-2 bg-white dark:bg-gray-800 shadow-md rounded-sm">
 				<h2 className="border-b-2">YAML Interpolation Vars</h2>
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
