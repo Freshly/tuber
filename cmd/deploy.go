@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 
-	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/gcr"
@@ -36,7 +35,10 @@ func deploy(cmd *cobra.Command, args []string) error {
 		tag = app.ImageTag
 	}
 
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql, err := gqlClient()
+	if err != nil {
+		return err
+	}
 
 	gql := `
 		mutation($input: DeployInput!) {

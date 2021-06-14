@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 
-	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +20,10 @@ Can be used to abort a running release as well, as tuber's definition of 'last s
 
 func runRollback(cmd *cobra.Command, args []string) error {
 	appName := args[0]
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql, err := gqlClient()
+	if err != nil {
+		return err
+	}
 	gql := `
 		mutation($input: AppNameInput!) {
 			rollback(input: $input) {
