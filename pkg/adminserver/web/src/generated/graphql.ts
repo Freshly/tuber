@@ -137,6 +137,7 @@ export type State = {
 export type TuberApp = {
   __typename?: 'TuberApp';
   cloudSourceRepo: Scalars['String'];
+  currentTags?: Maybe<Array<Scalars['String']>>;
   imageTag: Scalars['String'];
   name: Scalars['ID'];
   paused: Scalars['Boolean'];
@@ -735,6 +736,20 @@ export default {
               "ofType": {
                 "kind": "SCALAR",
                 "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "currentTags",
+            "type": {
+              "kind": "LIST",
+              "ofType": {
+                "kind": "NON_NULL",
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Any"
+                }
               }
             },
             "args": []

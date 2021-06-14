@@ -80,20 +80,21 @@ type ComplexityRoot struct {
 	}
 
 	TuberApp struct {
-		CloudSourceRepo  func(childComplexity int) int
-		CurrentTags      func(childComplexity int) int
-		Env              func(childComplexity int) int
-		ImageTag         func(childComplexity int) int
-		Name             func(childComplexity int) int
-		Paused           func(childComplexity int) int
-		ReviewApp        func(childComplexity int) int
-		ReviewApps       func(childComplexity int) int
-		ReviewAppsConfig func(childComplexity int) int
-		SlackChannel     func(childComplexity int) int
-		SourceAppName    func(childComplexity int) int
-		State            func(childComplexity int) int
-		TriggerID        func(childComplexity int) int
-		Vars             func(childComplexity int) int
+		CloudSourceRepo   func(childComplexity int) int
+		CurrentTags       func(childComplexity int) int
+		Env               func(childComplexity int) int
+		ExcludedResources func(childComplexity int) int
+		ImageTag          func(childComplexity int) int
+		Name              func(childComplexity int) int
+		Paused            func(childComplexity int) int
+		ReviewApp         func(childComplexity int) int
+		ReviewApps        func(childComplexity int) int
+		ReviewAppsConfig  func(childComplexity int) int
+		SlackChannel      func(childComplexity int) int
+		SourceAppName     func(childComplexity int) int
+		State             func(childComplexity int) int
+		TriggerID         func(childComplexity int) int
+		Vars              func(childComplexity int) int
 	}
 
 	Tuple struct {
@@ -541,6 +542,7 @@ type TuberApp {
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
   env: [Tuple!] @goField(forceResolver: true)
+  excludedResources: [Resource!]!
 }
 
 input AppInput {
