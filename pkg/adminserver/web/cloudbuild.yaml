@@ -1,7 +1,7 @@
 steps:
   - name: 'gcr.io/kaniko-project/executor:latest'
-    dir: pkg/adminserver/web
     args:
+      - --context=dir://pkg/adminserver/web
       - --destination=gcr.io/$PROJECT_ID/tuber-frontend:$BRANCH_NAME
       - --destination=gcr.io/$PROJECT_ID/tuber-frontend:$COMMIT_SHA
       - --cache=true
