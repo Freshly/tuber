@@ -38,7 +38,7 @@ func portForward(cmd *cobra.Command, args []string) error {
 	ports := args
 
 	portForwardArgs := []string{"--address", address, "--pod-running-timeout", podRunningTimeout}
-	err = k8s.PortForward(podName, appName, ports, portForwardArgs...)
+	err = k8s.PortForward(podName, appNameFlag, ports, portForwardArgs...)
 	return err
 }
 
@@ -47,7 +47,7 @@ func init() {
 	portForwardCmd.Flags().StringVar(&podRunningTimeout, "pod-running-timeout", "1m0s", "The length of time (like 5s, 2m, or 3h, higher than zero) to wait until at least one pod is running.")
 	portForwardCmd.Flags().StringVarP(&workload, "workload", "w", "", "specify a deployment name if it does not match your app's name")
 	portForwardCmd.Flags().StringVarP(&pod, "pod", "p", "", "specify a pod (selects one randomly from deployment otherwise)")
-	portForwardCmd.Flags().StringVarP(&appName, "app", "a", "", "app name (required)")
+	portForwardCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name (required)")
 	portForwardCmd.MarkFlagRequired("app")
 	rootCmd.AddCommand(portForwardCmd)
 }
