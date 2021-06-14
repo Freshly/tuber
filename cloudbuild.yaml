@@ -3,4 +3,4 @@ steps:
     args:
       - --destination=gcr.io/$PROJECT_ID/tuber:$BRANCH_NAME
       - --destination=gcr.io/$PROJECT_ID/tuber:$COMMIT_SHA
-      - --cache=true
+      - --cache=false
