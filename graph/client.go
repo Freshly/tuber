@@ -10,10 +10,11 @@ import (
 )
 
 type GraphqlClient struct {
-	client *graphql.Client
+	client      *graphql.Client
+	IAPClientID string
 }
 
-func NewClient(clusterURL string) *GraphqlClient {
+func NewClient(clusterURL string, IAPClientID string) *GraphqlClient {
 	graphqlURL := viper.GetString("graphql-host")
 
 	if graphqlURL == "" {
@@ -29,7 +30,8 @@ func NewClient(clusterURL string) *GraphqlClient {
 	}
 
 	return &GraphqlClient{
-		client: client,
+		client:      client,
+		IAPClientID: IAPClientID,
 	}
 }
 
@@ -60,7 +62,7 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 		}
 	}
 
-	token, err := iap.CreateIDToken()
+	token, err := iap.CreateIDToken(g.IAPClientID)
 	if err != nil {
 		return err
 	}
@@ -86,7 +88,7 @@ func (g *GraphqlClient) Mutation(ctx context.Context, gql string, key *int, inpu
 		req.Var("input", input)
 	}
 
-	token, err := iap.CreateIDToken()
+	token, err := iap.CreateIDToken(g.IAPClientID)
 	if err != nil {
 		return err
 	}

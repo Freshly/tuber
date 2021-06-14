@@ -7,27 +7,22 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/iap/internal"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 var refreshTokenFile string
 
-func mustTuberConfigDir() string {
-	basePath, err := os.UserConfigDir()
+func init() {
+	dir, err := config.Dir()
 	if err != nil {
 		panic(err)
 	}
 
-	return filepath.Join(basePath, "tuber")
-}
-
-func init() {
-	refreshTokenFile = path.Join(mustTuberConfigDir(), "refresh_token")
+	refreshTokenFile = path.Join(dir, "refresh_token")
 }
 
 func RefreshTokenExists() bool {
@@ -35,18 +30,26 @@ func RefreshTokenExists() bool {
 	return !os.IsNotExist(err)
 }
 
-func config() *oauth2.Config {
+func newOAuthConfig() (*oauth2.Config, error) {
+	cnf, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
 	return &oauth2.Config{
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		ClientID:     viper.GetString("oauth-client-id"),
-		ClientSecret: viper.GetString("oauth-client-secret"),
+		ClientID:     cnf.Auth.OAuthClientID,
+		ClientSecret: cnf.Auth.OAuthSecret,
 		Scopes:       []string{"openid", "email"},
 		Endpoint:     google.Endpoint,
-	}
+	}, nil
 }
 
 func CreateRefreshToken() error {
-	c := config()
+	c, err := newOAuthConfig()
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("Go to the following URL and paste the code back here, ok?")
 	fmt.Println(c.AuthCodeURL("", oauth2.AccessTypeOffline))
@@ -64,17 +67,21 @@ func CreateRefreshToken() error {
 	return os.WriteFile(refreshTokenFile, []byte(token.RefreshToken), 0600)
 }
 
-func CreateIDToken() (string, error) {
+func CreateIDToken(IAPClientID string) (string, error) {
 	refreshToken, err := os.ReadFile(refreshTokenFile)
 	if err != nil {
 		return "", err
 	}
 
-	c := config()
+	c, err := newOAuthConfig()
+	if err != nil {
+		return "", err
+	}
+
 	v := url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {string(refreshToken)},
-		"audience":      {viper.GetString("iap-client-id")},
+		"audience":      {IAPClientID},
 	}
 
 	token, err := internal.RetrieveToken(context.Background(), c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle))

@@ -46,7 +46,10 @@ var reviewAppsListCmd = &cobra.Command{
 }
 
 func listReviewApps(cmd *cobra.Command, args []string) (err error) {
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql, err := gqlClient()
+	if err != nil {
+		return err
+	}
 	appName := args[0]
 
 	gql := `
@@ -108,7 +111,10 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("not permitted to create a review app from %s", sourceAppName)
 	}
 
-	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+	graphql, err := gqlClient()
+	if err != nil {
+		return err
+	}
 
 	appName := args[0]
 
