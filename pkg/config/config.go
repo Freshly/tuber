@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -22,9 +23,10 @@ type Auth struct {
 
 // Cluster is a cluster
 type Cluster struct {
-	Name      string `yaml:"name"`
-	Shorthand string `yaml:"shorthand"`
-	URL       string `yaml:"url"`
+	Name        string `yaml:"name"`
+	Shorthand   string `yaml:"shorthand"`
+	URL         string `yaml:"url"`
+	IAPClientID string `yaml:"iap_client_id"`
 }
 
 func (c tuberConfig) CurrentClusterConfig() Cluster {
@@ -56,31 +58,21 @@ func (c tuberConfig) FindByName(name string) Cluster {
 	return Cluster{}
 }
 
-func MustLoad() *tuberConfig {
-	config, err := Load()
-
-	if err != nil {
-		panic(err)
-	}
-
-	return config
-}
-
 func Load() (*tuberConfig, error) {
 	path, err := Path()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tuber config not found, please run `tuber config`")
 	}
 
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tuber config not readable, please run `tuber config`")
 	}
 
 	var t tuberConfig
 	err = yaml.Unmarshal(raw, &t)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tuber config invalid, please run `tuber config`")
 	}
 
 	return &t, nil

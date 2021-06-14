@@ -49,8 +49,20 @@ func db() (*core.DB, error) {
 	return core.NewDB(database), nil
 }
 
+func gqlClient() (*graph.GraphqlClient, error) {
+	c, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+	return graph.NewClient(c.CurrentClusterConfig().URL, c.CurrentClusterConfig().IAPClientID), nil
+}
+
 func getApp(appName string) (*model.TuberApp, error) {
-	graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
+	graphql, err := gqlClient()
+	if err != nil {
+		return nil, err
+	}
+
 	gql := `
 		query {
 			getApp(name: "%s") {
@@ -97,7 +109,7 @@ func getApp(appName string) (*model.TuberApp, error) {
 		GetApp *model.TuberApp
 	}
 
-	err := graphql.Query(context.Background(), fmt.Sprintf(gql, appName), &respData)
+	err = graphql.Query(context.Background(), fmt.Sprintf(gql, appName), &respData)
 	if err != nil {
 		return nil, err
 	}

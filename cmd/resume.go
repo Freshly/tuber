@@ -3,9 +3,7 @@ package cmd
 import (
 	"context"
 
-	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +15,10 @@ var resumeCmd = &cobra.Command{
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		appName := args[0]
-		graphql := graph.NewClient(config.MustLoad().CurrentClusterConfig().URL)
+		graphql, err := gqlClient()
+		if err != nil {
+			return err
+		}
 
 		b := false
 		input := &model.AppInput{
