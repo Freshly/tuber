@@ -3,19 +3,21 @@ import Link from 'next/link'
 import { useGetAppsQuery } from '../src/generated/graphql'
 import { throwError } from '../src/throwError'
 import { ClipboardCopyIcon } from '@heroicons/react/outline'
+import { Card } from '../src/components'
 
 const HomePage = () => {
 	const [{ data }] = throwError(useGetAppsQuery())
 
 	return <section className="shadow-xl">
 		{data.getApps.map(app =>
-			<div key={app.name} className="border-b bg-white block p-4 leading-4 flex justify-between">
+			<Card key={app.name} className="flex justify-between border-b">
 				<div>
 					<div className="pb-2 text-blue-500">
 						<Link href={`/apps/${app.name}`} passHref>
-							<a> {app.name} </a>
+							<a>{app.name}</a>
 						</Link>
 					</div>
+
 					<div>
 						<small className="text-light-900">Status: {app.paused ? 'Paused' : 'Running'} </small>
 					</div>
@@ -23,12 +25,13 @@ const HomePage = () => {
 
 				<div>
 					<small className="mr-1">{app.imageTag}</small>
+
 					<ClipboardCopyIcon
-						className="w-4 inline" 
+						className="w-4 inline"
 						onClick={() => { navigator.clipboard.writeText(app.imageTag) }}
 					/>
 				</div>
-			</div>,
+			</Card>,
 		)}
 	</section>
 }
