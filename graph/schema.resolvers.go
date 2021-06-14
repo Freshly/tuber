@@ -266,7 +266,7 @@ func (r *mutationResolver) Rollback(ctx context.Context, input model.AppNameInpu
 	for _, resource := range decodedResources {
 		applyErr := k8s.Apply(resource.decoded, resource.resource.Name)
 		if applyErr != nil {
-			r.logger.Debug("rollback apply error", zap.Error(applyErr.err))
+			r.logger.Debug("rollback apply error", zap.Error(applyErr))
 			errors = append(errors, rollbackErr{err: applyErr, resource: resource.resource})
 			continue
 		}
