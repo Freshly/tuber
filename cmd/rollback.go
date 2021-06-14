@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
@@ -24,18 +23,22 @@ func runRollback(cmd *cobra.Command, args []string) error {
 	appName := args[0]
 	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 	gql := `
-		mutation($input: "%s") {
+		mutation($input: AppNameInput!) {
 			rollback(input: $input) {
 				name
 			}
 		}
 	`
 
+	input := &model.AppNameInput{
+		Name: appName,
+	}
+
 	var respData struct {
 		rollback *model.TuberApp
 	}
 
-	return graphql.Mutation(context.Background(), fmt.Sprintf(gql, appName), nil, appName, &respData)
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
 }
 
 func init() {

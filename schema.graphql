@@ -71,6 +71,10 @@ input DeployInput {
   tag: String
 }
 
+input AppNameInput {
+  name: String!
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -83,7 +87,7 @@ type Mutation {
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   excludedResources: [Resource!]!
-  rollback(input: String!): TuberApp
+  rollback(input: AppNameInput!): TuberApp
 }
 
 schema {

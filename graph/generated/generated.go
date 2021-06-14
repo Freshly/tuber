@@ -51,7 +51,7 @@ type ComplexityRoot struct {
 		DestroyApp        func(childComplexity int, input model.AppInput) int
 		ExcludedResources func(childComplexity int) int
 		RemoveApp         func(childComplexity int, input model.AppInput) int
-		Rollback          func(childComplexity int, input string) int
+		Rollback          func(childComplexity int, input model.AppNameInput) int
 		SetAppEnv         func(childComplexity int, input model.SetTupleInput) int
 		SetAppVar         func(childComplexity int, input model.SetTupleInput) int
 		UnsetAppEnv       func(childComplexity int, input model.SetTupleInput) int
@@ -116,7 +116,7 @@ type MutationResolver interface {
 	SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	ExcludedResources(ctx context.Context) ([]*model.Resource, error)
-	Rollback(ctx context.Context, input string) (*model.TuberApp, error)
+	Rollback(ctx context.Context, input model.AppNameInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -219,7 +219,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Rollback(childComplexity, args["input"].(string)), true
+		return e.complexity.Mutation.Rollback(childComplexity, args["input"].(model.AppNameInput)), true
 
 	case "Mutation.setAppEnv":
 		if e.complexity.Mutation.SetAppEnv == nil {
@@ -605,6 +605,10 @@ input DeployInput {
   tag: String
 }
 
+input AppNameInput {
+  name: String!
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -617,7 +621,7 @@ type Mutation {
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   excludedResources: [Resource!]!
-  rollback(input: String!): TuberApp
+  rollback(input: AppNameInput!): TuberApp
 }
 
 schema {
@@ -710,10 +714,10 @@ func (ec *executionContext) field_Mutation_removeApp_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_rollback_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 model.AppNameInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNAppNameInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppNameInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1315,7 +1319,7 @@ func (ec *executionContext) _Mutation_rollback(ctx context.Context, field graphq
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Rollback(rctx, args["input"].(string))
+		return ec.resolvers.Mutation().Rollback(rctx, args["input"].(model.AppNameInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3433,6 +3437,26 @@ func (ec *executionContext) unmarshalInputAppInput(ctx context.Context, obj inte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputAppNameInput(ctx context.Context, obj interface{}) (model.AppNameInput, error) {
+	var it model.AppNameInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateReviewAppInput(ctx context.Context, obj interface{}) (model.CreateReviewAppInput, error) {
 	var it model.CreateReviewAppInput
 	var asMap = obj.(map[string]interface{})
@@ -4124,6 +4148,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 func (ec *executionContext) unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx context.Context, v interface{}) (model.AppInput, error) {
 	res, err := ec.unmarshalInputAppInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNAppNameInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppNameInput(ctx context.Context, v interface{}) (model.AppNameInput, error) {
+	res, err := ec.unmarshalInputAppNameInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

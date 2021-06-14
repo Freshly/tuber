@@ -219,8 +219,8 @@ func (r *mutationResolver) ExcludedResources(ctx context.Context) ([]*model.Reso
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) Rollback(ctx context.Context, appName string) (*model.TuberApp, error) {
-	app, err := r.Resolver.db.App(appName)
+func (r *mutationResolver) Rollback(ctx context.Context, input model.AppNameInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
 			return nil, errors.New("could not find app")

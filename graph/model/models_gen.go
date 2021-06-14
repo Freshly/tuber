@@ -9,6 +9,10 @@ type AppInput struct {
 	Paused   *bool   `json:"paused"`
 }
 
+type AppNameInput struct {
+	Name string `json:"name"`
+}
+
 type CreateReviewAppInput struct {
 	Name       string `json:"name"`
 	BranchName string `json:"branchName"`
