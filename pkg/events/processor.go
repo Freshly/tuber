@@ -28,10 +28,10 @@ type Processor struct {
 }
 
 // NewProcessor constructs a Processor
-func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) Processor {
+func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) *Processor {
 	l := make(map[string]*sync.Cond)
 
-	return Processor{
+	return &Processor{
 		ctx:               ctx,
 		logger:            logger,
 		creds:             creds,

@@ -32,7 +32,7 @@ func DigestFromTag(tag string, creds []byte) (string, error) {
 		return "", err
 	}
 
-	return digest.String(), nil
+	return ref.Context().Digest(digest.String()).String(), nil
 }
 
 type AppYamls struct {
