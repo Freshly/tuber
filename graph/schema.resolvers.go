@@ -13,6 +13,8 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/db"
+	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
 )
@@ -66,6 +68,36 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) 
 	if err != nil {
 		return nil, err
 	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) Deploy(ctx context.Context, input model.DeployInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	tag := app.ImageTag
+	if input.Tag != nil {
+		tag = *input.Tag
+	}
+
+	digest, err := gcr.DigestFromTag(tag, r.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error: couldn't find image for the tag: %v", err)
+	}
+
+	event := events.NewEvent(r.logger, digest, tag)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error: couldn't find image for the tag: %v", err)
+	}
+
+	go r.Resolver.processor.ReleaseApp(event, app)
 
 	return app, nil
 }

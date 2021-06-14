@@ -2,28 +2,52 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/freshly/tuber/graph"
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/slack"
-	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/google/go-containerregistry/pkg/v1/google"
-	"github.com/google/go-containerregistry/pkg/v1/remote"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var deployCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "deploy [app]",
-	Short:        "deploys the latest built image of an app. CURRENTLY REQUIRES A LOCAL DB",
+	Use:          "deploy [app] -t [tag]",
+	Short:        "deploys the latest built image of an app, or a certain tag if specified",
 	RunE:         deploy,
 	PreRunE:      promptCurrentContext,
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
 	appName := args[0]
+	if deployLocalFlag {
+		return localDeploy(appName, deployTagFlag)
+	}
+	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
+
+	gql := `
+		mutation($input: SetTupleInput!) {
+			deploy(input: $input) {
+				name
+			}
+		}
+	`
+
+	input := &model.DeployInput{
+		Name: appName,
+		Tag:  &deployTagFlag,
+	}
+
+	var respData struct {
+		deploy *model.TuberApp
+	}
+
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
+}
+
+func localDeploy(appName string, flagTag string) error {
 	logger, err := createLogger()
 	if err != nil {
 		return err
@@ -36,8 +60,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: keep this available but under a flag, and move all the default behavior into a graphql mutation
-	db, err := db()
+	db, err := openDB()
 	if err != nil {
 		return err
 	}
@@ -67,30 +90,25 @@ func deploy(cmd *cobra.Command, args []string) error {
 	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
 	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient)
 
-	ref, err := name.ParseReference(app.ImageTag)
+	tag := flagTag
+	if tag == "" {
+		tag = app.ImageTag
+	}
+
+	digest, err := gcr.DigestFromTag(tag, creds)
 	if err != nil {
 		return err
 	}
 
-	img, err := remote.Image(ref, remote.WithAuth(google.NewJSONKeyAuthenticator(string(creds))))
-	if err != nil {
-		return err
-	}
-
-	digest, err := img.Digest()
-	if err != nil {
-		return err
-	}
-
-	event, err := events.NewEvent(logger, ref.Context().Digest(digest.String()).String(), app.ImageTag)
-	if err != nil {
-		return fmt.Errorf("app image tag invalid")
-	}
-
-	processor.StartRelease(event, app)
+	processor.StartRelease(events.NewEvent(logger, digest, tag), app)
 	return nil
 }
 
+var deployLocalFlag bool
+var deployTagFlag string
+
 func init() {
+	deployCmd.Flags().BoolVar(&deployLocalFlag, "local", false, "run the full deploy process locally, including all monitoring.")
+	deployCmd.Flags().StringVarP(&deployTagFlag, "tag", "t", "", "deploy a specific tag")
 	rootCmd.AddCommand(deployCmd)
 }

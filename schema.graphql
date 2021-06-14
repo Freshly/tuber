@@ -66,10 +66,16 @@ input SetTupleInput {
   value: String!
 }
 
+input DeployInput {
+  name: String!
+  tag: String
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
   removeApp(input: AppInput!): TuberApp
+  deploy(input: DeployInput!): TuberApp
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp

@@ -48,7 +48,7 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	db, err := db()
+	db, err := openDB()
 	if err != nil {
 		return err
 	}
@@ -80,6 +80,7 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
+	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient)
 	listener, err := pubsub.NewListener(
 		ctx,
 		logger,
@@ -87,7 +88,7 @@ func start(cmd *cobra.Command, args []string) error {
 		viper.GetString("pubsub-subscription-name"),
 		creds,
 		data,
-		events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient),
+		&processor,
 	)
 
 	if err != nil {
@@ -96,7 +97,7 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	go startAdminServer(ctx, db, logger, creds)
+	go startAdminServer(ctx, db, &processor, logger, creds)
 
 	err = listener.Start()
 	if err != nil {

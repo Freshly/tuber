@@ -23,12 +23,12 @@ type Listener struct {
 	subscriptionName string
 	credentials      []byte
 	clusterData      *core.ClusterData
-	processor        events.Processor
+	processor        *events.Processor
 }
 
 // NewListener is a constructor for Listener with field validation
 func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, subscriptionName string,
-	credentials []byte, clusterData *core.ClusterData, processor events.Processor) (*Listener, error) {
+	credentials []byte, clusterData *core.ClusterData, processor *events.Processor) (*Listener, error) {
 	if logger == nil {
 		return nil, errors.New("zap logger is required")
 	}
@@ -90,13 +90,7 @@ func (l *Listener) Start() error {
 			report.Error(err, report.Scope{"context": "messageProcessing"})
 			return
 		}
-		event, err := events.NewEvent(l.logger, message.Digest, message.Tag)
-		if err != nil {
-			listenLogger.Warn("failed to unmarshal pubsub message", zap.Error(err))
-			report.Error(err, report.Scope{"context": "messageProcessing"})
-			return
-		}
-		l.processor.ProcessMessage(event)
+		l.processor.ProcessMessage(events.NewEvent(l.logger, message.Digest, message.Tag))
 	})
 
 	if err != nil {

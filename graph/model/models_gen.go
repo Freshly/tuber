@@ -14,6 +14,11 @@ type CreateReviewAppInput struct {
 	BranchName string `json:"branchName"`
 }
 
+type DeployInput struct {
+	Name string  `json:"name"`
+	Tag  *string `json:"tag"`
+}
+
 type Resource struct {
 	Encoded string `json:"encoded"`
 	Kind    string `json:"kind"`

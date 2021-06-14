@@ -29,7 +29,7 @@ var pod string
 var podRunningTimeout string
 var workload string
 
-func db() (*core.DB, error) {
+func openDB() (*core.DB, error) {
 	var path string
 	if _, err := os.Stat("/etc/tuber-bolt"); os.IsNotExist(err) {
 		wd, err := os.Getwd()

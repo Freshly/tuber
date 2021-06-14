@@ -47,6 +47,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateApp         func(childComplexity int, input model.AppInput) int
 		CreateReviewApp   func(childComplexity int, input model.CreateReviewAppInput) int
+		Deploy            func(childComplexity int, input model.DeployInput) int
 		DestroyApp        func(childComplexity int, input model.AppInput) int
 		ExcludedResources func(childComplexity int) int
 		RemoveApp         func(childComplexity int, input model.AppInput) int
@@ -106,6 +107,7 @@ type MutationResolver interface {
 	CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	UpdateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	RemoveApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	Deploy(ctx context.Context, input model.DeployInput) (*model.TuberApp, error)
 	DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error)
 	SetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
@@ -161,6 +163,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateReviewApp(childComplexity, args["input"].(model.CreateReviewAppInput)), true
+
+	case "Mutation.deploy":
+		if e.complexity.Mutation.Deploy == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deploy_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Deploy(childComplexity, args["input"].(model.DeployInput)), true
 
 	case "Mutation.destroyApp":
 		if e.complexity.Mutation.DestroyApp == nil {
@@ -572,10 +586,16 @@ input SetTupleInput {
   value: String!
 }
 
+input DeployInput {
+  name: String!
+  tag: String
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
   removeApp(input: AppInput!): TuberApp
+  deploy(input: DeployInput!): TuberApp
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp
@@ -619,6 +639,21 @@ func (ec *executionContext) field_Mutation_createReviewApp_args(ctx context.Cont
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNCreateReviewAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐCreateReviewAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deploy_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.DeployInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNDeployInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐDeployInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -904,6 +939,45 @@ func (ec *executionContext) _Mutation_removeApp(ctx context.Context, field graph
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().RemoveApp(rctx, args["input"].(model.AppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deploy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deploy_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Deploy(rctx, args["input"].(model.DeployInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3318,6 +3392,34 @@ func (ec *executionContext) unmarshalInputCreateReviewAppInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDeployInput(ctx context.Context, obj interface{}) (model.DeployInput, error) {
+	var it model.DeployInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "tag":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tag"))
+			it.Tag, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSetTupleInput(ctx context.Context, obj interface{}) (model.SetTupleInput, error) {
 	var it model.SetTupleInput
 	var asMap = obj.(map[string]interface{})
@@ -3383,6 +3485,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_updateApp(ctx, field)
 		case "removeApp":
 			out.Values[i] = ec._Mutation_removeApp(ctx, field)
+		case "deploy":
+			out.Values[i] = ec._Mutation_deploy(ctx, field)
 		case "destroyApp":
 			out.Values[i] = ec._Mutation_destroyApp(ctx, field)
 		case "createReviewApp":
@@ -3969,6 +4073,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 
 func (ec *executionContext) unmarshalNCreateReviewAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐCreateReviewAppInput(ctx context.Context, v interface{}) (model.CreateReviewAppInput, error) {
 	res, err := ec.unmarshalInputCreateReviewAppInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNDeployInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐDeployInput(ctx context.Context, v interface{}) (model.DeployInput, error) {
+	res, err := ec.unmarshalInputDeployInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

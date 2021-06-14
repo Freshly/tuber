@@ -50,7 +50,7 @@ type Event struct {
 	errorScope report.Scope
 }
 
-func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
+func NewEvent(logger *zap.Logger, digest string, tag string) *Event {
 	logger = logger.With(zap.String("tag", tag), zap.String("digest", digest))
 	scope := report.Scope{"tag": tag, "digest": digest}
 	return &Event{
@@ -58,7 +58,7 @@ func NewEvent(logger *zap.Logger, digest string, tag string) (*Event, error) {
 		tag:        tag,
 		logger:     logger,
 		errorScope: scope,
-	}, nil
+	}
 }
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers releases for matching apps
@@ -81,29 +81,34 @@ func (p Processor) ProcessMessage(event *Event) {
 		wg.Add(1)
 
 		go func(app *model.TuberApp) {
-			// todo: if this actually fixes sentry, errors package needs this functionality
-			// todo: it does (lol) as in, the one in start _does not help mid-release panics_
 			defer sentry.Recover()
 			defer wg.Done()
-			if _, ok := (*p.locks)[app.Name]; !ok {
-				var mutex sync.Mutex
-				(*p.locks)[app.Name] = sync.NewCond(&mutex)
-			}
-
-			cond := (*p.locks)[app.Name]
-			cond.L.Lock()
-
-			if app.Paused {
-				p.slackClient.Message(event.logger, "release skipped for "+app.Name+" as it is paused")
-				event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
-				return
-			}
-			p.StartRelease(event, app)
-			cond.L.Unlock()
-			cond.Signal()
+			p.ReleaseApp(event, app)
 		}(a)
 	}
 	wg.Wait()
+}
+
+func (p Processor) ReleaseApp(event *Event, app *model.TuberApp) {
+	// todo: the one in start _does not help mid-release panics_, errors package needs this functionality
+	defer sentry.Recover()
+
+	if _, ok := (*p.locks)[app.Name]; !ok {
+		var mutex sync.Mutex
+		(*p.locks)[app.Name] = sync.NewCond(&mutex)
+	}
+
+	cond := (*p.locks)[app.Name]
+	cond.L.Lock()
+
+	if app.Paused {
+		p.slackClient.Message(event.logger, "release skipped for "+app.Name+" as it is paused")
+		event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
+		return
+	}
+	p.StartRelease(event, app)
+	cond.L.Unlock()
+	cond.Signal()
 }
 
 func (p Processor) StartRelease(event *Event, app *model.TuberApp) {

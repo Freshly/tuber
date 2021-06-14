@@ -29,7 +29,7 @@ func bolter(cmd *cobra.Command, args []string) error {
 		}
 		os.Remove(wd + "/localbolt")
 	}
-	db, err := db()
+	db, err := openDB()
 	if err != nil {
 		return err
 	}
