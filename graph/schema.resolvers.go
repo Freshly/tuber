@@ -193,7 +193,7 @@ func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.
 	}
 
 	res := &model.Resource{Name: input.Name, Kind: input.Kind}
-	app.ReviewAppsConfig.ExcludedResources = append(app.ReviewAppsConfig.ExcludedResources, res)
+	app.ExcludedResources = append(app.ExcludedResources, res)
 
 	if err := r.Resolver.db.SaveApp(app); err != nil {
 		return nil, err
@@ -212,17 +212,17 @@ func (r *mutationResolver) UnsetExcludedResource(ctx context.Context, input mode
 		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
 	}
 
-	if app.ReviewAppsConfig.ExcludedResources == nil {
+	if app.ExcludedResources == nil {
 		return app, nil
 	}
 
 	resources := []*model.Resource{}
-	for _, rs := range app.ReviewAppsConfig.ExcludedResources {
+	for _, rs := range app.ExcludedResources {
 		if !(rs.Name == input.Name && rs.Kind == input.Kind) {
 			resources = append(resources, rs)
 		}
 	}
-	app.ReviewAppsConfig.ExcludedResources = resources
+	app.ExcludedResources = resources
 
 	if err := r.Resolver.db.SaveApp(app); err != nil {
 		return nil, fmt.Errorf("could not save changes: %v", err)
