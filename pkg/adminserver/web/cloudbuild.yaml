@@ -1,0 +1,21 @@
+steps:
+- name: gcr.io/cloud-builders/docker
+  waitFor: ['-']
+  entrypoint: "bash"
+  id: "docker build"
+  dir: pkg/adminserver/web
+  args:
+    - "-c"
+    - >-
+      docker build
+      --cache-from gcr.io/$PROJECT_ID/tuber-frontend:$BRANCH_NAME
+      --cache-from gcr.io/$PROJECT_ID/tuber-frontend:main
+      -t gcr.io/$PROJECT_ID/tuber-frontend:$BRANCH_NAME
+      -t gcr.io/$PROJECT_ID/tuber-frontend:$COMMIT_SHA
+      .
+images:
+  - gcr.io/$PROJECT_ID/tuber-frontend:$BRANCH_NAME
+  - gcr.io/$PROJECT_ID/tuber-frontend:$COMMIT_SHA
+timeout: 5800s
+options:
+  machineType: "N1_HIGHCPU_8"
