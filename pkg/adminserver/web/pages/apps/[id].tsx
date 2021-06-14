@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Heading, TextInput, TextInputGroup } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup } from '../../src/components'
 import { useGetFullAppQuery, useCreateReviewAppMutation, useSetAppVarMutation, useUnsetAppVarMutation, useSetAppEnvMutation, useDestroyAppMutation, useUnsetAppEnvMutation } from '../../src/generated/graphql'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
@@ -47,27 +47,27 @@ const ShowApp = () => {
 		</section>
 
 		<section>
-			<div className="p-3 mb-2 bg-white dark:bg-gray-800 shadow-md rounded-sm">
+			<Card className="mb-2">
 				<h2 className="border-b-2">YAML Interpolation Vars</h2>
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
 					useSet={useSetAppVarMutation}
 					useUnset={useUnsetAppVarMutation}
 				/>
-			</div>
+			</Card>
 
-			<div className="p-3 mb-2 bg-white shadow-md rounded-sm">
+			<Card className="mb-2">
 				<h2 className="border-b-2"> Environment Variables </h2>
 				<TextInputGroup
 					vars={app.env} appName={app.name}
 					useSet={useSetAppEnvMutation}
 					useUnset={useUnsetAppEnvMutation}
 				/>
-			</div>
+			</Card>
 		</section>
 
 		{app.reviewApp || <>
-			<div className="border-b p-3 mb-2 bg-white shadow-md rounded-sm">
+			<Card className="mb-2">
 				<Heading>Create a review app</Heading>
 				<CreateForm app={app} />
 				<Heading>Review apps</Heading>
@@ -81,7 +81,7 @@ const ShowApp = () => {
 						<TrashIcon className="w-5" onClick={() => destroyApp({ input: { name: reviewApp.name } })}/>
 					</div>,
 				)}
-			</div>
+			</Card>
 		</>}
 	</div>
 }
