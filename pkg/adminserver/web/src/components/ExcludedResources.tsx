@@ -20,7 +20,7 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 	const kindRef = useRef(null)
 	
 	const [{ error: setErr }, set] = useSet()
-	const [{ error: unsetErr }] = useUnset()
+	const [{ error: unsetErr }, unset] = useUnset()
 
 	const err = setErr || unsetErr
 
@@ -40,18 +40,34 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 		}
 	}
 
+	const doUnset = resource => async (event) => {
+		event.preventDefault()
+
+		const result = await unset({
+			input: {
+				appName: appName,
+				name: resource.name,
+				kind: resource.kind
+			}
+		})
+
+		if (!result.error) {
+			setLoading(false)
+		}
+	}
+
 	return <div className="border-b p-3 mb-2 bg-white shadow-md rounded-sm">
 		<Heading>Excluded Resources</Heading>
 		{resources.map(resource =>
 			<div key={resource.name} className="bg-gray-50 pb-1">
 				<span>{resource.name}</span>
 				<span>{resource.kind}</span>
-				<TrashIcon className="w-5 text-red-600" />
+				<TrashIcon className="w-5 text-red-600" onClick={doUnset(resource)} />
 			</div>,
 		)}
 
 		{err && <div className="bg-red-700 text-white border-red-700 p-2">
-			{setErr.message}
+			{err.message}
 		</div>}
 
 		{addNew &&

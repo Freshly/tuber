@@ -203,7 +203,7 @@ func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.
 }
 
 func (r *mutationResolver) UnsetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
-	app, err := r.Resolver.db.App(input.Name)
+	app, err := r.Resolver.db.App(input.AppName)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
 			return nil, errors.New("could not find app")
