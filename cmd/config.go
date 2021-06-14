@@ -15,7 +15,7 @@ var configCmd = &cobra.Command{
 	Use:          "config",
 	Short:        "open local tuber config in your default editor",
 	Args:         cobra.NoArgs,
-	RunE:         writeConfig,
+	RunE:         openConfig,
 }
 
 var defaultTuberConfig = `# clusters:
@@ -24,7 +24,7 @@ var defaultTuberConfig = `# clusters:
 #     url: that_clusters_tuber_url
 `
 
-func writeConfig(cmd *cobra.Command, args []string) error {
+func openConfig(cmd *cobra.Command, args []string) error {
 	configPath, err := config.Path()
 	if err != nil {
 		return err
