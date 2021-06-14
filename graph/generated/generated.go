@@ -45,16 +45,17 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateApp           func(childComplexity int, input model.AppInput) int
-		CreateReviewApp     func(childComplexity int, input model.CreateReviewAppInput) int
-		DestroyApp          func(childComplexity int, input model.AppInput) int
-		RemoveApp           func(childComplexity int, input model.AppInput) int
-		SetAppEnv           func(childComplexity int, input model.SetTupleInput) int
-		SetAppVar           func(childComplexity int, input model.SetTupleInput) int
-		SetExcludedResource func(childComplexity int, input model.SetResourceInput) int
-		UnsetAppEnv         func(childComplexity int, input model.SetTupleInput) int
-		UnsetAppVar         func(childComplexity int, input model.SetTupleInput) int
-		UpdateApp           func(childComplexity int, input model.AppInput) int
+		CreateApp             func(childComplexity int, input model.AppInput) int
+		CreateReviewApp       func(childComplexity int, input model.CreateReviewAppInput) int
+		DestroyApp            func(childComplexity int, input model.AppInput) int
+		RemoveApp             func(childComplexity int, input model.AppInput) int
+		SetAppEnv             func(childComplexity int, input model.SetTupleInput) int
+		SetAppVar             func(childComplexity int, input model.SetTupleInput) int
+		SetExcludedResource   func(childComplexity int, input model.SetResourceInput) int
+		UnsetAppEnv           func(childComplexity int, input model.SetTupleInput) int
+		UnsetAppVar           func(childComplexity int, input model.SetTupleInput) int
+		UnsetExcludedResource func(childComplexity int, input model.SetResourceInput) int
+		UpdateApp             func(childComplexity int, input model.AppInput) int
 	}
 
 	Query struct {
@@ -114,6 +115,7 @@ type MutationResolver interface {
 	SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
+	UnsetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -246,6 +248,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UnsetAppVar(childComplexity, args["input"].(model.SetTupleInput)), true
+
+	case "Mutation.unsetExcludedResource":
+		if e.complexity.Mutation.UnsetExcludedResource == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unsetExcludedResource_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnsetExcludedResource(childComplexity, args["input"].(model.SetResourceInput)), true
 
 	case "Mutation.updateApp":
 		if e.complexity.Mutation.UpdateApp == nil {
@@ -602,6 +616,7 @@ type Mutation {
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   setExcludedResource(input: SetResourceInput!): TuberApp
+  unsetExcludedResource(input: SetResourceInput!): TuberApp
 }
 
 schema {
@@ -743,6 +758,21 @@ func (ec *executionContext) field_Mutation_unsetAppVar_args(ctx context.Context,
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNSetTupleInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐSetTupleInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_unsetExcludedResource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.SetResourceInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNSetResourceInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐSetResourceInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1211,6 +1241,45 @@ func (ec *executionContext) _Mutation_setExcludedResource(ctx context.Context, f
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().SetExcludedResource(rctx, args["input"].(model.SetResourceInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_unsetExcludedResource(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_unsetExcludedResource_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UnsetExcludedResource(rctx, args["input"].(model.SetResourceInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3506,6 +3575,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_unsetAppEnv(ctx, field)
 		case "setExcludedResource":
 			out.Values[i] = ec._Mutation_setExcludedResource(ctx, field)
+		case "unsetExcludedResource":
+			out.Values[i] = ec._Mutation_unsetExcludedResource(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

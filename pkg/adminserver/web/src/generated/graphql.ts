@@ -39,6 +39,7 @@ export type Mutation = {
   setAppEnv?: Maybe<TuberApp>;
   unsetAppEnv?: Maybe<TuberApp>;
   setExcludedResource?: Maybe<TuberApp>;
+  unsetExcludedResource?: Maybe<TuberApp>;
 };
 
 
@@ -88,6 +89,11 @@ export type MutationUnsetAppEnvArgs = {
 
 
 export type MutationSetExcludedResourceArgs = {
+  input: SetResourceInput;
+};
+
+
+export type MutationUnsetExcludedResourceArgs = {
   input: SetResourceInput;
 };
 
@@ -325,6 +331,25 @@ export type UnsetAppVarMutation = (
   )> }
 );
 
+export type UnsetExcludedResourceMutationVariables = Exact<{
+  input: SetResourceInput;
+}>;
+
+
+export type UnsetExcludedResourceMutation = (
+  { __typename?: 'Mutation' }
+  & { unsetExcludedResource?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & { excludedResources: Array<(
+        { __typename?: 'Resource' }
+        & Pick<Resource, 'name' | 'kind'>
+      )> }
+    )> }
+  )> }
+);
+
 import { IntrospectionQuery } from 'graphql';
 export default {
   "__schema": {
@@ -522,6 +547,26 @@ export default {
           },
           {
             "name": "setExcludedResource",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "unsetExcludedResource",
             "type": {
               "kind": "OBJECT",
               "name": "TuberApp",
@@ -1109,4 +1154,20 @@ export const UnsetAppVarDocument = gql`
 
 export function useUnsetAppVarMutation() {
   return Urql.useMutation<UnsetAppVarMutation, UnsetAppVarMutationVariables>(UnsetAppVarDocument);
+};
+export const UnsetExcludedResourceDocument = gql`
+    mutation UnsetExcludedResource($input: SetResourceInput!) {
+  unsetExcludedResource(input: $input) {
+    reviewAppsConfig {
+      excludedResources {
+        name
+        kind
+      }
+    }
+  }
+}
+    `;
+
+export function useUnsetExcludedResourceMutation() {
+  return Urql.useMutation<UnsetExcludedResourceMutation, UnsetExcludedResourceMutationVariables>(UnsetExcludedResourceDocument);
 };
