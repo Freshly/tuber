@@ -97,6 +97,8 @@ func (r *mutationResolver) Deploy(ctx context.Context, input model.DeployInput) 
 		return nil, fmt.Errorf("unexpected error: couldn't find image for the tag: %v", err)
 	}
 
+	fmt.Println(r.Resolver.processor)
+
 	go r.Resolver.processor.ReleaseApp(event, app)
 
 	return app, nil
