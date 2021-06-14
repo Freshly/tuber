@@ -51,6 +51,7 @@ type ComplexityRoot struct {
 		DestroyApp        func(childComplexity int, input model.AppInput) int
 		ExcludedResources func(childComplexity int) int
 		RemoveApp         func(childComplexity int, input model.AppInput) int
+		Rollback          func(childComplexity int, input string) int
 		SetAppEnv         func(childComplexity int, input model.SetTupleInput) int
 		SetAppVar         func(childComplexity int, input model.SetTupleInput) int
 		UnsetAppEnv       func(childComplexity int, input model.SetTupleInput) int
@@ -115,6 +116,7 @@ type MutationResolver interface {
 	SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	ExcludedResources(ctx context.Context) ([]*model.Resource, error)
+	Rollback(ctx context.Context, input string) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -206,6 +208,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.RemoveApp(childComplexity, args["input"].(model.AppInput)), true
+
+	case "Mutation.rollback":
+		if e.complexity.Mutation.Rollback == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_rollback_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Rollback(childComplexity, args["input"].(string)), true
 
 	case "Mutation.setAppEnv":
 		if e.complexity.Mutation.SetAppEnv == nil {
@@ -603,6 +617,7 @@ type Mutation {
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   excludedResources: [Resource!]!
+  rollback(input: String!): TuberApp
 }
 
 schema {
@@ -684,6 +699,21 @@ func (ec *executionContext) field_Mutation_removeApp_args(ctx context.Context, r
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_rollback_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1258,6 +1288,45 @@ func (ec *executionContext) _Mutation_excludedResources(ctx context.Context, fie
 	res := resTmp.([]*model.Resource)
 	fc.Result = res
 	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_rollback(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_rollback_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Rollback(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3504,6 +3573,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "rollback":
+			out.Values[i] = ec._Mutation_rollback(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
@@ -216,6 +217,68 @@ func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTuple
 
 func (r *mutationResolver) ExcludedResources(ctx context.Context) ([]*model.Resource, error) {
 	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) Rollback(ctx context.Context, appName string) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(appName)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if app.State == nil || len(app.State.Previous) == 0 {
+		return nil, fmt.Errorf("no previous successful release found")
+	}
+
+	type decodedResource struct {
+		decoded  []byte
+		resource *model.Resource
+	}
+
+	type rollbackErr struct {
+		err      error
+		resource *model.Resource
+	}
+
+	var errors []rollbackErr
+	var decodedResources []decodedResource
+	for _, resource := range app.State.Previous {
+		decoded, decodeErr := base64.StdEncoding.DecodeString(resource.Encoded)
+		if decodeErr != nil {
+			errors = append(errors, rollbackErr{err: decodeErr, resource: resource})
+			continue
+		}
+		decodedResources = append(decodedResources, decodedResource{decoded: decoded, resource: resource})
+	}
+
+	if len(errors) != 0 {
+		combined := "no rollback performed, errors decoding resources: "
+		for _, decodeErr := range errors {
+			combined = combined + fmt.Sprintf("%s:%s, ", decodeErr.resource.Kind, decodeErr.resource.Name)
+		}
+		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
+	}
+
+	for _, resource := range decodedResources {
+		applyErr := k8s.Apply(resource.decoded, resource.resource.Name)
+		if applyErr != nil {
+			errors = append(errors, rollbackErr{err: applyErr, resource: resource.resource})
+			continue
+		}
+	}
+
+	if len(errors) != 0 {
+		combined := "partial rollback performed, errors applying resources: "
+		for _, applyErr := range errors {
+			combined = combined + fmt.Sprintf("%s:%s, ", applyErr.resource.Kind, applyErr.resource.Name)
+		}
+		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
+	}
+
+	return app, nil
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {

@@ -83,6 +83,7 @@ type Mutation {
   setAppEnv(input: SetTupleInput!): TuberApp
   unsetAppEnv(input: SetTupleInput!): TuberApp
   excludedResources: [Resource!]!
+  rollback(input: String!): TuberApp
 }
 
 schema {
