@@ -14,8 +14,6 @@ type Props = {
 
 export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUnset }) => {
 	const [addNew, setAddNew] = useState<boolean>(false)
-	const [loading, setLoading] = useState<boolean>(false)
-	
 	const nameRef = useRef(null)
 	const kindRef = useRef(null)
 	
@@ -27,33 +25,25 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 	const doSet = async (event) => {
 		event.preventDefault()
 
-		const result = await set({
+		await set({
 			input: { 
 				appName: appName, 
 				name:    nameRef.current.value, 
 				kind:    kindRef.current.value, 
 			}, 
 		})
-
-		if (!result.error) {
-			setLoading(false)
-		}
 	}
 
 	const doUnset = resource => async (event) => {
 		event.preventDefault()
 
-		const result = await unset({
+		await unset({
 			input: {
 				appName: appName,
-				name: resource.name,
-				kind: resource.kind
-			}
+				name:    resource.name,
+				kind:    resource.kind,
+			},
 		})
-
-		if (!result.error) {
-			setLoading(false)
-		}
 	}
 
 	return <div className="border-b p-3 mb-2 bg-white shadow-md rounded-sm">
