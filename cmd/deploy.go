@@ -13,11 +13,12 @@ import (
 )
 
 var deployCmd = &cobra.Command{
-	SilenceUsage: true,
-	Use:          "deploy [app] -t [tag]",
-	Short:        "deploys the latest built image of an app, or a certain tag if specified",
-	RunE:         deploy,
-	PreRunE:      promptCurrentContext,
+	SilenceErrors: true,
+	SilenceUsage:  true,
+	Use:           "deploy [app] -t [tag]",
+	Short:         "deploys the latest built image of an app, or a certain tag if specified",
+	RunE:          deploy,
+	PreRunE:       promptCurrentContext,
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
@@ -25,10 +26,20 @@ func deploy(cmd *cobra.Command, args []string) error {
 	if deployLocalFlag {
 		return localDeploy(appName, deployTagFlag)
 	}
+
+	tag := deployTagFlag
+	if tag == "" {
+		app, err := getApp(appName)
+		if err != nil {
+			return err
+		}
+		tag = app.ImageTag
+	}
+
 	graphql := graph.NewClient(mustGetTuberConfig().CurrentClusterConfig().URL)
 
 	gql := `
-		mutation($input: SetTupleInput!) {
+		mutation($input: DeployInput!) {
 			deploy(input: $input) {
 				name
 			}
@@ -37,7 +48,7 @@ func deploy(cmd *cobra.Command, args []string) error {
 
 	input := &model.DeployInput{
 		Name: appName,
-		Tag:  &deployTagFlag,
+		Tag:  &tag,
 	}
 
 	var respData struct {
