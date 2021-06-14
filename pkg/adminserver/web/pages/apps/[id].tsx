@@ -91,11 +91,13 @@ const ShowApp = () => {
 			</Card>
 		</>}
 
-		<ExcludedResources
-			appName={app.name}
-			resources={app.reviewAppsConfig.excludedResources}
-			useSet={useSetExcludedResourceMutation}
-		/>
+		{app.reviewAppsConfig &&
+			<ExcludedResources 
+				appName={app.name}
+				resources={app.reviewAppsConfig.excludedResources} 
+				useSet={useSetExcludedResourceMutation}
+			/>
+		}
 	</div>
 }
 
