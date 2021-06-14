@@ -8,7 +8,7 @@ import {
 	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
-	useSetExcludedResourceMutation,
+	useSetExcludedResourceMutation, useUnsetExcludedResourceMutation,
 	useSetAppVarMutation, useUnsetAppVarMutation,
 	useSetAppEnvMutation, useUnsetAppEnvMutation,
 } from '../../src/generated/graphql'
@@ -96,8 +96,8 @@ const ShowApp = () => {
 				appName={app.name}
 				resources={app.reviewAppsConfig.excludedResources} 
 				useSet={useSetExcludedResourceMutation}
-			/>
-		}
+				useUnset={useUnsetExcludedResourceMutation}
+			/>}
 	</div>
 }
 
