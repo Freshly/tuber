@@ -11,11 +11,12 @@ import (
 )
 
 var configCmd = &cobra.Command{
-	SilenceUsage: true,
-	Use:          "config",
-	Short:        "open local tuber config in your default editor",
-	Args:         cobra.NoArgs,
-	RunE:         openConfig,
+	SilenceErrors: true,
+	SilenceUsage:  true,
+	Use:           "config",
+	Short:         "open local tuber config in your default editor",
+	Args:          cobra.NoArgs,
+	RunE:          openConfig,
 }
 
 var defaultTuberConfig = `# clusters:
@@ -29,13 +30,13 @@ var defaultTuberConfig = `# clusters:
 `
 
 func openConfig(cmd *cobra.Command, args []string) error {
-	configPath, err := config.Path()
-	if err != nil {
-		return err
+	configPath, notFoundErr := config.Path()
+	if notFoundErr != nil {
+		return notFoundErr
 	}
 
-	_, err = os.Stat(configPath)
-	if err != nil {
+	_, notFoundErr = os.Stat(configPath)
+	if notFoundErr != nil {
 		dir, err := config.Dir()
 		if err != nil {
 			return err
@@ -67,15 +68,15 @@ func openConfig(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unsupported os for auto-open, tuber config located at %v", configPath)
 	}
 
-	out, err := command.CombinedOutput()
+	err := command.Run()
 	if err != nil {
 		vsCodeFallbackErr := osExec.Command("code", configPath).Run()
 		if vsCodeFallbackErr == nil {
 			return nil
 		}
-		err = fmt.Errorf(string(out)+"\n"+err.Error()+"\ntuber config located at %v", configPath)
+		return fmt.Errorf("\nauto-open with `%s` and `code` failed; tuber config located at %v", command.Path, configPath)
 	}
-	return err
+	return nil
 }
 
 func init() {
