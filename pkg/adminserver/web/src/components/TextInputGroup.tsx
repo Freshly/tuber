@@ -17,7 +17,7 @@ export const TextInputGroup: FC<Props> = ({ vars, appName, useSet, useUnset }) =
 	const [addNew, setAddNew] = useState<boolean>(false)
 	const finished = () => setAddNew(false)
 
-	return <>
+	return <div className="space-y-2">
 		{vars.sort(compare).map(variable => 
 			<TextInputPair
 				useSet={useSet}
@@ -42,5 +42,5 @@ export const TextInputGroup: FC<Props> = ({ vars, appName, useSet, useUnset }) =
 				isNew={true}
 			/>
 			: <AddButton onClick={() => setAddNew(true)} />}
-	</>
+	</div>
 }

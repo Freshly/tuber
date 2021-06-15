@@ -55,7 +55,7 @@ const ShowApp = () => {
 
 		<section>
 			<Card className="mb-2">
-				<h2 className="border-b-2">YAML Interpolation Vars</h2>
+				<h2 className="border-b-2 mb-2">YAML Interpolation Vars</h2>
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
 					useSet={useSetAppVarMutation}
@@ -64,7 +64,7 @@ const ShowApp = () => {
 			</Card>
 
 			<Card className="mb-2">
-				<h2 className="border-b-2"> Environment Variables </h2>
+				<h2 className="border-b-2 mb-2"> Environment Variables </h2>
 				<TextInputGroup
 					vars={app.env} appName={app.name}
 					useSet={useSetAppEnvMutation}

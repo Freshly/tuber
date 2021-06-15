@@ -96,7 +96,7 @@ export const TextInputPair: FC<Props> = ({ useSet, useUnset, finished, appName, 
 				/>
 
 				{editing
-					? <XCircleIcon className="w-5 select-none" onClick={() => { setEditing(false); finished() }}/>
+					? <XCircleIcon className="w-5 select-none" onClick={() => { setEditing(false); finished(); valRef.current.value = value }}/>
 					: <PencilAltIcon className="w-5 select-none" onClick={() => setEditing(true)} />}
 				
 				{editing
