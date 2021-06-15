@@ -8,13 +8,17 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/db"
+	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/reviewapps"
+	"go.uber.org/zap"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
@@ -66,6 +70,36 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) 
 	if err != nil {
 		return nil, err
 	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) Deploy(ctx context.Context, input model.DeployInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	tag := app.ImageTag
+	if input.Tag != nil {
+		tag = *input.Tag
+	}
+
+	digest, err := gcr.DigestFromTag(tag, r.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error: couldn't find image for the tag: %v", err)
+	}
+
+	event := events.NewEvent(r.logger, digest, tag)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error: couldn't find image for the tag: %v", err)
+	}
+
+	go r.Resolver.processor.ReleaseApp(event, app)
 
 	return app, nil
 }
@@ -226,6 +260,69 @@ func (r *mutationResolver) UnsetExcludedResource(ctx context.Context, input mode
 
 	if err := r.Resolver.db.SaveApp(app); err != nil {
 		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) Rollback(ctx context.Context, input model.AppNameInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if app.State == nil || len(app.State.Previous) == 0 {
+		return nil, fmt.Errorf("no previous successful release found")
+	}
+
+	type decodedResource struct {
+		decoded  []byte
+		resource *model.Resource
+	}
+
+	type rollbackErr struct {
+		err      error
+		resource *model.Resource
+	}
+
+	var errors []rollbackErr
+	var decodedResources []decodedResource
+	for _, resource := range app.State.Previous {
+		decoded, decodeErr := base64.StdEncoding.DecodeString(resource.Encoded)
+		if decodeErr != nil {
+			errors = append(errors, rollbackErr{err: decodeErr, resource: resource})
+			continue
+		}
+		decodedResources = append(decodedResources, decodedResource{decoded: decoded, resource: resource})
+	}
+
+	if len(errors) != 0 {
+		combined := "no rollback performed, errors decoding resources: "
+		for _, decodeErr := range errors {
+			combined = combined + fmt.Sprintf("%s:%s, ", decodeErr.resource.Kind, decodeErr.resource.Name)
+		}
+		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
+	}
+
+	for _, resource := range decodedResources {
+		applyErr := k8s.Apply(resource.decoded, app.Name)
+		if applyErr != nil {
+			r.logger.Debug("rollback apply error", zap.Error(applyErr))
+			errors = append(errors, rollbackErr{err: applyErr, resource: resource.resource})
+			continue
+		}
+	}
+
+	if len(errors) != 0 {
+		combined := "partial rollback performed, errors applying resources: "
+		for _, applyErr := range errors {
+			combined = combined + fmt.Sprintf("%s:%s, ", applyErr.resource.Kind, applyErr.resource.Name)
+		}
+		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
 	}
 
 	return app, nil

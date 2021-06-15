@@ -16,6 +16,25 @@ import (
 const megabyte = 1_000_000
 const maxSize = megabyte * 1
 
+func DigestFromTag(tag string, creds []byte) (string, error) {
+	ref, err := name.ParseReference(tag)
+	if err != nil {
+		return "", err
+	}
+
+	img, err := remote.Image(ref, remote.WithAuth(google.NewJSONKeyAuthenticator(string(creds))))
+	if err != nil {
+		return "", err
+	}
+
+	digest, err := img.Digest()
+	if err != nil {
+		return "", err
+	}
+
+	return ref.Context().Digest(digest.String()).String(), nil
+}
+
 type AppYamls struct {
 	Prerelease  []string
 	Release     []string

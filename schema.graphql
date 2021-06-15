@@ -66,16 +66,27 @@ input SetTupleInput {
   value: String!
 }
 
+
 input SetResourceInput {
   appName: ID!
   name: String!
   kind: String!
 }
 
+input DeployInput {
+  name: String!
+  tag: String
+}
+
+input AppNameInput {
+  name: String!
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
   removeApp(input: AppInput!): TuberApp
+  deploy(input: DeployInput!): TuberApp
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp
@@ -84,6 +95,7 @@ type Mutation {
   unsetAppEnv(input: SetTupleInput!): TuberApp
   setExcludedResource(input: SetResourceInput!): TuberApp
   unsetExcludedResource(input: SetResourceInput!): TuberApp
+  rollback(input: AppNameInput!): TuberApp
 }
 
 schema {

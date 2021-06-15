@@ -228,6 +228,7 @@ var appsInfoCmd = &cobra.Command{
 	Short:         "display everything tuber knows about an app",
 	Args:          cobra.ExactArgs(1),
 	RunE:          runAppsInfoCmd,
+	PreRunE:       displayCurrentContext,
 }
 
 func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
@@ -243,7 +244,11 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 	table.Append([]string{"Name", app.Name})
 	table.Append([]string{"ImageTag", app.ImageTag})
 	table.Append([]string{"Current Tags", strings.Join(app.CurrentTags, "\n")})
-	table.Append([]string{"Review Apps Enabled", strconv.FormatBool(app.ReviewAppsConfig.Enabled)})
+	if app.ReviewAppsConfig != nil {
+		table.Append([]string{"Review Apps Enabled", strconv.FormatBool(app.ReviewAppsConfig.Enabled)})
+	} else {
+		table.Append([]string{"Review Apps Enabled", "false"})
+	}
 	var vars []string
 	for _, tuple := range app.Vars {
 		vars = append(vars, tuple.Key+": "+tuple.Value)
