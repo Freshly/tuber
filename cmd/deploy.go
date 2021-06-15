@@ -14,10 +14,11 @@ import (
 var deployCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
-	Use:           "deploy [app] -t [tag]",
+	Use:           "deploy [app]",
 	Short:         "deploys the latest built image of an app, or a certain tag if specified",
 	RunE:          deploy,
 	PreRunE:       promptCurrentContext,
+	Args:          cobra.ExactArgs(1),
 }
 
 func deploy(cmd *cobra.Command, args []string) error {
