@@ -127,7 +127,7 @@ func runAppsSetBranchCmd(cmd *cobra.Command, args []string) error {
 var appsRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "remove [app name]",
-	Short:        "remove an app from the tuber-apps config map in the current cluster",
+	Short:        "fully disconnects tuber from an app, without affecting the app",
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
