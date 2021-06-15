@@ -143,6 +143,9 @@ func Save(config *tuberConfig) error {
 	}
 
 	out, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
 
 	return os.WriteFile(path, out, os.ModePerm)
 }
