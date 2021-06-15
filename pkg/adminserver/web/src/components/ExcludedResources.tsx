@@ -4,6 +4,7 @@ import { SetResourceInput, Exact, Resource } from '../generated/graphql'
 import { UseMutationResponse } from 'urql'
 import { AddButton } from './AddButton'
 import { SaveIcon, XCircleIcon, TrashIcon } from '@heroicons/react/outline'
+import { Card } from './Card'
 
 type Props = {
 	appName: string
@@ -16,7 +17,7 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 	const [addNew, setAddNew] = useState<boolean>(false)
 	const nameRef = useRef(null)
 	const kindRef = useRef(null)
-	
+
 	const [{ error: setErr }, set] = useSet()
 	const [{ error: unsetErr }, unset] = useUnset()
 
@@ -26,11 +27,11 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 		event.preventDefault()
 
 		await set({
-			input: { 
-				appName: appName, 
-				name:    nameRef.current.value, 
-				kind:    kindRef.current.value, 
-			}, 
+			input: {
+				appName: appName,
+				name:    nameRef.current.value,
+				kind:    kindRef.current.value,
+			},
 		})
 	}
 
@@ -46,7 +47,7 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 		})
 	}
 
-	return <div className="border-b p-3 mb-2 bg-white shadow-md rounded-sm">
+	return <Card>
 		<Heading>Excluded Resources</Heading>
 		{resources.map(resource =>
 			<div key={resource.name} className="bg-gray-50 pb-1">
@@ -70,7 +71,7 @@ export const ExcludedResources:FC<Props> = ({ appName, resources, useSet, useUns
 				<XCircleIcon className="w-5 select-none" onClick={() => { setAddNew(false) }} />
 			</form>}
 
-		{addNew || 
+		{addNew ||
 			<AddButton onClick={() => setAddNew(true)} />}
-	</div>
+	</Card>
 }
