@@ -36,6 +36,10 @@ func newOAuthConfig() (*oauth2.Config, error) {
 		return nil, err
 	}
 
+	if cnf.Auth == nil {
+		cnf.Auth = &config.Auth{}
+	}
+
 	return &oauth2.Config{
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
 		ClientID:     cnf.Auth.OAuthClientID,
