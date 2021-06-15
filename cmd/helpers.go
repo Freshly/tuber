@@ -57,7 +57,13 @@ func gqlClient() (*graph.GraphqlClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return graph.NewClient(c.CurrentClusterConfig().URL, c.CurrentClusterConfig().IAPClientID), nil
+
+	cluster, err := c.CurrentClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return graph.NewClient(cluster.URL, cluster.IAPClientID), nil
 }
 
 func getApp(appName string) (*model.TuberApp, error) {
@@ -202,8 +208,13 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	cluster, err := c.CurrentClusterConfig()
+	if err != nil {
+		return err
+	}
+
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond, spinner.WithWriter(os.Stderr))
-	s.Prefix = fmt.Sprintf("--- Press %s to continue on %s ", color.GreenString("enter"), color.YellowString(c.CurrentClusterConfig().Shorthand))
+	s.Prefix = fmt.Sprintf("--- Press %s to continue on %s ", color.GreenString("enter"), color.YellowString(cluster.Shorthand))
 	s.Start()
 
 	var input string
@@ -242,7 +253,12 @@ func displayCurrentContext(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "--- Running on %s\n", color.YellowString(c.CurrentClusterConfig().Shorthand))
+	cluster, err := c.CurrentClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "--- Running on %s\n", color.YellowString(cluster.Shorthand))
 
 	return nil
 }
