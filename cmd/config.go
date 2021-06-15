@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	osExec "os/exec"
+	"os/exec"
 	"runtime"
 
 	"github.com/freshly/tuber/pkg/config"
@@ -54,23 +54,23 @@ func openConfig(cmd *cobra.Command, args []string) error {
 		f.Write([]byte(defaultTuberConfig))
 	}
 
-	var command *osExec.Cmd
+	var command *exec.Cmd
 
 	switch currentOS := runtime.GOOS; currentOS {
 	case "darwin":
-		command = osExec.Command("open", configPath)
+		command = exec.Command("open", configPath)
 	case "linux":
-		command = osExec.Command("xdg-open", configPath)
+		command = exec.Command("xdg-open", configPath)
 	case "windows":
 		psCommand := fmt.Sprintf("start %v", configPath)
-		command = osExec.Command("cmd", "/c", psCommand, "/w")
+		command = exec.Command("cmd", "/c", psCommand, "/w")
 	default:
 		return fmt.Errorf("unsupported os for auto-open, tuber config located at %v", configPath)
 	}
 
 	err := command.Run()
 	if err != nil {
-		vsCodeFallbackErr := osExec.Command("code", configPath).Run()
+		vsCodeFallbackErr := exec.Command("code", configPath).Run()
 		if vsCodeFallbackErr == nil {
 			return nil
 		}

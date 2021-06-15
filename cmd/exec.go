@@ -10,13 +10,13 @@ var execCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "exec -a [appName] -w [specific workload] -c [specific container] [commands]",
 	Short:        "executes a command on an app",
-	RunE:         exec,
+	RunE:         runExec,
 	PreRunE:      promptCurrentContext,
 }
 
 var container string
 
-func exec(cmd *cobra.Command, args []string) error {
+func runExec(cmd *cobra.Command, args []string) error {
 	var containerName string
 	if container != "" {
 		containerName = container
