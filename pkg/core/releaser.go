@@ -28,7 +28,6 @@ type releaser struct {
 	postreleaseYamls []string
 	tags             []string
 	db               *DB
-	excluded         map[string]bool
 }
 
 type ErrorContext struct {
@@ -68,17 +67,9 @@ func (r releaser) releaseError(err error) error {
 	return err
 }
 
-func excludedFmt(kind string, name string) string {
-	return kind + ":" + name
-}
-
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
 func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
-	excluded := make(map[string]bool)
-	for _, e := range app.ExcludedResources {
-		excluded[excludedFmt(e.Kind, e.Name)] = true
-	}
 	return releaser{
 		logger:           logger,
 		errorScope:       errorScope,
@@ -90,7 +81,6 @@ func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.
 		digest:           digest,
 		data:             data,
 		db:               db,
-		excluded:         excluded,
 	}.release()
 }
 
@@ -263,6 +253,27 @@ type parsedResource struct {
 	Metadata   metadata `yaml:"metadata"`
 }
 
+func (r releaser) exclude(res []appResource) []appResource {
+	included := []appResource{}
+
+	for _, rs := range res {
+		excluded := false
+
+		for _, ex := range r.app.ExcludedResources {
+			if rs.name == ex.Name && rs.kind == ex.Kind {
+				excluded = true
+				break
+			}
+		}
+
+		if !excluded {
+			included = append(included, rs)
+		}
+	}
+
+	return included
+}
+
 func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResource, []appResource, error) {
 	d := releaseData(r.digest, r.app, r.data)
 
@@ -270,16 +281,19 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResourc
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	prereleaseResources = r.exclude(prereleaseResources)
 
 	releaseResources, err := r.yamlToAppResource(r.releaseYamls, d)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	releaseResources = r.exclude(releaseResources)
 
 	postreleaseResources, err := r.yamlToAppResource(r.postreleaseYamls, d)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	postreleaseResources = r.exclude(postreleaseResources)
 
 	var workloads []appResource
 	var configs []appResource
@@ -327,10 +341,6 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 		err := yaml.Unmarshal(resourceYaml, &parsed)
 		if err != nil {
 			return nil, ErrorContext{err: err, context: "unmarshalling raw resources for apply"}
-		}
-
-		if r.excluded[excludedFmt(parsed.Kind, parsed.Metadata.Name)] {
-			continue
 		}
 
 		scope := r.errorScope.AddScope(report.Scope{"resourceName": parsed.Metadata.Name, "resourceKind": parsed.Kind})
