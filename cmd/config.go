@@ -69,6 +69,10 @@ func openConfig(cmd *cobra.Command, args []string) error {
 
 	out, err := command.CombinedOutput()
 	if err != nil {
+		vsCodeFallbackErr := osExec.Command("code", configPath).Run()
+		if vsCodeFallbackErr == nil {
+			return nil
+		}
 		err = fmt.Errorf(string(out)+"\n"+err.Error()+"\ntuber config located at %v", configPath)
 	}
 	return err
