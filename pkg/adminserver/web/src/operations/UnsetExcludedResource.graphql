@@ -1,8 +1,8 @@
 mutation UnsetExcludedResource($input: SetResourceInput!) {
 	unsetExcludedResource(input: $input) {
-    excludedResources {
-      name
-      kind
-    }
+		excludedResources {
+			name
+			kind
+		}
 	}
 }
