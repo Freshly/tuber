@@ -35,6 +35,14 @@ func DigestFromTag(tag string, creds []byte) (string, error) {
 	return ref.Context().Digest(digest.String()).String(), nil
 }
 
+func SwapTags(imageTag string, tag string) (string, error) {
+	ref, err := name.ParseReference(imageTag)
+	if err != nil {
+		return "", err
+	}
+	return ref.Context().Tag(tag).String(), nil
+}
+
 type AppYamls struct {
 	Prerelease  []string
 	Release     []string
