@@ -228,6 +228,7 @@ var appsInfoCmd = &cobra.Command{
 	Short:         "display everything tuber knows about an app",
 	Args:          cobra.ExactArgs(1),
 	RunE:          runAppsInfoCmd,
+	PreRunE:       displayCurrentContext,
 }
 
 func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
