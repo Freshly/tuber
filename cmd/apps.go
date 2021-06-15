@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/spf13/cobra"
@@ -59,30 +60,34 @@ var appsInstallCmd = &cobra.Command{
 }
 
 var appsSetImageTagCmd = &cobra.Command{
-	SilenceUsage: true,
-	Use:          "set-tag [app name ] [image tag]",
-	Short:        "set the docker image tag to deploy the app from",
-	Args:         cobra.ExactArgs(2),
-	PreRunE:      promptCurrentContext,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		graphql, err := gqlClient()
-		if err != nil {
-			return err
-		}
+	SilenceErrors: true,
+	SilenceUsage:  true,
+	Use:           "set-tag [app name] [image tag]",
+	Short:         "set the docker image tag to deploy the app from",
+	Args:          cobra.ExactArgs(2),
+	PreRunE:       promptCurrentContext,
+	RunE:          runSetImageTagCmd,
+}
 
-		appName := args[0]
-		imageTag := args[1]
+func runSetImageTagCmd(cmd *cobra.Command, args []string) error {
+	graphql, err := gqlClient()
+	if err != nil {
+		return err
+	}
 
-		input := &model.AppInput{
-			Name:     appName,
-			ImageTag: &imageTag,
-		}
+	appName := args[0]
+	imageTag := args[1]
 
-		var respData struct {
-			updateApp *model.TuberApp
-		}
+	input := &model.AppInput{
+		Name:     appName,
+		ImageTag: &imageTag,
+	}
 
-		gql := `
+	var respData struct {
+		updateApp *model.TuberApp
+	}
+
+	gql := `
 			mutation($input: AppInput!) {
 				updateApp(input: $input) {
 					name
@@ -90,14 +95,39 @@ var appsSetImageTagCmd = &cobra.Command{
 			}
 		`
 
-		return graphql.Mutation(context.Background(), gql, nil, input, &respData)
-	},
+	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
+}
+
+var appsSetBranchCmd = &cobra.Command{
+	SilenceErrors: true,
+	SilenceUsage:  true,
+	Use:           "set-branch [app name] [branch]",
+	Short:         "update the tag (branch) tuber will watch and deploy",
+	Args:          cobra.ExactArgs(2),
+	PreRunE:       promptCurrentContext,
+	RunE:          runAppsSetBranchCmd,
+}
+
+func runAppsSetBranchCmd(cmd *cobra.Command, args []string) error {
+	appName := args[0]
+	branch := args[1]
+	app, err := getApp(appName)
+	if err != nil {
+		return err
+	}
+
+	imageTag, err := gcr.SwapTags(app.ImageTag, branch)
+	if err != nil {
+		return err
+	}
+
+	return runSetImageTagCmd(cmd, []string{appName, imageTag})
 }
 
 var appsRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "remove [app name]",
-	Short:        "remove an app from the tuber-apps config map in the current cluster",
+	Short:        "fully disconnects tuber from an app, without affecting the app",
 	Args:         cobra.ExactArgs(1),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -302,4 +332,5 @@ func init() {
 	appsCmd.AddCommand(appsDestroyCmd)
 	appsCmd.AddCommand(appsListCmd)
 	appsCmd.AddCommand(appsSetImageTagCmd)
+	appsCmd.AddCommand(appsSetBranchCmd)
 }

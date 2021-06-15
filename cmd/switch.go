@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	osExec "os/exec"
+	"os/exec"
 
 	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/k8s"
@@ -41,7 +41,7 @@ func switchCluster(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	k8sCheckErr := osExec.Command("kubectl", "version", "--client").Run()
+	k8sCheckErr := exec.Command("kubectl", "version", "--client").Run()
 	k8sPresent := k8sCheckErr == nil
 
 	err = config.SetActive(cluster)
