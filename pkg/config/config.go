@@ -4,18 +4,21 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/goccy/go-yaml"
 )
 
 type tuberConfig struct {
-	Clusters []Cluster
-	Auth     Auth
+	ActiveClusterName string `yaml:"active_cluster_name"`
+	Clusters          []*Cluster
+	Auth              *Auth
 }
 
-// Auth is
+// Auth is not a cluster
 type Auth struct {
 	OAuthClientID string `yaml:"oauth_client_id"`
 	OAuthSecret   string `yaml:"oauth_secret"`
@@ -29,33 +32,88 @@ type Cluster struct {
 	IAPClientID string `yaml:"iap_client_id"`
 }
 
-func (c tuberConfig) CurrentClusterConfig() Cluster {
-	name, err := k8s.CurrentCluster()
+func (c *tuberConfig) SetActive(cluster *Cluster) error {
+	c.ActiveClusterName = cluster.Name
+	err := Save(c)
 	if err != nil {
-		return Cluster{}
+		return fmt.Errorf("config invalid, please run 'tuber config'")
 	}
-
-	return c.FindByName(name)
+	return nil
 }
 
-func (c tuberConfig) FindByShortName(name string) Cluster {
+func (c *tuberConfig) CurrentClusterConfig() (*Cluster, error) {
+	k8sCheckErr := exec.Command("kubectl", "version", "--client").Run()
+	k8sPresent := k8sCheckErr == nil
+
+	if k8sPresent {
+		kctlClusterName, err := k8s.CurrentCluster()
+		if err != nil {
+			return nil, fmt.Errorf("kubectl detected, but `kubectl config current-context` failed")
+		}
+		kctlClusterName = strings.Trim(kctlClusterName, "\r\n")
+
+		k8sCluster, err := c.FindByName(kctlClusterName)
+		if err != nil {
+			return nil, fmt.Errorf("kubectl cluster %s not in config, please run 'tuber switch' or 'tuber config'", kctlClusterName)
+		}
+
+		var cluster *Cluster
+		if c.ActiveClusterName != "" {
+			cluster, err = c.FindByName(c.ActiveClusterName)
+			if err != nil {
+				return nil, fmt.Errorf("active cluster not in config, please run 'tuber switch' or 'tuber config'")
+			}
+		}
+
+		if kctlClusterName != c.ActiveClusterName {
+			marshalErr := c.SetActive(k8sCluster)
+			if marshalErr != nil {
+				return nil, fmt.Errorf("config invalid, please run 'tuber config'")
+			}
+			return k8sCluster, nil
+		}
+
+		return cluster, nil
+	}
+
+	if c.ActiveClusterName == "" {
+		return nil, fmt.Errorf("active cluster not set, please run 'tuber switch'")
+	}
+
+	cluster, err := c.FindByName(c.ActiveClusterName)
+	if err != nil {
+		return nil, fmt.Errorf("active cluster not in config, please run 'tuber switch' or 'tuber config'")
+	}
+
+	return cluster, nil
+}
+
+func (c *tuberConfig) FindByShortName(name string) (*Cluster, error) {
+	if name == "" {
+		return nil, fmt.Errorf("shorthand empty")
+	}
+
 	for _, cl := range c.Clusters {
 		if cl.Shorthand == name {
-			return cl
+			return cl, nil
 		}
 	}
 
-	return Cluster{}
+	return nil, fmt.Errorf("cluster not found in config")
 }
 
-func (c tuberConfig) FindByName(name string) Cluster {
+func (c *tuberConfig) FindByName(name string) (*Cluster, error) {
+	if name == "" {
+		return nil, fmt.Errorf("name empty")
+	}
+
 	for _, cl := range c.Clusters {
 		if cl.Name == name {
-			return cl
+			return cl, nil
 		}
 	}
 
-	return Cluster{}
+	return nil, fmt.Errorf("cluster not found in config")
 }
 
 func Load() (*tuberConfig, error) {
@@ -76,6 +134,17 @@ func Load() (*tuberConfig, error) {
 	}
 
 	return &t, nil
+}
+
+func Save(config *tuberConfig) error {
+	path, err := Path()
+	if err != nil {
+		return nil
+	}
+
+	out, err := yaml.Marshal(config)
+
+	return os.WriteFile(path, out, os.ModePerm)
 }
 
 func Path() (string, error) {

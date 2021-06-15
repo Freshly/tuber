@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
+	osExec "os/exec"
 
 	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/k8s"
@@ -19,38 +19,44 @@ var switchClusterCmd = &cobra.Command{
 }
 
 func switchCluster(cmd *cobra.Command, args []string) error {
+	clusterShortName := args[0]
+
 	config, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	currentCluster, err := k8s.CurrentCluster()
+	cluster, err := config.FindByShortName(clusterShortName)
+	if err != nil {
+		return fmt.Errorf("cluster name not found")
+	}
+
+	currentCluster, err := config.CurrentClusterConfig()
 	if err != nil {
 		return err
 	}
 
-	clusterShortName := args[0]
-
-	if config == nil {
-		return fmt.Errorf("tuber config empty, run `tuber config`")
-	}
-
-	cluster := config.FindByShortName(clusterShortName)
-
-	if cluster.Name == "" {
-		return fmt.Errorf("cluster name not found")
-	}
-
-	if strings.Trim(currentCluster, "\r\n") == cluster.Name {
+	if currentCluster.Shorthand == clusterShortName {
 		fmt.Println("Already on", clusterShortName)
-	} else {
+		return nil
+	}
+
+	k8sCheckErr := osExec.Command("kubectl", "version", "--client").Run()
+	k8sPresent := k8sCheckErr == nil
+
+	err = config.SetActive(cluster)
+	if err != nil {
+		return err
+	}
+
+	if k8sPresent {
 		err = k8s.UseCluster(cluster.Name)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Switched to", clusterShortName)
 	}
 
+	fmt.Println("Switched to", clusterShortName)
 	return nil
 }
 
