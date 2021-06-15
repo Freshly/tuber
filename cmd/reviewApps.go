@@ -27,6 +27,7 @@ var reviewAppsCreateCmd = &cobra.Command{
 	Short:        "Create a temporary application deployed alongside the source application for a given branch, copying its rolebindings and env",
 	Args:         cobra.ExactArgs(2),
 	RunE:         create,
+	PreRunE:      promptCurrentContext,
 }
 
 var reviewAppsDeleteCmd = &cobra.Command{
@@ -35,6 +36,7 @@ var reviewAppsDeleteCmd = &cobra.Command{
 	Short:        "Delete a review app",
 	Args:         cobra.ExactArgs(2),
 	RunE:         delete,
+	PreRunE:      promptCurrentContext,
 }
 
 var reviewAppsListCmd = &cobra.Command{
@@ -43,6 +45,7 @@ var reviewAppsListCmd = &cobra.Command{
 	Short:        "Delete a review app",
 	Args:         cobra.ExactArgs(1),
 	RunE:         listReviewApps,
+	PreRunE:      displayCurrentContext,
 }
 
 func listReviewApps(cmd *cobra.Command, args []string) (err error) {

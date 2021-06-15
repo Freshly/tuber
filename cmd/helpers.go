@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/config"
@@ -17,6 +19,7 @@ import (
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
 
+	"github.com/briandowns/spinner"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -194,21 +197,25 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	cluster, err := k8s.CurrentCluster()
+	c, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "About to run %s on %s", cmd.Name(), cluster)
-	fmt.Fprintf(os.Stderr, "\nPress ctrl+C to cancel, enter to continue...")
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond, spinner.WithWriter(os.Stderr))
+	s.Prefix = fmt.Sprintf("--- Press %s to continue on %s ", color.GreenString("enter"), color.YellowString(c.CurrentClusterConfig().Shorthand))
+	s.Start()
+
 	var input string
 	_, err = fmt.Scanln(&input)
+	s.Stop()
 
 	if err != nil {
 		if err.Error() == "unexpected newline" {
 			return nil
 		} else if err.Error() == "EOF" {
-			return fmt.Errorf("cancelled")
+			fmt.Println("")
+			return fmt.Errorf("command cancelled")
 		} else {
 			return err
 		}
@@ -229,12 +236,13 @@ func displayCurrentContext(cmd *cobra.Command, args []string) error {
 	if skipConfirmation {
 		return nil
 	}
-	cluster, err := k8s.CurrentCluster()
+
+	c, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Running %s on %s\n", cmd.Name(), cluster)
+	fmt.Fprintf(os.Stderr, "--- Running on %s\n", color.YellowString(c.CurrentClusterConfig().Shorthand))
 
 	return nil
 }
