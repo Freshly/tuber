@@ -20,6 +20,9 @@ export type AppInput = {
   isIstio?: Maybe<Scalars['Boolean']>;
   imageTag?: Maybe<Scalars['String']>;
   paused?: Maybe<Scalars['Boolean']>;
+  githubURL?: Maybe<Scalars['String']>;
+  slackChannel?: Maybe<Scalars['String']>;
+  cloudSourceRepo?: Maybe<Scalars['String']>;
 };
 
 export type CreateReviewAppInput = {
@@ -42,6 +45,9 @@ export type Mutation = {
   setExcludedResource?: Maybe<TuberApp>;
   unsetExcludedResource?: Maybe<TuberApp>;
   rollback?: Maybe<TuberApp>;
+  setGithubURL?: Maybe<TuberApp>;
+  setCloudSourceRepo?: Maybe<TuberApp>;
+  setSlackChannel?: Maybe<TuberApp>;
 };
 
 
@@ -106,6 +112,21 @@ export type MutationUnsetExcludedResourceArgs = {
 
 
 export type MutationRollbackArgs = {
+  input: AppInput;
+};
+
+
+export type MutationSetGithubUrlArgs = {
+  input: AppInput;
+};
+
+
+export type MutationSetCloudSourceRepoArgs = {
+  input: AppInput;
+};
+
+
+export type MutationSetSlackChannelArgs = {
   input: AppInput;
 };
 
@@ -250,7 +271,7 @@ export type GetFullAppQuery = (
   { __typename?: 'Query' }
   & { getApp?: Maybe<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name' | 'reviewApp'>
+    & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubURL' | 'slackChannel'>
     & { vars: Array<(
       { __typename?: 'Tuple' }
       & Pick<Tuple, 'key' | 'value'>
@@ -301,6 +322,19 @@ export type SetAppVarMutation = (
   )> }
 );
 
+export type SetCloudSourceRepoMutationVariables = Exact<{
+  input: AppInput;
+}>;
+
+
+export type SetCloudSourceRepoMutation = (
+  { __typename?: 'Mutation' }
+  & { setCloudSourceRepo?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name' | 'cloudSourceRepo'>
+  )> }
+);
+
 export type SetExcludedResourceMutationVariables = Exact<{
   input: SetResourceInput;
 }>;
@@ -314,6 +348,32 @@ export type SetExcludedResourceMutation = (
       { __typename?: 'Resource' }
       & Pick<Resource, 'name' | 'kind'>
     )> }
+  )> }
+);
+
+export type SetGithubUrlMutationVariables = Exact<{
+  input: AppInput;
+}>;
+
+
+export type SetGithubUrlMutation = (
+  { __typename?: 'Mutation' }
+  & { setGithubURL?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name' | 'githubURL'>
+  )> }
+);
+
+export type SetSlackChannelMutationVariables = Exact<{
+  input: AppInput;
+}>;
+
+
+export type SetSlackChannelMutation = (
+  { __typename?: 'Mutation' }
+  & { setSlackChannel?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name' | 'slackChannel'>
   )> }
 );
 
@@ -624,6 +684,66 @@ export default {
           },
           {
             "name": "rollback",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "setGithubURL",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "setCloudSourceRepo",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "setSlackChannel",
             "type": {
               "kind": "OBJECT",
               "name": "TuberApp",
@@ -1134,6 +1254,9 @@ export const GetFullAppDocument = gql`
   getApp(name: $name) {
     name
     reviewApp
+    cloudSourceRepo
+    githubURL
+    slackChannel
     vars {
       key
       value
@@ -1186,6 +1309,18 @@ export const SetAppVarDocument = gql`
 export function useSetAppVarMutation() {
   return Urql.useMutation<SetAppVarMutation, SetAppVarMutationVariables>(SetAppVarDocument);
 };
+export const SetCloudSourceRepoDocument = gql`
+    mutation SetCloudSourceRepo($input: AppInput!) {
+  setCloudSourceRepo(input: $input) {
+    name
+    cloudSourceRepo
+  }
+}
+    `;
+
+export function useSetCloudSourceRepoMutation() {
+  return Urql.useMutation<SetCloudSourceRepoMutation, SetCloudSourceRepoMutationVariables>(SetCloudSourceRepoDocument);
+};
 export const SetExcludedResourceDocument = gql`
     mutation SetExcludedResource($input: SetResourceInput!) {
   setExcludedResource(input: $input) {
@@ -1199,6 +1334,30 @@ export const SetExcludedResourceDocument = gql`
 
 export function useSetExcludedResourceMutation() {
   return Urql.useMutation<SetExcludedResourceMutation, SetExcludedResourceMutationVariables>(SetExcludedResourceDocument);
+};
+export const SetGithubUrlDocument = gql`
+    mutation SetGithubURL($input: AppInput!) {
+  setGithubURL(input: $input) {
+    name
+    githubURL
+  }
+}
+    `;
+
+export function useSetGithubUrlMutation() {
+  return Urql.useMutation<SetGithubUrlMutation, SetGithubUrlMutationVariables>(SetGithubUrlDocument);
+};
+export const SetSlackChannelDocument = gql`
+    mutation SetSlackChannel($input: AppInput!) {
+  setSlackChannel(input: $input) {
+    name
+    slackChannel
+  }
+}
+    `;
+
+export function useSetSlackChannelMutation() {
+  return Urql.useMutation<SetSlackChannelMutation, SetSlackChannelMutationVariables>(SetSlackChannelDocument);
 };
 export const UnsetAppEnvDocument = gql`
     mutation UnsetAppEnv($input: SetTupleInput!) {

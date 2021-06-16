@@ -1,0 +1,6 @@
+mutation SetCloudSourceRepo($input: AppInput!) {
+  setCloudSourceRepo(input: $input) {
+    name
+    cloudSourceRepo
+  }
+}

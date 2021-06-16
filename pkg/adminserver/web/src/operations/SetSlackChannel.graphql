@@ -1,0 +1,6 @@
+mutation SetSlackChannel($input: AppInput!) {
+  setSlackChannel(input: $input) {
+    name
+    slackChannel
+  }
+}
