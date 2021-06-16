@@ -105,7 +105,7 @@ func (p Processor) ReleaseApp(event *Event, app *model.TuberApp) {
 	cond.L.Lock()
 
 	if app.Paused {
-		p.slackClient.Message(event.logger, "release skipped for "+app.Name+" as it is paused")
+		p.slackClient.Message(event.logger, ":double_vertical_bar: release skipped for "+app.Name+" as it is paused", app.SlackChannel)
 		event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
 		return
 	}
@@ -130,7 +130,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	yamls, err := gcr.GetTuberLayer(event.digest, p.creds)
 	if err != nil {
-		p.slackClient.Message(logger, "image or tuber layer not found for "+app.Name)
+		p.slackClient.Message(logger, ":skull_and_crossbones: image or tuber layer not found for "+app.Name, app.SlackChannel)
 		logger.Error("failed to find tuber layer", zap.Error(err))
 		report.Error(err, errorScope.WithContext("find tuber layer"))
 		return
@@ -157,11 +157,11 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
-		p.slackClient.Message(logger, "<!here> :loudspeaker: release failed for *"+app.Name+"*")
+		p.slackClient.Message(logger, "<!here> :loudspeaker: release failed for *"+app.Name+"*", app.SlackChannel)
 		return
 	}
 
-	p.slackClient.Message(logger, ":white_check_mark: release complete for *"+app.Name+"*")
+	p.slackClient.Message(logger, ":checkered_flag: release complete for *"+app.Name+"*", app.SlackChannel)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 }
 
