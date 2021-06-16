@@ -161,7 +161,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		return
 	}
 
-	p.slackClient.Message(logger, ":checkered_flag: release complete for *"+app.Name+"*", app.SlackChannel)
+	p.slackClient.Message(logger, ":checkered_flag: *"+app.Name+"*: release complete", app.SlackChannel)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 }
 
