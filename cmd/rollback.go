@@ -26,14 +26,14 @@ func runRollback(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	gql := `
-		mutation($input: AppNameInput!) {
+		mutation($input: AppInput!) {
 			rollback(input: $input) {
 				name
 			}
 		}
 	`
 
-	input := &model.AppNameInput{
+	input := &model.AppInput{
 		Name: appName,
 	}
 

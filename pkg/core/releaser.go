@@ -12,6 +12,7 @@ import (
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
+	"github.com/freshly/tuber/pkg/slack"
 
 	"github.com/goccy/go-yaml"
 	"go.uber.org/zap"
@@ -28,6 +29,8 @@ type releaser struct {
 	postreleaseYamls []string
 	tags             []string
 	db               *DB
+	slackClient      *slack.Client
+	diffText         string
 }
 
 type ErrorContext struct {
@@ -45,6 +48,10 @@ func (r releaser) releaseError(err error) error {
 	var context string
 	var scope = r.errorScope
 	var logger = r.logger
+
+	if err == nil {
+		return nil
+	}
 
 	errorContext, ok := err.(ErrorContext)
 	if ok {
@@ -69,7 +76,7 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData) error {
+func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData, slackClient *slack.Client, diffText string) error {
 	return releaser{
 		logger:           logger,
 		errorScope:       errorScope,
@@ -81,11 +88,14 @@ func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.
 		digest:           digest,
 		data:             data,
 		db:               db,
+		slackClient:      slackClient,
+		diffText:         diffText,
 	}.release()
 }
 
 func (r releaser) release() error {
 	r.logger.Debug("releaser starting")
+	r.slackClient.Message(r.logger, "`"+r.app.Name+"` release starting"+r.diffText, r.app.SlackChannel)
 
 	prereleaseResources, configs, workloads, postreleaseResources, err := r.resourcesToApply()
 	if err != nil {
@@ -130,9 +140,15 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.watchWorkloads(appliedWorkloads)
+	if len(postreleaseResources) != 0 {
+		r.slackClient.Message(r.logger, "`"+r.app.Name+"` deployed to canary"+r.diffText, r.app.SlackChannel)
+	}
+
+	monitorFail, err := r.watchWorkloads(appliedWorkloads)
 	if err != nil {
-		_ = r.releaseError(err)
+		if !monitorFail {
+			_ = r.releaseError(err)
+		}
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
 		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
 		for _, rollbackError := range append(configRollbackErrors, workloadRollbackErrors...) {
@@ -160,9 +176,11 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.watchWorkloads(appliedPostreleaseResources)
+	monitorFail, err = r.watchWorkloads(appliedPostreleaseResources)
 	if err != nil {
-		_ = r.releaseError(err)
+		if !monitorFail {
+			_ = r.releaseError(err)
+		}
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
 		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
 		rolledBackPostreleaseResources, postreleaseRollbackErrors := r.rollback(appliedPostreleaseResources, decodedStateBeforeApply)
@@ -176,9 +194,27 @@ func (r releaser) release() error {
 		return err
 	}
 
-	err = r.reconcileState(decodedStateBeforeApply, appliedWorkloads, appliedConfigs, appliedPostreleaseResources)
-	if err != nil {
-		return r.releaseError(err)
+	if len(postreleaseResources) != 0 {
+		r.slackClient.Message(r.logger, "`"+r.app.Name+"` deployed to primary", r.diffText)
+	}
+
+	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
+	appliedResources = append(appliedResources, appliedPostreleaseResources...)
+
+	cleanupErr := r.deleteRemovedResources(decodedStateBeforeApply, appliedResources)
+	if cleanupErr != nil {
+		r.slackClient.Message(r.logger, "<!here> `"+r.app.Name+"`- Release is complete, but deletion of a resource removed with this release failed."+r.diffText, r.app.SlackChannel)
+	}
+
+	saveStateErr := r.updateState(appliedResources)
+	if saveStateErr != nil {
+		r.slackClient.Message(r.logger, "<!here> `"+r.app.Name+"`- Release is complete, but the current and previous states *failed to update*. Rolling back from this release is therefore NOT necessarily safe. Please contact devops."+r.diffText, r.app.SlackChannel)
+	}
+	if cleanupErr != nil {
+		return r.releaseError(cleanupErr)
+	}
+	if saveStateErr != nil {
+		return r.releaseError(saveStateErr)
 	}
 
 	return nil
@@ -407,11 +443,12 @@ func (r releaser) apply(resources []appResource) ([]appResource, error) {
 }
 
 type rolloutError struct {
-	err      error
-	resource appResource
+	err         error
+	resource    appResource
+	monitorFail bool
 }
 
-func (r releaser) watchWorkloads(appliedWorkloads []appResource) error {
+func (r releaser) watchWorkloads(appliedWorkloads []appResource) (bool, error) {
 	var wg sync.WaitGroup
 	errors := make(chan rolloutError)
 	done := make(chan bool)
@@ -426,10 +463,13 @@ func (r releaser) watchWorkloads(appliedWorkloads []appResource) error {
 	go goWait(&wg, done)
 	select {
 	case <-done:
-		return nil
+		return false, nil
 	case err := <-errors:
 		scope, logger := err.resource.scopes(r)
-		return ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch workload"}
+		if err.monitorFail {
+			r.logger.Warn("release error", zap.Error(err.err), zap.String("context", "monitor url"))
+		}
+		return err.monitorFail, ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch workload"}
 	}
 }
 
@@ -488,7 +528,7 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 		}(errors, wg)
 		err := r.monitorUrl(resource)
 		if err != nil {
-			errors <- rolloutError{err: err, resource: resource}
+			errors <- rolloutError{err: err, resource: resource, monitorFail: true}
 		}
 	}
 }
@@ -567,10 +607,7 @@ func (r releaser) rollbackResource(applied appResource, cached appResource) erro
 	return nil
 }
 
-func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkloads []appResource, appliedConfigs []appResource, appliedPostreleaseResources []appResource) error {
-	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
-	appliedResources = append(appliedResources, appliedPostreleaseResources...)
-
+func (r releaser) deleteRemovedResources(stateBeforeApply []appResource, appliedResources appResources) error {
 	type stateResource struct {
 		Metadata struct {
 			OwnerReferences []map[string]interface{}
@@ -608,7 +645,10 @@ func (r releaser) reconcileState(stateBeforeApply []appResource, appliedWorkload
 			}
 		}
 	}
+	return nil
+}
 
+func (r releaser) updateState(appliedResources appResources) error {
 	updatedApp := r.app
 	if updatedApp.State == nil {
 		updatedApp.State = &model.State{}

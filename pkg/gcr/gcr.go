@@ -43,6 +43,14 @@ func SwapTags(imageTag string, tag string) (string, error) {
 	return ref.Context().Tag(tag).String(), nil
 }
 
+func TagFromRef(imageTag string) (string, error) {
+	ref, err := name.ParseReference(imageTag)
+	if err != nil {
+		return "", err
+	}
+	return ref.Identifier(), nil
+}
+
 type AppYamls struct {
 	Prerelease  []string
 	Release     []string

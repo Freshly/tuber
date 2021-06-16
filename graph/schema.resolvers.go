@@ -74,7 +74,7 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) 
 	return app, nil
 }
 
-func (r *mutationResolver) Deploy(ctx context.Context, input model.DeployInput) (*model.TuberApp, error) {
+func (r *mutationResolver) Deploy(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -85,8 +85,8 @@ func (r *mutationResolver) Deploy(ctx context.Context, input model.DeployInput) 
 	}
 
 	tag := app.ImageTag
-	if input.Tag != nil {
-		tag = *input.Tag
+	if input.ImageTag != nil {
+		tag = *input.ImageTag
 	}
 
 	digest, err := gcr.DigestFromTag(tag, r.credentials)
@@ -265,7 +265,7 @@ func (r *mutationResolver) UnsetExcludedResource(ctx context.Context, input mode
 	return app, nil
 }
 
-func (r *mutationResolver) Rollback(ctx context.Context, input model.AppNameInput) (*model.TuberApp, error) {
+func (r *mutationResolver) Rollback(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {

@@ -22,12 +22,18 @@ func New(key string, enabled bool, catchAllChannel string) *Client {
 func (c *Client) Message(logger *zap.Logger, message string, channels ...string) {
 	messageLogger := logger.With(zap.String("slackMessage", message), zap.Strings("slackChannels", channels))
 	messageLogger.Debug("slack message triggered")
+	var presentChannels []string
+	for _, ch := range channels {
+		if ch != "" {
+			presentChannels = append(presentChannels, ch)
+		}
+	}
 	if c.enabled {
-		if len(channels) == 0 {
+		if len(presentChannels) == 0 {
 			c.send(messageLogger, c.catchAllChannel, message)
 			return
 		}
-		for _, channel := range channels {
+		for _, channel := range presentChannels {
 			c.send(messageLogger, channel, message)
 			return
 		}

@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -133,6 +134,11 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		return
 	}
 
+	var diffText string
+	if app.GithubURL != "" && len(app.CurrentTags) != 0 {
+		diffText = makeDiffText(app, yamls)
+	}
+
 	startTime := time.Now()
 	err = core.Release(
 		p.db,
@@ -142,14 +148,50 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		app,
 		event.digest,
 		p.clusterData,
+		p.slackClient,
+		diffText,
 	)
 
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
-		p.slackClient.Message(logger, ":loudspeaker: release failed for "+app.Name)
+		p.slackClient.Message(logger, "<!here> :loudspeaker: release failed for "+app.Name)
 		return
 	}
 
 	p.slackClient.Message(logger, ":white_check_mark: release complete for "+app.Name)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
+}
+
+func makeDiffText(app *model.TuberApp, yamls *gcr.AppYamls) string {
+	branch, err := gcr.TagFromRef(app.ImageTag)
+	if err != nil {
+		return ""
+	}
+
+	var newSHA string
+	for _, tag := range yamls.Tags {
+		// if you're pushing more than branch and commit sha, just.. stop that for now
+		if branch != tag {
+			newSHA = tag
+			break
+		}
+	}
+
+	if newSHA == "" {
+		return ""
+	}
+
+	var oldSHA string
+	for _, tag := range app.CurrentTags {
+		if branch != tag {
+			oldSHA = tag
+			break
+		}
+	}
+
+	if newSHA == "" {
+		return ""
+	}
+
+	return fmt.Sprintf(" - <%s|Compare Diff>", app.GithubURL+oldSHA+"..."+newSHA)
 }

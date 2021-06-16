@@ -80,6 +80,7 @@ func getApp(appName string) (*model.TuberApp, error) {
 				name
 				paused
 				reviewApp
+				currentTags
 				reviewAppsConfig{
 					enabled
 					vars {
@@ -104,6 +105,10 @@ func getApp(appName string) (*model.TuberApp, error) {
 						name
 						encoded
 					}
+				}
+				excludedResources {
+					kind
+					name
 				}
 				triggerID
 				vars {

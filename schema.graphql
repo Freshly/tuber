@@ -11,6 +11,7 @@ type Tuple {
 type TuberApp {
   cloudSourceRepo: String!
   currentTags: [String!]
+  githubURL: String!
   imageTag: String!
   name: ID!
   paused: Boolean!
@@ -73,20 +74,11 @@ input SetResourceInput {
   kind: String!
 }
 
-input DeployInput {
-  name: String!
-  tag: String
-}
-
-input AppNameInput {
-  name: String!
-}
-
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
   removeApp(input: AppInput!): TuberApp
-  deploy(input: DeployInput!): TuberApp
+  deploy(input: AppInput!): TuberApp
   destroyApp(input: AppInput!): TuberApp
   createReviewApp(input: CreateReviewAppInput!): TuberApp
   setAppVar(input: SetTupleInput!): TuberApp
@@ -95,7 +87,7 @@ type Mutation {
   unsetAppEnv(input: SetTupleInput!): TuberApp
   setExcludedResource(input: SetResourceInput!): TuberApp
   unsetExcludedResource(input: SetResourceInput!): TuberApp
-  rollback(input: AppNameInput!): TuberApp
+  rollback(input: AppInput!): TuberApp
 }
 
 schema {

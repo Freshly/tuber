@@ -42,16 +42,16 @@ func deploy(cmd *cobra.Command, args []string) error {
 	}
 
 	gql := `
-		mutation($input: DeployInput!) {
+		mutation($input: AppInput!) {
 			deploy(input: $input) {
 				name
 			}
 		}
 	`
 
-	input := &model.DeployInput{
-		Name: appName,
-		Tag:  &tag,
+	input := &model.AppInput{
+		Name:     appName,
+		ImageTag: &tag,
 	}
 
 	var respData struct {
