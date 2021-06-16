@@ -26,10 +26,11 @@ type Processor struct {
 	locks             *map[string]*sync.Cond
 	slackClient       *slack.Client
 	db                *core.DB
+	sentryBearerToken string
 }
 
 // NewProcessor constructs a Processor
-func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client) *Processor {
+func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []byte, clusterData *core.ClusterData, reviewAppsEnabled bool, slackClient *slack.Client, sentryBearerToken string) *Processor {
 	l := make(map[string]*sync.Cond)
 
 	return &Processor{
@@ -41,6 +42,7 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []
 		locks:             &l,
 		slackClient:       slackClient,
 		db:                db,
+		sentryBearerToken: sentryBearerToken,
 	}
 }
 
@@ -150,6 +152,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		p.clusterData,
 		p.slackClient,
 		diffText,
+		p.sentryBearerToken,
 	)
 
 	if err != nil {

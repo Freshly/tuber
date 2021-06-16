@@ -102,7 +102,7 @@ func localDeploy(appName string, flagTag string) error {
 	defer cancel()
 
 	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
-	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient)
+	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient, viper.GetString("sentry-bearer-token"))
 
 	tag := flagTag
 	if tag == "" {

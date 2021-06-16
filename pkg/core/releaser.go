@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/base64"
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/monitor"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
 
@@ -19,18 +19,19 @@ import (
 )
 
 type releaser struct {
-	logger           *zap.Logger
-	errorScope       report.Scope
-	app              *model.TuberApp
-	digest           string
-	data             *ClusterData
-	releaseYamls     []string
-	prereleaseYamls  []string
-	postreleaseYamls []string
-	tags             []string
-	db               *DB
-	slackClient      *slack.Client
-	diffText         string
+	logger            *zap.Logger
+	errorScope        report.Scope
+	app               *model.TuberApp
+	digest            string
+	data              *ClusterData
+	releaseYamls      []string
+	prereleaseYamls   []string
+	postreleaseYamls  []string
+	tags              []string
+	db                *DB
+	slackClient       *slack.Client
+	diffText          string
+	sentryBearerToken string
 }
 
 type ErrorContext struct {
@@ -76,20 +77,21 @@ func (r releaser) releaseError(err error) error {
 
 // Release interpolates and applies an app's resources. It removes deleted resources, and rolls back on any release failure.
 // If you edit a resource manually, and a release fails, tuber will roll back to the previously released state of the object, not to the state you manually specified.
-func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData, slackClient *slack.Client, diffText string) error {
+func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.Scope, app *model.TuberApp, digest string, data *ClusterData, slackClient *slack.Client, diffText string, sentryBearerToken string) error {
 	return releaser{
-		logger:           logger,
-		errorScope:       errorScope,
-		releaseYamls:     yamls.Release,
-		prereleaseYamls:  yamls.Prerelease,
-		postreleaseYamls: yamls.PostRelease,
-		tags:             yamls.Tags,
-		app:              app,
-		digest:           digest,
-		data:             data,
-		db:               db,
-		slackClient:      slackClient,
-		diffText:         diffText,
+		logger:            logger,
+		errorScope:        errorScope,
+		releaseYamls:      yamls.Release,
+		prereleaseYamls:   yamls.Prerelease,
+		postreleaseYamls:  yamls.PostRelease,
+		tags:              yamls.Tags,
+		app:               app,
+		digest:            digest,
+		data:              data,
+		db:                db,
+		slackClient:       slackClient,
+		diffText:          diffText,
+		sentryBearerToken: sentryBearerToken,
 	}.release()
 }
 
@@ -144,10 +146,12 @@ func (r releaser) release() error {
 		r.slackClient.Message(r.logger, "`"+r.app.Name+"` deployed to canary"+r.diffText, r.app.SlackChannel)
 	}
 
-	monitorFail, err := r.watchWorkloads(appliedWorkloads)
+	rolloutErr, err := r.watchWorkloads(appliedWorkloads)
 	if err != nil {
-		if !monitorFail {
+		if !rolloutErr.monitorFail {
 			_ = r.releaseError(err)
+		} else {
+			r.slackClient.Message(r.logger, "<!here> `"+r.app.Name+"`: monitoring failed for "+rolloutErr.resource.kind+" "+rolloutErr.resource.name+"+"+rolloutErr.monitorFailMessage, r.app.SlackChannel)
 		}
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
 		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
@@ -176,10 +180,12 @@ func (r releaser) release() error {
 		return err
 	}
 
-	monitorFail, err = r.watchWorkloads(appliedPostreleaseResources)
+	rolloutErr, err = r.watchWorkloads(appliedPostreleaseResources)
 	if err != nil {
-		if !monitorFail {
+		if !rolloutErr.monitorFail {
 			_ = r.releaseError(err)
+		} else {
+			r.slackClient.Message(r.logger, "<!here> `"+r.app.Name+"`: monitoring failed for "+rolloutErr.resource.kind+" "+rolloutErr.resource.name+"+"+rolloutErr.monitorFailMessage, r.app.SlackChannel)
 		}
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
 		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
@@ -226,8 +232,12 @@ type appResource struct {
 	name            string
 	timeout         time.Duration
 	rollbackTimeout time.Duration
-	watchUrl        string
+	sentryUrl       string
 	watchDuration   time.Duration
+}
+
+func (a appResource) hasMonitoring() bool {
+	return a.sentryUrl != ""
 }
 
 func (a appResource) isWorkload() bool {
@@ -400,9 +410,9 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			rollbackTimeout = duration
 		}
 
-		var watchUrl string
-		if t, ok := parsed.Metadata.Annotations["tuber/watchUrl"].(string); ok && t != "" {
-			watchUrl = t
+		var sentryUrl string
+		if t, ok := parsed.Metadata.Annotations["tuber/sentryUrl"].(string); ok && t != "" {
+			sentryUrl = t
 		}
 
 		var watchDuration time.Duration
@@ -420,7 +430,7 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			contents:        resourceYaml,
 			timeout:         timeout,
 			rollbackTimeout: rollbackTimeout,
-			watchUrl:        watchUrl,
+			sentryUrl:       sentryUrl,
 			watchDuration:   watchDuration,
 		}
 
@@ -443,12 +453,13 @@ func (r releaser) apply(resources []appResource) ([]appResource, error) {
 }
 
 type rolloutError struct {
-	err         error
-	resource    appResource
-	monitorFail bool
+	err                error
+	resource           appResource
+	monitorFail        bool
+	monitorFailMessage string
 }
 
-func (r releaser) watchWorkloads(appliedWorkloads []appResource) (bool, error) {
+func (r releaser) watchWorkloads(appliedWorkloads []appResource) (rolloutError, error) {
 	var wg sync.WaitGroup
 	errors := make(chan rolloutError)
 	done := make(chan bool)
@@ -463,13 +474,13 @@ func (r releaser) watchWorkloads(appliedWorkloads []appResource) (bool, error) {
 	go goWait(&wg, done)
 	select {
 	case <-done:
-		return false, nil
+		return rolloutError{}, nil
 	case err := <-errors:
 		scope, logger := err.resource.scopes(r)
 		if err.monitorFail {
 			r.logger.Warn("release error", zap.Error(err.err), zap.String("context", "monitor url"))
 		}
-		return err.monitorFail, ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch workload"}
+		return err, ErrorContext{err: err.err, scope: scope, logger: logger, context: "watch workload"}
 	}
 }
 
@@ -512,7 +523,7 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 		return
 	}
 
-	if resource.watchUrl == "" {
+	if !resource.hasMonitoring() {
 		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 		if err != nil {
 			errors <- rolloutError{err: err, resource: resource}
@@ -526,28 +537,23 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 			}
 			wg.Done()
 		}(errors, wg)
-		err := r.monitorUrl(resource)
-		if err != nil {
-			errors <- rolloutError{err: err, resource: resource, monitorFail: true}
-		}
-	}
-}
 
-func (r releaser) monitorUrl(resource appResource) error {
-	timeout := time.Now().Add(resource.watchDuration)
-	r.logger.Debug("pinging " + resource.watchUrl)
-	for {
-		if time.Now().After(timeout) {
-			return nil
+		if resource.sentryUrl != "" {
+			wg.Add(1)
+			go func(errors chan rolloutError, wg *sync.WaitGroup) {
+				_, logger := resource.scopes(r)
+				healthy, message := monitor.Sentry(logger, resource.sentryUrl, r.sentryBearerToken, resource.watchDuration)
+				if !healthy {
+					errors <- rolloutError{
+						err:                fmt.Errorf("sentry monitoring found failure"),
+						resource:           resource,
+						monitorFail:        true,
+						monitorFailMessage: message,
+					}
+				}
+				wg.Done()
+			}(errors, wg)
 		}
-		resp, err := http.Get(resource.watchUrl)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("non-success status received from monitor url")
-		}
-		time.Sleep(30 * time.Second)
 	}
 }
 
