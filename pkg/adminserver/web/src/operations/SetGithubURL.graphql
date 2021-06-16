@@ -1,0 +1,6 @@
+mutation SetGithubURL($input: AppInput!) {
+  setGithubURL(input: $input) {
+    name
+    githubURL
+  }
+}

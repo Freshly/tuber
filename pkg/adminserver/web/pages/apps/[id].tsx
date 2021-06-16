@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
@@ -11,7 +11,7 @@ import {
 	useCreateReviewAppMutation,
 	useSetExcludedResourceMutation, useUnsetExcludedResourceMutation,
 	useSetAppVarMutation, useUnsetAppVarMutation,
-	useSetAppEnvMutation, useUnsetAppEnvMutation,
+	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubUrlMutation,
 } from '../../src/generated/graphql'
 
 
@@ -45,27 +45,28 @@ const ShowApp = () => {
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
 	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
-
 	const [{ error: deployErr }, deploy] = useDeployMutation()
 
 	return <div>
 		<section className="flex justify-between p-3 mb-2">
-			<div>
-				<h1 className="text-3xl">{app.name}</h1>
-				<div>
-					<small>
-						<a href={hostname} target="_blank" rel="noreferrer">{hostname}</a>
-					</small>
-				</div>
-				<div>
-					<small>
-						<a href="https://app.datadoghq.com/apm/home?env=production" target="_blank" rel="noreferrer">DataDog Logs</a>
-					</small>
-				</div>
-				<div>
-					<small>
-						<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">GKE Dashboard</a>
-					</small>
+			<div className="flex justify-between">
+				<div className="mr-3">
+					<h1 className="text-3xl">{app.name}</h1>
+					<div>
+						<small>
+							<a href={hostname} target="_blank" rel="noreferrer">{hostname}</a>
+						</small>
+					</div>
+					<div>
+						<small>
+							<a href="https://app.datadoghq.com/apm/home?env=production" target="_blank" rel="noreferrer">DataDog Logs</a>
+						</small>
+					</div>
+					<div>
+						<small>
+							<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">GKE Dashboard</a>
+						</small>
+					</div>
 				</div>
 			</div>
 
@@ -78,6 +79,36 @@ const ShowApp = () => {
 					<span>Deploy</span>
 				</div>
 			</div>
+		</section>
+
+		<section>
+			<Card className="mb-2">
+				<div className="inline-grid grid-cols-2 leading-7">
+					<div>Slack Channel</div>
+					<TextInputForm
+						value={app.slackChannel}
+						keyName="slackChannel"
+						appName={app.name}
+						useSet={useSetSlackChannelMutation}
+					/>
+
+					<div>Github URL</div>
+					<TextInputForm
+						value={app.githubURL}
+						keyName="githubURL"
+						appName={app.name}
+						useSet={useSetGithubUrlMutation}
+					/>
+
+					<div>Cloud Source Repo</div>
+					<TextInputForm
+						value={app.cloudSourceRepo}
+						keyName="cloudSourceRepo"
+						appName={app.name}
+						useSet={useSetCloudSourceRepoMutation}
+					/>
+				</div>
+			</Card>
 		</section>
 
 		<section>
@@ -108,11 +139,11 @@ const ShowApp = () => {
 				)}
 			</Card>
 		</>}
-			
+
 		<Card className="mb-2">
 			<ExcludedResources
 				appName={app.name}
-				resources={app.excludedResources} 
+				resources={app.excludedResources}
 				useSet={useSetExcludedResourceMutation}
 				useUnset={useUnsetExcludedResourceMutation}
 			/>

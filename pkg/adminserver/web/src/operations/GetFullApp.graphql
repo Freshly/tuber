@@ -2,6 +2,9 @@ query GetFullApp($name: String!) {
   getApp(name: $name) {
     name
     reviewApp
+    cloudSourceRepo
+    githubURL
+    slackChannel
 
     vars {
       key

@@ -342,7 +342,7 @@ func (r *mutationResolver) SetGithubURL(ctx context.Context, input model.AppInpu
 		return nil, fmt.Errorf("GithubURL required for SetGithubURL")
 	}
 
-	app.SlackChannel = *input.GithubURL
+	app.GithubURL = *input.GithubURL
 
 	err = r.Resolver.db.SaveApp(app)
 	if err != nil {
