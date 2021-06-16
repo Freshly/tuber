@@ -40,13 +40,11 @@ func checkSentry(logger *zap.Logger, url string, bearerToken string) (bool, stri
 		return false, "bad response from sentry api\n```" + string(body) + "```"
 	}
 
-	var issue Issue
 	if len(issues) == 0 {
 		return true, ""
 	}
 
-	msg := fmt.Sprintf("sentry issue detected: <%s|View in Sentry>", issue.WebLink)
-	return false, msg
+	return false, fmt.Sprintf("sentry issue detected: <%s|View in Sentry>", issues[0].WebLink)
 }
 
 // Issue is an unmarshal target for a sentry issues request
