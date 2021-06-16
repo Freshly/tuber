@@ -400,6 +400,49 @@ func (r *mutationResolver) SetSlackChannel(ctx context.Context, input model.AppI
 	return app, nil
 }
 
+func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualApplyInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("app not found, nothing applied: %v", err)
+	}
+
+	var resources [][]byte
+	for _, resource := range input.Resources {
+		if resource == nil {
+			return nil, errors.New("nil string pointer found in resources, nothing applied")
+		}
+
+		decoded, decodeErr := base64.StdEncoding.DecodeString(*resource)
+		if decodeErr != nil {
+			return nil, errors.New("decode error, nothing applied")
+		}
+		resources = append(resources, decoded)
+	}
+
+	var errors []error
+	for _, resource := range resources {
+		applyErr := k8s.Apply(resource, app.Name)
+		if applyErr != nil {
+			errors = append(errors, applyErr)
+			continue
+		}
+	}
+
+	if len(errors) != 0 {
+		combined := "partial apply performed, errors applying resources: "
+		for _, e := range errors {
+			combined = combined + e.Error() + ", "
+		}
+		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
+	}
+
+	return app, nil
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
 	return r.Resolver.db.App(name)
 }

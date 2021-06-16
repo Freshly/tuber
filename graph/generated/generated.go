@@ -49,6 +49,7 @@ type ComplexityRoot struct {
 		CreateReviewApp       func(childComplexity int, input model.CreateReviewAppInput) int
 		Deploy                func(childComplexity int, input model.AppInput) int
 		DestroyApp            func(childComplexity int, input model.AppInput) int
+		ManualApply           func(childComplexity int, input model.ManualApplyInput) int
 		RemoveApp             func(childComplexity int, input model.AppInput) int
 		Rollback              func(childComplexity int, input model.AppInput) int
 		SetAppEnv             func(childComplexity int, input model.SetTupleInput) int
@@ -127,6 +128,7 @@ type MutationResolver interface {
 	SetGithubURL(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	SetCloudSourceRepo(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 	SetSlackChannel(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	ManualApply(ctx context.Context, input model.ManualApplyInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -199,6 +201,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DestroyApp(childComplexity, args["input"].(model.AppInput)), true
+
+	case "Mutation.manualApply":
+		if e.complexity.Mutation.ManualApply == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_manualApply_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ManualApply(childComplexity, args["input"].(model.ManualApplyInput)), true
 
 	case "Mutation.removeApp":
 		if e.complexity.Mutation.RemoveApp == nil {
@@ -687,6 +701,11 @@ input SetResourceInput {
   kind: String!
 }
 
+input ManualApplyInput {
+  name: ID!
+  resources: [String]!
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -704,6 +723,7 @@ type Mutation {
   setGithubURL(input: AppInput!): TuberApp
   setCloudSourceRepo(input: AppInput!): TuberApp
   setSlackChannel(input: AppInput!): TuberApp
+  manualApply(input: ManualApplyInput!): TuberApp
 }
 
 schema {
@@ -770,6 +790,21 @@ func (ec *executionContext) field_Mutation_destroyApp_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_manualApply_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ManualApplyInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNManualApplyInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐManualApplyInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1637,6 +1672,45 @@ func (ec *executionContext) _Mutation_setSlackChannel(ctx context.Context, field
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().SetSlackChannel(rctx, args["input"].(model.AppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_manualApply(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_manualApply_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ManualApply(rctx, args["input"].(model.ManualApplyInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3876,6 +3950,34 @@ func (ec *executionContext) unmarshalInputCreateReviewAppInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputManualApplyInput(ctx context.Context, obj interface{}) (model.ManualApplyInput, error) {
+	var it model.ManualApplyInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "resources":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resources"))
+			it.Resources, err = ec.unmarshalNString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSetResourceInput(ctx context.Context, obj interface{}) (model.SetResourceInput, error) {
 	var it model.SetResourceInput
 	var asMap = obj.(map[string]interface{})
@@ -4003,6 +4105,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_setCloudSourceRepo(ctx, field)
 		case "setSlackChannel":
 			out.Values[i] = ec._Mutation_setSlackChannel(ctx, field)
+		case "manualApply":
+			out.Values[i] = ec._Mutation_manualApply(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4600,6 +4704,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNManualApplyInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐManualApplyInput(ctx context.Context, v interface{}) (model.ManualApplyInput, error) {
+	res, err := ec.unmarshalInputManualApplyInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Resource) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -4680,6 +4789,36 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TuberApp) graphql.Marshaler {

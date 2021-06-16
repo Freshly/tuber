@@ -76,6 +76,11 @@ input SetResourceInput {
   kind: String!
 }
 
+input ManualApplyInput {
+  name: ID!
+  resources: [String]!
+}
+
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -93,6 +98,7 @@ type Mutation {
   setGithubURL(input: AppInput!): TuberApp
   setCloudSourceRepo(input: AppInput!): TuberApp
   setSlackChannel(input: AppInput!): TuberApp
+  manualApply(input: ManualApplyInput!): TuberApp
 }
 
 schema {
