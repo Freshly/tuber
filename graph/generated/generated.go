@@ -53,7 +53,10 @@ type ComplexityRoot struct {
 		Rollback              func(childComplexity int, input model.AppInput) int
 		SetAppEnv             func(childComplexity int, input model.SetTupleInput) int
 		SetAppVar             func(childComplexity int, input model.SetTupleInput) int
+		SetCloudSourceRepo    func(childComplexity int, input model.AppInput) int
 		SetExcludedResource   func(childComplexity int, input model.SetResourceInput) int
+		SetGithubURL          func(childComplexity int, input model.AppInput) int
+		SetSlackChannel       func(childComplexity int, input model.AppInput) int
 		UnsetAppEnv           func(childComplexity int, input model.SetTupleInput) int
 		UnsetAppVar           func(childComplexity int, input model.SetTupleInput) int
 		UnsetExcludedResource func(childComplexity int, input model.SetResourceInput) int
@@ -121,6 +124,9 @@ type MutationResolver interface {
 	SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 	UnsetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 	Rollback(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	SetGithubURL(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	SetCloudSourceRepo(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
+	SetSlackChannel(ctx context.Context, input model.AppInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
@@ -242,6 +248,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.SetAppVar(childComplexity, args["input"].(model.SetTupleInput)), true
 
+	case "Mutation.setCloudSourceRepo":
+		if e.complexity.Mutation.SetCloudSourceRepo == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setCloudSourceRepo_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetCloudSourceRepo(childComplexity, args["input"].(model.AppInput)), true
+
 	case "Mutation.setExcludedResource":
 		if e.complexity.Mutation.SetExcludedResource == nil {
 			break
@@ -253,6 +271,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.SetExcludedResource(childComplexity, args["input"].(model.SetResourceInput)), true
+
+	case "Mutation.setGithubURL":
+		if e.complexity.Mutation.SetGithubURL == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setGithubURL_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetGithubURL(childComplexity, args["input"].(model.AppInput)), true
+
+	case "Mutation.setSlackChannel":
+		if e.complexity.Mutation.SetSlackChannel == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setSlackChannel_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetSlackChannel(childComplexity, args["input"].(model.AppInput)), true
 
 	case "Mutation.unsetAppEnv":
 		if e.complexity.Mutation.UnsetAppEnv == nil {
@@ -601,6 +643,9 @@ input AppInput {
   isIstio: Boolean
   imageTag: String
   paused: Boolean
+  githubURL: String
+  slackChannel: String
+  cloudSourceRepo: String
 }
 
 type State {
@@ -636,7 +681,6 @@ input SetTupleInput {
   value: String!
 }
 
-
 input SetResourceInput {
   appName: ID!
   name: String!
@@ -657,6 +701,9 @@ type Mutation {
   setExcludedResource(input: SetResourceInput!): TuberApp
   unsetExcludedResource(input: SetResourceInput!): TuberApp
   rollback(input: AppInput!): TuberApp
+  setGithubURL(input: AppInput!): TuberApp
+  setCloudSourceRepo(input: AppInput!): TuberApp
+  setSlackChannel(input: AppInput!): TuberApp
 }
 
 schema {
@@ -791,6 +838,21 @@ func (ec *executionContext) field_Mutation_setAppVar_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_setCloudSourceRepo_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_setExcludedResource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -798,6 +860,36 @@ func (ec *executionContext) field_Mutation_setExcludedResource_args(ctx context.
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNSetResourceInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐSetResourceInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setGithubURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setSlackChannel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1428,6 +1520,123 @@ func (ec *executionContext) _Mutation_rollback(ctx context.Context, field graphq
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().Rollback(rctx, args["input"].(model.AppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_setGithubURL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_setGithubURL_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetGithubURL(rctx, args["input"].(model.AppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_setCloudSourceRepo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_setCloudSourceRepo_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetCloudSourceRepo(rctx, args["input"].(model.AppInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_setSlackChannel(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_setSlackChannel_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetSlackChannel(rctx, args["input"].(model.AppInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3609,6 +3818,30 @@ func (ec *executionContext) unmarshalInputAppInput(ctx context.Context, obj inte
 			if err != nil {
 				return it, err
 			}
+		case "githubURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("githubURL"))
+			it.GithubURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "slackChannel":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slackChannel"))
+			it.SlackChannel, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "cloudSourceRepo":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cloudSourceRepo"))
+			it.CloudSourceRepo, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -3764,6 +3997,12 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_unsetExcludedResource(ctx, field)
 		case "rollback":
 			out.Values[i] = ec._Mutation_rollback(ctx, field)
+		case "setGithubURL":
+			out.Values[i] = ec._Mutation_setGithubURL(ctx, field)
+		case "setCloudSourceRepo":
+			out.Values[i] = ec._Mutation_setCloudSourceRepo(ctx, field)
+		case "setSlackChannel":
+			out.Values[i] = ec._Mutation_setSlackChannel(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

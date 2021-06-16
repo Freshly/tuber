@@ -328,6 +328,78 @@ func (r *mutationResolver) Rollback(ctx context.Context, input model.AppInput) (
 	return app, nil
 }
 
+func (r *mutationResolver) SetGithubURL(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.GithubURL == nil {
+		return nil, fmt.Errorf("GithubURL required for SetGithubURL")
+	}
+
+	app.SlackChannel = *input.GithubURL
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) SetCloudSourceRepo(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.CloudSourceRepo == nil {
+		return nil, fmt.Errorf("CloudSourceRepo required for SetCloudSourceRepo")
+	}
+
+	app.SlackChannel = *input.CloudSourceRepo
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) SetSlackChannel(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.SlackChannel == nil {
+		return nil, fmt.Errorf("SlackChannel required for SetSlackChannel")
+	}
+
+	app.SlackChannel = *input.SlackChannel
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
 	return r.Resolver.db.App(name)
 }

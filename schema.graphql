@@ -32,6 +32,9 @@ input AppInput {
   isIstio: Boolean
   imageTag: String
   paused: Boolean
+  githubURL: String
+  slackChannel: String
+  cloudSourceRepo: String
 }
 
 type State {
@@ -67,7 +70,6 @@ input SetTupleInput {
   value: String!
 }
 
-
 input SetResourceInput {
   appName: ID!
   name: String!
@@ -88,6 +90,9 @@ type Mutation {
   setExcludedResource(input: SetResourceInput!): TuberApp
   unsetExcludedResource(input: SetResourceInput!): TuberApp
   rollback(input: AppInput!): TuberApp
+  setGithubURL(input: AppInput!): TuberApp
+  setCloudSourceRepo(input: AppInput!): TuberApp
+  setSlackChannel(input: AppInput!): TuberApp
 }
 
 schema {
