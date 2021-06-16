@@ -1,4 +1,4 @@
-mutation Deploy($input: DeployInput!) {
+mutation Deploy($input: AppInput!) {
 	deploy(input: $input) {
 		name
 	}

@@ -22,18 +22,9 @@ export type AppInput = {
   paused?: Maybe<Scalars['Boolean']>;
 };
 
-export type AppNameInput = {
-  name: Scalars['String'];
-};
-
 export type CreateReviewAppInput = {
   name: Scalars['String'];
   branchName: Scalars['String'];
-};
-
-export type DeployInput = {
-  name: Scalars['String'];
-  tag?: Maybe<Scalars['String']>;
 };
 
 export type Mutation = {
@@ -70,7 +61,7 @@ export type MutationRemoveAppArgs = {
 
 
 export type MutationDeployArgs = {
-  input: DeployInput;
+  input: AppInput;
 };
 
 
@@ -115,7 +106,7 @@ export type MutationUnsetExcludedResourceArgs = {
 
 
 export type MutationRollbackArgs = {
-  input: AppNameInput;
+  input: AppInput;
 };
 
 export type Query = {
@@ -165,6 +156,7 @@ export type TuberApp = {
   __typename?: 'TuberApp';
   cloudSourceRepo: Scalars['String'];
   currentTags?: Maybe<Array<Scalars['String']>>;
+  githubURL: Scalars['String'];
   imageTag: Scalars['String'];
   name: Scalars['ID'];
   paused: Scalars['Boolean'];
@@ -200,7 +192,7 @@ export type CreateReviewAppMutation = (
 );
 
 export type DeployMutationVariables = Exact<{
-  input: DeployInput;
+  input: AppInput;
 }>;
 
 
@@ -865,6 +857,17 @@ export default {
             "args": []
           },
           {
+            "name": "githubURL",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
             "name": "imageTag",
             "type": {
               "kind": "NON_NULL",
@@ -1081,7 +1084,7 @@ export function useCreateReviewAppMutation() {
   return Urql.useMutation<CreateReviewAppMutation, CreateReviewAppMutationVariables>(CreateReviewAppDocument);
 };
 export const DeployDocument = gql`
-    mutation Deploy($input: DeployInput!) {
+    mutation Deploy($input: AppInput!) {
   deploy(input: $input) {
     name
   }
