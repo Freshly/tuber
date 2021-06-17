@@ -17,12 +17,12 @@ const HomePage = () => {
 			onChange={(e) => search(e.target.value)}
 		/>
 
-		<section className="grid grid-cols-3 gap-2 shadow-xl">
+		<section className="grid grid-cols-3 gap-2">
 			{result.map(app =>
-				<Card key={app.name}>
+				<Card key={app.name} className="shadow-dark-50 shadow">
 					<div className="flex align-middle justify-between">
 						<Link href={`/apps/${app.name}`} passHref>
-							<a className="text-blue-500 text-lg">
+							<a className="text-blue-500 text-lg hover:underline">
 								<h1>{app.name}</h1>
 							</a>
 						</Link>
