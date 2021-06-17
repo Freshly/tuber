@@ -48,3 +48,13 @@ jobs:
           filter_mode: nofilter
           # Exit with 1 when it find at least one finding.
           fail_on_error: true
+  eslint:
+    name: runner / eslint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review # Change reporter.
+          eslint_flags: 'pkg/adminserver/web/'
