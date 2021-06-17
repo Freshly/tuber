@@ -21,7 +21,7 @@ type Processor struct {
 	ctx               context.Context
 	logger            *zap.Logger
 	creds             []byte
-	clusterData       *core.ClusterData
+	ClusterData       *core.ClusterData
 	reviewAppsEnabled bool
 	locks             *map[string]*sync.Cond
 	slackClient       *slack.Client
@@ -37,7 +37,7 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []
 		ctx:               ctx,
 		logger:            logger,
 		creds:             creds,
-		clusterData:       clusterData,
+		ClusterData:       clusterData,
 		reviewAppsEnabled: reviewAppsEnabled,
 		locks:             &l,
 		slackClient:       slackClient,
@@ -149,7 +149,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		errorScope,
 		app,
 		event.digest,
-		p.clusterData,
+		p.ClusterData,
 		p.slackClient,
 		diffText,
 		p.sentryBearerToken,

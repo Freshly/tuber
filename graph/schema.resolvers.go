@@ -404,13 +404,13 @@ func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualAp
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
-			return nil, errors.New("could not find app")
+			return nil, errors.New("error finding app, nothing applied")
 		}
 
-		return nil, fmt.Errorf("app not found, nothing applied: %v", err)
+		return nil, fmt.Errorf("error finding app, nothing applied: %v", err)
 	}
 
-	var resources [][]byte
+	var resources []string
 	for _, resource := range input.Resources {
 		if resource == nil {
 			return nil, errors.New("nil string pointer found in resources, nothing applied")
@@ -420,24 +420,30 @@ func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualAp
 		if decodeErr != nil {
 			return nil, errors.New("decode error, nothing applied")
 		}
-		resources = append(resources, decoded)
+		resources = append(resources, string(decoded))
 	}
 
-	var errors []error
-	for _, resource := range resources {
-		applyErr := k8s.Apply(resource, app.Name)
-		if applyErr != nil {
-			errors = append(errors, applyErr)
-			continue
+	branch, err := gcr.TagFromRef(app.ImageTag)
+	if err == nil {
+		return nil, errors.New("unable to parse app's current image tag, nothing applied")
+	}
+
+	var digest string
+	for _, tag := range app.CurrentTags {
+		if branch != tag {
+			digest = tag
+			break
 		}
 	}
 
-	if len(errors) != 0 {
-		combined := "partial apply performed, errors applying resources: "
-		for _, e := range errors {
-			combined = combined + e.Error() + ", "
-		}
-		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
+	imageTagWithDigest, err := gcr.SwapTags(app.ImageTag, digest)
+	if err == nil {
+		return nil, errors.New("unable to parse currently deployed image, nothing applied")
+	}
+
+	err = core.BypassReleaser(app, imageTagWithDigest, resources, r.Resolver.processor.ClusterData)
+	if err != nil {
+		return nil, err
 	}
 
 	return app, nil

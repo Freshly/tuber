@@ -2,6 +2,8 @@ package core
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/freshly/tuber/graph/model"
@@ -15,6 +17,37 @@ func ApplyTemplate(namespace string, templateString string, data map[string]stri
 		return err
 	}
 	return k8s.Apply(interpolated, namespace)
+}
+
+// BypassReleaser is for when you're feeling frisky and want to cowboy code
+func BypassReleaser(app *model.TuberApp, imageTagWithDigest string, yamls []string, data *ClusterData) error {
+	var interpolated [][]byte
+	for _, y := range yamls {
+		i, err := interpolate(y, releaseData(imageTagWithDigest, app, data))
+		if err != nil {
+			return fmt.Errorf("interpolation error prior to apply: %v", err)
+		}
+		interpolated = append(interpolated, i)
+	}
+
+	var errors []error
+	for _, resource := range interpolated {
+		applyErr := k8s.Apply(resource, app.Name)
+		if applyErr != nil {
+			errors = append(errors, applyErr)
+			continue
+		}
+	}
+
+	if len(errors) != 0 {
+		combined := "partial apply performed, errors applying resources: "
+		for _, e := range errors {
+			combined = combined + e.Error() + ", "
+		}
+		return fmt.Errorf(strings.TrimSuffix(combined, ", "))
+	}
+
+	return nil
 }
 
 func interpolate(templateString string, data map[string]string) (interpolated []byte, err error) {

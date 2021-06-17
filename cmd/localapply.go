@@ -32,7 +32,7 @@ func warnNuclearLaunchConfirmation(cmd *cobra.Command, args []string) error {
 	fmt.Println(color.RedString("This command can be destructive, and should ONLY BE USED IN PRODUCTION IN CASE OF EMERGENCY."))
 	fmt.Println(color.YellowString("Please ensure you are in the correct directory for the app you intend to modify."))
 	fmt.Println(color.YellowString("And that you have the latest code for the app on the deployed branch."))
-	fmt.Println(color.HiCyanString("----- And that you know what you're doing. -----"))
+	fmt.Println(color.HiMagentaString("----- And that you know what you're doing. -----"))
 	return promptCurrentContext(cmd, args)
 }
 
