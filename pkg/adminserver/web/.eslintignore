@@ -1,0 +1,5 @@
+src/generated
+src/operations
+node_modules
+.next
+out

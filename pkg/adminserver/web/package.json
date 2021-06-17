@@ -32,6 +32,8 @@
     "windicss-webpack-plugin": "^0.6.2"
   },
   "dependencies": {
-    "classnames": "^2.3.1"
+    "classnames": "^2.3.1",
+    "fuse.js": "^3.4.5",
+    "react-use-fuzzy": "^1.0.4"
   }
 }
