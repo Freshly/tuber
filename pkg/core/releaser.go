@@ -97,7 +97,7 @@ func Release(db *DB, yamls *gcr.AppYamls, logger *zap.Logger, errorScope report.
 
 func (r releaser) release() error {
 	r.logger.Debug("releaser starting")
-	r.slackClient.Message(r.logger, "*"+r.app.Name+"*: release starting"+r.diffText, r.app.SlackChannel)
+	r.slackClient.Message(r.logger, ":game_die: *"+r.app.Name+"*: release starting"+r.diffText, r.app.SlackChannel)
 
 	prereleaseResources, configs, workloads, postreleaseResources, err := r.resourcesToApply()
 	if err != nil {
@@ -143,7 +143,7 @@ func (r releaser) release() error {
 	}
 
 	if len(postreleaseResources) != 0 {
-		r.slackClient.Message(r.logger, "*"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
+		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
 	}
 
 	rolloutErr, err := r.watchWorkloads(appliedWorkloads)
@@ -151,7 +151,7 @@ func (r releaser) release() error {
 		if !rolloutErr.monitorFail {
 			_ = r.releaseError(err)
 		} else {
-			r.slackClient.Message(r.logger, "<!here> *"+r.app.Name+"*: monitoring failed for "+strings.ToLower(rolloutErr.resource.kind)+" "+rolloutErr.resource.name+" - "+rolloutErr.monitorFailMessage, r.app.SlackChannel)
+			r.slackClient.Message(r.logger, "<!here> :loudspeaker: *"+r.app.Name+"*: monitoring failed for "+strings.ToLower(rolloutErr.resource.kind)+" "+rolloutErr.resource.name+" - "+rolloutErr.monitorFailMessage, r.app.SlackChannel)
 		}
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
 		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
@@ -185,7 +185,7 @@ func (r releaser) release() error {
 		if !rolloutErr.monitorFail {
 			_ = r.releaseError(err)
 		} else {
-			r.slackClient.Message(r.logger, "<!here> *"+r.app.Name+"*: monitoring failed for "+rolloutErr.resource.kind+" "+rolloutErr.resource.name+"+"+rolloutErr.monitorFailMessage, r.app.SlackChannel)
+			r.slackClient.Message(r.logger, "<!here> :loudspeaker: *"+r.app.Name+"*: monitoring failed for "+rolloutErr.resource.kind+" "+rolloutErr.resource.name+"+"+rolloutErr.monitorFailMessage, r.app.SlackChannel)
 		}
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
 		rolledBackResources, workloadRollbackErrors := r.rollback(appliedWorkloads, decodedStateBeforeApply)
@@ -200,21 +200,17 @@ func (r releaser) release() error {
 		return err
 	}
 
-	if len(postreleaseResources) != 0 {
-		r.slackClient.Message(r.logger, "*"+r.app.Name+"*: deployed to primary", r.diffText)
-	}
-
 	var appliedResources appResources = append(appliedWorkloads, appliedConfigs...)
 	appliedResources = append(appliedResources, appliedPostreleaseResources...)
 
 	cleanupErr := r.deleteRemovedResources(decodedStateBeforeApply, appliedResources)
 	if cleanupErr != nil {
-		r.slackClient.Message(r.logger, "<!here> *"+r.app.Name+"*: Release is complete, but deletion of a resource removed with this release failed."+r.diffText, r.app.SlackChannel)
+		r.slackClient.Message(r.logger, "<!here> :confused: *"+r.app.Name+"*: Release is complete, but deletion of a resource removed with this release failed."+r.diffText, r.app.SlackChannel)
 	}
 
 	saveStateErr := r.updateState(appliedResources)
 	if saveStateErr != nil {
-		r.slackClient.Message(r.logger, "<!here> *"+r.app.Name+"*: Release is complete, but the current and previous states *failed to update*. Rolling back from this release is therefore NOT necessarily safe. Please contact devops."+r.diffText, r.app.SlackChannel)
+		r.slackClient.Message(r.logger, "<!here> :skull_and_crossbones: *"+r.app.Name+"*: Release is complete, but the current and previous states *failed to update*.\nRolling back from this release is therefore NOT necessarily safe. Please contact devops."+r.diffText, r.app.SlackChannel)
 	}
 	if cleanupErr != nil {
 		return r.releaseError(cleanupErr)
