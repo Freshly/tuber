@@ -107,6 +107,7 @@ func (p Processor) ReleaseApp(event *Event, app *model.TuberApp) {
 	if app.Paused {
 		p.slackClient.Message(event.logger, ":double_vertical_bar: release skipped for "+app.Name+" as it is paused", app.SlackChannel)
 		event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", app.Name))
+		cond.L.Unlock()
 		return
 	}
 	p.StartRelease(event, app)
