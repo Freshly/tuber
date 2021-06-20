@@ -57,6 +57,7 @@ type ReviewAppsConfig {
 type Query {
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
 }
 
 input CreateReviewAppInput {
@@ -79,6 +80,11 @@ input SetResourceInput {
 input ManualApplyInput {
   name: ID!
   resources: [String]!
+}
+
+type ClusterInfo {
+  name: String!
+  region: String!
 }
 
 type Mutation {

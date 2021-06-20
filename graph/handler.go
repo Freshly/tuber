@@ -10,11 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func Handler(db *core.DB, processor *events.Processor, logger *zap.Logger, credentials []byte, projectName string) http.Handler {
+func Handler(db *core.DB, processor *events.Processor, logger *zap.Logger, credentials []byte, projectName string, clusterName string, clusterRegion string) http.Handler {
 	return handler.NewDefaultServer(
 		generated.NewExecutableSchema(
 			generated.Config{
-				Resolvers: NewResolver(db, logger, processor, credentials, projectName),
+				Resolvers: NewResolver(db, logger, processor, credentials, projectName, clusterName, clusterRegion),
 			},
 		),
 	)

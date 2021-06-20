@@ -19,7 +19,15 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		panic("need a review apps triggers project name")
 	}
 
-	if err := adminserver.Start(ctx, logger, db, processor, triggersProjectName, creds, viper.GetBool("reviewapps-enabled"), viper.GetString("cluster-default-host"), viper.GetString("adminserver-port")); err != nil {
+	err := adminserver.Start(ctx, logger, db, processor, triggersProjectName, creds,
+		viper.GetBool("reviewapps-enabled"),
+		viper.GetString("cluster-default-host"),
+		viper.GetString("adminserver-port"),
+		viper.GetString("cluster-name"),
+		viper.GetString("cluster-region"),
+	)
+
+	if err != nil {
 		panic(err)
 	}
 }

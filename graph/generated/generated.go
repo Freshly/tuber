@@ -44,6 +44,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ClusterInfo struct {
+		Name   func(childComplexity int) int
+		Region func(childComplexity int) int
+	}
+
 	Mutation struct {
 		CreateApp             func(childComplexity int, input model.AppInput) int
 		CreateReviewApp       func(childComplexity int, input model.CreateReviewAppInput) int
@@ -65,8 +70,9 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		GetApp  func(childComplexity int, name string) int
-		GetApps func(childComplexity int) int
+		GetApp         func(childComplexity int, name string) int
+		GetApps        func(childComplexity int) int
+		GetClusterInfo func(childComplexity int) int
 	}
 
 	Resource struct {
@@ -133,6 +139,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
 	GetApps(ctx context.Context) ([]*model.TuberApp, error)
+	GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error)
 }
 type TuberAppResolver interface {
 	ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error)
@@ -153,6 +160,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "ClusterInfo.name":
+		if e.complexity.ClusterInfo.Name == nil {
+			break
+		}
+
+		return e.complexity.ClusterInfo.Name(childComplexity), true
+
+	case "ClusterInfo.region":
+		if e.complexity.ClusterInfo.Region == nil {
+			break
+		}
+
+		return e.complexity.ClusterInfo.Region(childComplexity), true
 
 	case "Mutation.createApp":
 		if e.complexity.Mutation.CreateApp == nil {
@@ -376,6 +397,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetApps(childComplexity), true
+
+	case "Query.getClusterInfo":
+		if e.complexity.Query.GetClusterInfo == nil {
+			break
+		}
+
+		return e.complexity.Query.GetClusterInfo(childComplexity), true
 
 	case "Resource.encoded":
 		if e.complexity.Resource.Encoded == nil {
@@ -682,6 +710,7 @@ type ReviewAppsConfig {
 type Query {
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
 }
 
 input CreateReviewAppInput {
@@ -704,6 +733,11 @@ input SetResourceInput {
 input ManualApplyInput {
   name: ID!
   resources: [String]!
+}
+
+type ClusterInfo {
+  name: String!
+  region: String!
 }
 
 type Mutation {
@@ -1060,6 +1094,76 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _ClusterInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.ClusterInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ClusterInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ClusterInfo_region(ctx context.Context, field graphql.CollectedField, obj *model.ClusterInfo) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ClusterInfo",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Region, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Mutation_createApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
@@ -1796,6 +1900,41 @@ func (ec *executionContext) _Query_getApps(ctx context.Context, field graphql.Co
 	res := resTmp.([]*model.TuberApp)
 	fc.Result = res
 	return ec.marshalNTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getClusterInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetClusterInfo(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ClusterInfo)
+	fc.Result = res
+	return ec.marshalNClusterInfo2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐClusterInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4058,6 +4197,38 @@ func (ec *executionContext) unmarshalInputSetTupleInput(ctx context.Context, obj
 
 // region    **************************** object.gotpl ****************************
 
+var clusterInfoImplementors = []string{"ClusterInfo"}
+
+func (ec *executionContext) _ClusterInfo(ctx context.Context, sel ast.SelectionSet, obj *model.ClusterInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, clusterInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ClusterInfo")
+		case "name":
+			out.Values[i] = ec._ClusterInfo_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "region":
+			out.Values[i] = ec._ClusterInfo_region(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -4153,6 +4324,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getApps(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getClusterInfo":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getClusterInfo(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4682,6 +4867,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNClusterInfo2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐClusterInfo(ctx context.Context, sel ast.SelectionSet, v model.ClusterInfo) graphql.Marshaler {
+	return ec._ClusterInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNClusterInfo2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐClusterInfo(ctx context.Context, sel ast.SelectionSet, v *model.ClusterInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ClusterInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNCreateReviewAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐCreateReviewAppInput(ctx context.Context, v interface{}) (model.CreateReviewAppInput, error) {

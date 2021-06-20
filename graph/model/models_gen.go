@@ -12,6 +12,11 @@ type AppInput struct {
 	CloudSourceRepo *string `json:"cloudSourceRepo"`
 }
 
+type ClusterInfo struct {
+	Name   string `json:"name"`
+	Region string `json:"region"`
+}
+
 type CreateReviewAppInput struct {
 	Name       string `json:"name"`
 	BranchName string `json:"branchName"`

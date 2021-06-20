@@ -30,9 +30,11 @@ type server struct {
 	db                  *core.DB
 	port                string
 	processor           *events.Processor
+	clusterName         string
+	clusterRegion       string
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -54,6 +56,8 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 		db:                  db,
 		port:                port,
 		processor:           processor,
+		clusterName:         clusterName,
+		clusterRegion:       clusterRegion,
 	}.start()
 }
 
@@ -82,7 +86,7 @@ func prefix(p string) string {
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(prefix("/graphql/playground"), playground.Handler("GraphQL playground", prefix("/graphql")))
-	mux.Handle(prefix("/graphql"), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName))
+	mux.Handle(prefix("/graphql"), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion))
 
 	if viper.GetBool("use-devserver") {
 		mux.HandleFunc(prefix("/"), localDevServer)
