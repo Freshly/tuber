@@ -32,9 +32,10 @@ type server struct {
 	processor           *events.Processor
 	clusterName         string
 	clusterRegion       string
+	prefix              string
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string, prefix string) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -58,6 +59,7 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 		processor:           processor,
 		clusterName:         clusterName,
 		clusterRegion:       clusterRegion,
+		prefix:              prefix,
 	}.start()
 }
 
@@ -79,17 +81,18 @@ func localDevServer(res http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(res, req)
 }
 
-func prefix(p string) string {
-	return fmt.Sprintf("%s%s", viper.GetString("prefix"), p)
+func prefixRoute(route string, serverPrefix string) string {
+	return fmt.Sprintf("%s%s", serverPrefix, route)
 }
 
 func (s server) start() error {
+	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	mux := http.NewServeMux()
-	mux.HandleFunc(prefix("/graphql/playground"), playground.Handler("GraphQL playground", prefix("/graphql")))
-	mux.Handle(prefix("/graphql"), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion))
+	mux.HandleFunc(prefixRoute("/graphql/playground", s.prefix), playground.Handler("GraphQL playground", prefixRoute("/graphql", s.prefix)))
+	mux.Handle(prefixRoute("/graphql", s.prefix), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion))
 
-	if viper.GetBool("use-devserver") {
-		mux.HandleFunc(prefix("/"), localDevServer)
+	if viper.GetBool("TUBER_USE_DEVSERVER") {
+		mux.HandleFunc(prefixRoute("/", s.prefix), localDevServer)
 	}
 
 	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)

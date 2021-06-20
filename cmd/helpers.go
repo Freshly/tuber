@@ -136,10 +136,10 @@ func getApp(appName string) (*model.TuberApp, error) {
 }
 
 func clusterData() (*core.ClusterData, error) {
-	defaultGateway := viper.GetString("cluster-default-gateway")
-	defaultHost := viper.GetString("cluster-default-host")
-	adminGateway := viper.GetString("cluster-admin-gateway")
-	adminHost := viper.GetString("cluster-admin-host")
+	defaultGateway := viper.GetString("TUBER_CLUSTER_DEFAULT_GATEWAY")
+	defaultHost := viper.GetString("TUBER_CLUSTER_DEFAULT_HOST")
+	adminGateway := viper.GetString("TUBER_CLUSTER_ADMIN_GATEWAY")
+	adminHost := viper.GetString("TUBER_CLUSTER_ADMIN_HOST")
 
 	if defaultGateway == "" || defaultHost == "" || adminGateway == "" || adminHost == "" {
 		config, err := k8s.GetSecret("tuber", "tuber-env")
@@ -171,8 +171,8 @@ func clusterData() (*core.ClusterData, error) {
 }
 
 func credentials() ([]byte, error) {
-	viper.SetDefault("credentials-path", "/etc/tuber-credentials/credentials.json")
-	credentialsPath := viper.GetString("credentials-path")
+	viper.SetDefault("TUBER_CREDENTIALS_PATH", "/etc/tuber-credentials/credentials.json")
+	credentialsPath := viper.GetString("TUBER_CREDENTIALS_PATH")
 	creds, err := ioutil.ReadFile(credentialsPath)
 
 	if err != nil {
@@ -271,10 +271,10 @@ func displayCurrentContext(cmd *cobra.Command, args []string) error {
 func initErrorReporters() {
 	report.ErrorReporters = []report.ErrorReporter{
 		report.Sentry{
-			Enable: viper.GetBool("sentry-enabled"),
+			Enable: viper.GetBool("TUBER_SENTRY_ENABLED"),
 			Options: sentry.ClientOptions{
-				Dsn:              viper.GetString("sentry-dsn"),
-				Environment:      viper.GetString("sentry-environment"),
+				Dsn:              viper.GetString("TUBER_SENTRY_DSN"),
+				Environment:      viper.GetString("TUBER_SENTRY_ENVIRONMENT"),
 				AttachStacktrace: true,
 			},
 		},

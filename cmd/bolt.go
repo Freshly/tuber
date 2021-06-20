@@ -240,7 +240,7 @@ func getallconfigapps() ([]*model.TuberApp, error) {
 
 	configapps = append(configapps, sourceApps...)
 
-	if viper.GetBool("reviewapps-enabled") {
+	if viper.GetBool("TUBER_REVIEWAPPS_ENABLED") {
 		reviewAppsConfig, err := k8s.GetConfigResource("tuber-review-apps", "tuber", "ConfigMap")
 		if err != nil {
 			return nil, err

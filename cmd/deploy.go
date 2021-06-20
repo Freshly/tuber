@@ -101,8 +101,8 @@ func localDeploy(appName string, flagTag string) error {
 	var ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
-	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient, viper.GetString("sentry-bearer-token"), viper.GetString("events-project"), viper.GetString("events-topic"))
+	slackClient := slack.New(viper.GetString("TUBER_SLACK_TOKEN"), viper.GetBool("TUBER_SLACK_ENABLED"), viper.GetString("TUBER_SLACK_CATCHALL_CHANNEL"))
+	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("TUBER_REVIEWAPPS_ENABLED"), slackClient, viper.GetString("TUBER_SENTRY_BEARER_TOKEN"), viper.GetString("TUBER_EVENTS_PROJECT"), viper.GetString("TUBER_EVENTS_TOPIC"))
 
 	tag := flagTag
 	if tag == "" {

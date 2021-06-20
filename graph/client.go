@@ -15,17 +15,18 @@ type GraphqlClient struct {
 }
 
 func NewClient(clusterURL string, IAPClientID string) *GraphqlClient {
-	graphqlURL := viper.GetString("graphql-host")
+	graphqlURL := viper.GetString("TUBER_GRAPHQL_HOST")
 
+	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	if graphqlURL == "" {
-		graphqlURL = clusterURL + viper.GetString("prefix") + "/graphql"
+		graphqlURL = clusterURL + viper.GetString("TUBER_ADMINSERVER_PREFIX") + "/graphql"
 	} else {
-		graphqlURL = graphqlURL + viper.GetString("prefix") + "/graphql"
+		graphqlURL = graphqlURL + viper.GetString("TUBER_ADMINSERVER_PREFIX") + "/graphql"
 	}
 
 	client := graphql.NewClient(graphqlURL)
 
-	if viper.GetBool("debug") {
+	if viper.GetBool("TUBER_DEBUG") {
 		client.Log = func(s string) { log.Println(s) }
 	}
 

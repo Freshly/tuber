@@ -11,20 +11,21 @@ import (
 	"github.com/spf13/viper"
 )
 
-func startAdminServer(ctx context.Context, db *core.DB, processor *events.Processor, logger *zap.Logger, creds []byte) {
-	reviewAppsEnabled := viper.GetBool("reviewapps-enabled")
+func startAdminServer(ctx context.Context, db *core.DB, processor *events.Processor, logger *zap.Logger, creds []byte, prefix string) {
+	reviewAppsEnabled := viper.GetBool("TUBER_REVIEWAPPS_ENABLED")
 
-	triggersProjectName := viper.GetString("review-apps-triggers-project-name")
+	triggersProjectName := viper.GetString("TUBER_REVIEW_APPS_TRIGGERS_PROJECT_NAME")
 	if reviewAppsEnabled && triggersProjectName == "" {
 		panic("need a review apps triggers project name")
 	}
 
 	err := adminserver.Start(ctx, logger, db, processor, triggersProjectName, creds,
-		viper.GetBool("reviewapps-enabled"),
-		viper.GetString("cluster-default-host"),
-		viper.GetString("adminserver-port"),
-		viper.GetString("cluster-name"),
-		viper.GetString("cluster-region"),
+		reviewAppsEnabled,
+		viper.GetString("TUBER_CLUSTER_DEFAULT_HOST"),
+		viper.GetString("TUBER_ADMINSERVER_PORT"),
+		viper.GetString("TUBER_CLUSTER_NAME"),
+		viper.GetString("TUBER_CLUSTER_REGION"),
+		prefix,
 	)
 
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 func runKubectl(cmd *exec.Cmd) ([]byte, error) {
-	if viper.GetBool("debug") {
+	if viper.GetBool("TUBER_DEBUG") {
 		logger, zapErr := zap.NewDevelopment()
 		if zapErr != nil {
 			return nil, zapErr
@@ -27,7 +27,7 @@ func runKubectl(cmd *exec.Cmd) ([]byte, error) {
 		return nil, err
 	}
 
-	if viper.GetBool("debug") {
+	if viper.GetBool("TUBER_DEBUG") {
 		logger, zapErr := zap.NewDevelopment()
 		if zapErr != nil {
 			return nil, zapErr
@@ -48,7 +48,7 @@ func kubectlIO(args ...string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 
-	if viper.GetBool("debug") {
+	if viper.GetBool("TUBER_DEBUG") {
 		logger, zapErr := zap.NewDevelopment()
 		if zapErr != nil {
 			return zapErr

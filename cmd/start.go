@@ -79,13 +79,13 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	slackClient := slack.New(viper.GetString("slack-token"), viper.GetBool("slack-enabled"), viper.GetString("slack-catchall-channel"))
-	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("reviewapps-enabled"), slackClient, viper.GetString("sentry-bearer-token"), viper.GetString("events-project"), viper.GetString("events-topic"))
+	slackClient := slack.New(viper.GetString("TUBER_SLACK_TOKEN"), viper.GetBool("TUBER_SLACK_ENABLED"), viper.GetString("TUBER_SLACK_CATCHALL_CHANNEL"))
+	processor := events.NewProcessor(ctx, logger, db, creds, data, viper.GetBool("TUBER_REVIEWAPPS_ENABLED"), slackClient, viper.GetString("TUBER_SENTRY_BEARER_TOKEN"), viper.GetString("TUBER_EVENTS_PROJECT"), viper.GetString("TUBER_EVENTS_TOPIC"))
 	listener, err := pubsub.NewListener(
 		ctx,
 		logger,
-		viper.GetString("pubsub-project"),
-		viper.GetString("pubsub-subscription-name"),
+		viper.GetString("TUBER_PUBSUB_PROJECT"),
+		viper.GetString("TUBER_PUBSUB_SUBSCRIPTION_NAME"),
 		creds,
 		data,
 		processor,
@@ -97,7 +97,8 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	go startAdminServer(ctx, db, processor, logger, creds)
+	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
+	go startAdminServer(ctx, db, processor, logger, creds, viper.GetString("TUBER_ADMINSERVER_PREFIX"))
 
 	err = listener.Start()
 	if err != nil {
