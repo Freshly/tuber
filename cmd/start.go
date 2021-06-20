@@ -97,8 +97,7 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
-	go startAdminServer(ctx, db, processor, logger, creds, viper.GetString("TUBER_ADMINSERVER_PREFIX"))
+	go startAdminServer(ctx, db, processor, logger, creds)
 
 	err = listener.Start()
 	if err != nil {

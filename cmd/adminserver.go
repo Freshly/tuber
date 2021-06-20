@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func startAdminServer(ctx context.Context, db *core.DB, processor *events.Processor, logger *zap.Logger, creds []byte, prefix string) {
+func startAdminServer(ctx context.Context, db *core.DB, processor *events.Processor, logger *zap.Logger, creds []byte) {
 	reviewAppsEnabled := viper.GetBool("TUBER_REVIEWAPPS_ENABLED")
 
 	triggersProjectName := viper.GetString("TUBER_REVIEW_APPS_TRIGGERS_PROJECT_NAME")
@@ -19,13 +19,14 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		panic("need a review apps triggers project name")
 	}
 
+	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	err := adminserver.Start(ctx, logger, db, processor, triggersProjectName, creds,
 		reviewAppsEnabled,
 		viper.GetString("TUBER_CLUSTER_DEFAULT_HOST"),
 		viper.GetString("TUBER_ADMINSERVER_PORT"),
 		viper.GetString("TUBER_CLUSTER_NAME"),
 		viper.GetString("TUBER_CLUSTER_REGION"),
-		prefix,
+		viper.GetString("TUBER_ADMINSERVER_PREFIX"),
 	)
 
 	if err != nil {
