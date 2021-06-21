@@ -1,11 +1,10 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, DeployButton } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
-	useDeployMutation,
 	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
@@ -45,7 +44,6 @@ const ShowApp = () => {
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
 	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
-	const [{ error: deployErr }, deploy] = useDeployMutation()
 
 	return <div>
 		<section className="flex justify-between p-3 mb-2">
@@ -70,15 +68,7 @@ const ShowApp = () => {
 				</div>
 			</div>
 
-			<div>
-				{deployErr && <div className="bg-red-700 text-white border-red-700 p-2">
-					{deployErr.message}
-				</div>}
-
-				<div className="text-white bg-green-700 p-2 rounded-md cursor-pointer" onClick={() => deploy({ input: { name: app.name } }) }>
-					<span>Deploy</span>
-				</div>
-			</div>
+			<DeployButton appName={app.name} />
 		</section>
 
 		<section>

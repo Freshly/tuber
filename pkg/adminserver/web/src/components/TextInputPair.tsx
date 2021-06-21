@@ -79,6 +79,7 @@ export const TextInputPair: FC<Props> = ({ useSet, useUnset, finished, appName, 
 			<form onSubmit={onSubmit} className={c('flex', { 'opacity-10': loading })}>
 				<TextInput
 					name="key"
+					className="w-5/12"
 					disabled={!isNew || loading}
 					required
 					ref={keyRef}
@@ -88,6 +89,7 @@ export const TextInputPair: FC<Props> = ({ useSet, useUnset, finished, appName, 
 
 				<TextInput
 					name="value"
+					className="w-5/12"
 					disabled={(!editing && !isNew) || loading}
 					required
 					ref={valRef}
@@ -98,11 +100,10 @@ export const TextInputPair: FC<Props> = ({ useSet, useUnset, finished, appName, 
 				{editing
 					? <XCircleIcon className="w-5 select-none" onClick={() => { setEditing(false); finished(); valRef.current.value = value }}/>
 					: <PencilAltIcon className="w-5 select-none" onClick={() => setEditing(true)} />}
-				
+
 				{editing
 					? <button type="submit"><SaveIcon className="w-5" /></button>
-					: <TrashIcon className="w-5 text-red-600" onClick={() => { onDelete(keyName, value) }}/>}
-
+					: <TrashIcon className="w-5 text-red-600" onClick={() => { confirm(`Delete "${keyName}"?`) && onDelete(keyName, value) } }/>}
 			</form>
 		</>
 	)
