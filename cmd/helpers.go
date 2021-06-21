@@ -215,7 +215,7 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 
 	cluster, err := c.CurrentClusterConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get current cluster context. reason: %s", err.Error())
 	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond, spinner.WithWriter(os.Stderr))

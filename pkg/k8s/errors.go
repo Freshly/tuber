@@ -35,5 +35,5 @@ func newK8sError(out []byte, err error) error {
 		return NotFoundError{K8sError{message, err}}
 	}
 
-	return fmt.Errorf("%s: %v", message, err)
+	return K8sError{message, err}
 }
