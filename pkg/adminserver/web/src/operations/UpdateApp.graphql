@@ -1,0 +1,6 @@
+mutation UpdateApp($input: AppInput!) {
+	updateApp(input: $input) {
+		name
+		paused
+	}
+}

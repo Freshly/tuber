@@ -445,6 +445,19 @@ export type UnsetExcludedResourceMutation = (
   )> }
 );
 
+export type UpdateAppMutationVariables = Exact<{
+  input: AppInput;
+}>;
+
+
+export type UpdateAppMutation = (
+  { __typename?: 'Mutation' }
+  & { updateApp?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name' | 'paused'>
+  )> }
+);
+
 import { IntrospectionQuery } from 'graphql';
 export default {
   "__schema": {
@@ -1481,4 +1494,16 @@ export const UnsetExcludedResourceDocument = gql`
 
 export function useUnsetExcludedResourceMutation() {
   return Urql.useMutation<UnsetExcludedResourceMutation, UnsetExcludedResourceMutationVariables>(UnsetExcludedResourceDocument);
+};
+export const UpdateAppDocument = gql`
+    mutation UpdateApp($input: AppInput!) {
+  updateApp(input: $input) {
+    name
+    paused
+  }
+}
+    `;
+
+export function useUpdateAppMutation() {
+  return Urql.useMutation<UpdateAppMutation, UpdateAppMutationVariables>(UpdateAppDocument);
 };
