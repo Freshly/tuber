@@ -280,6 +280,17 @@ export type GetAppsQuery = (
   )> }
 );
 
+export type GetClusterInfoQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetClusterInfoQuery = (
+  { __typename?: 'Query' }
+  & { getClusterInfo: (
+    { __typename?: 'ClusterInfo' }
+    & Pick<ClusterInfo, 'name' | 'region'>
+  ) }
+);
+
 export type GetFullAppQueryVariables = Exact<{
   name: Scalars['String'];
 }>;
@@ -1340,6 +1351,18 @@ export const GetAppsDocument = gql`
 
 export function useGetAppsQuery(options: Omit<Urql.UseQueryArgs<GetAppsQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetAppsQuery>({ query: GetAppsDocument, ...options });
+};
+export const GetClusterInfoDocument = gql`
+    query GetClusterInfo {
+  getClusterInfo {
+    name
+    region
+  }
+}
+    `;
+
+export function useGetClusterInfoQuery(options: Omit<Urql.UseQueryArgs<GetClusterInfoQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<GetClusterInfoQuery>({ query: GetClusterInfoDocument, ...options });
 };
 export const GetFullAppDocument = gql`
     query GetFullApp($name: String!) {

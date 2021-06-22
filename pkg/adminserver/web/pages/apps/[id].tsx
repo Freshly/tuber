@@ -14,6 +14,7 @@ import {
 	useSetAppVarMutation, useUnsetAppVarMutation,
 	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubUrlMutation,
 } from '../../src/generated/graphql'
+import Head from 'next/head'
 
 const CreateForm = ({ app }) => {
 	const [{ error, fetching }, create] = useCreateReviewAppMutation()
@@ -47,6 +48,10 @@ const ShowApp = () => {
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
 
 	return <div>
+		<Head>
+			<title>{app.name}</title>
+		</Head>
+
 		<section className="flex justify-between p-3 mb-2">
 			<div className="flex justify-between">
 				<div className="mr-3">
