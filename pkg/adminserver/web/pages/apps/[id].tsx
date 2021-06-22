@@ -6,6 +6,7 @@ import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
 	useDeployMutation,
+	useUpdateAppMutation,
 	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
@@ -69,7 +70,17 @@ const ShowApp = () => {
 				</div>
 			</div>
 
-			<ConfirmButton appName={app.name} useMutation={useDeployMutation} />
+			<div className="flex">
+				<div className="mr-1">
+					<ConfirmButton
+						input={{ name: app.name, paused: !app.paused }}
+						title={app.paused ? 'Resume' : 'Pause'}
+						useMutation={useUpdateAppMutation}
+						className="bg-yellow-700 border-yellow-700"
+					/>
+				</div>
+				<ConfirmButton input={{ name: app.name }} title={'Deploy'} useMutation={useDeployMutation} className="bg-green-700 border-green-700" />
+			</div>
 		</section>
 
 		<section>
