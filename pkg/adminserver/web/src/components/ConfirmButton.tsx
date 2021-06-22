@@ -1,16 +1,15 @@
 import React, { useState } from 'react'
-import { useDeployMutation } from '../../src/generated/graphql'
 
-export const DeployButton = ({ appName }) => {
-	const [{ error }, deploy] = useDeployMutation()
+export const ConfirmButton = ({ appName, useMutation }) => {
+	const [{ error }, mutate] = useMutation()
 	const [fetching, setFetching] = useState<boolean>(false)
 	const [confirm, setConfirm] = useState<boolean>(false)
 	const [success, setSuccess] = useState<boolean>(false)
 
-	async function doDeploy() {
+	async function doMutation() {
 		setConfirm(false)
 		setFetching(true)
-		const result = await deploy({ input: { name: appName } })
+		const result = await mutate({ input: { name: appName } })
 
 		if (!result.error) {
 			setSuccess(true)
@@ -34,7 +33,7 @@ export const DeployButton = ({ appName }) => {
 					Deploy
 					</div>}
 
-					{confirm && <div className="inline-block text-green-700 bg-white p-2 rounded-md cursor-pointer border-2 border-green-700" onClick={() => doDeploy() }>
+					{confirm && <div className="inline-block text-green-700 bg-white p-2 rounded-md cursor-pointer border-2 border-green-700" onClick={() => doMutation() }>
 					Confirm?
 					</div>}
 

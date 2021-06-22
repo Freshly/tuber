@@ -1,10 +1,11 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, DeployButton } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, ConfirmButton } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
+	useDeployMutation,
 	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
@@ -68,7 +69,7 @@ const ShowApp = () => {
 				</div>
 			</div>
 
-			<DeployButton appName={app.name} />
+			<ConfirmButton appName={app.name} useMutation={useDeployMutation} />
 		</section>
 
 		<section>
