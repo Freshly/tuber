@@ -366,7 +366,7 @@ func (r *mutationResolver) SetCloudSourceRepo(ctx context.Context, input model.A
 		return nil, fmt.Errorf("CloudSourceRepo required for SetCloudSourceRepo")
 	}
 
-	app.SlackChannel = *input.CloudSourceRepo
+	app.CloudSourceRepo = *input.CloudSourceRepo
 
 	err = r.Resolver.db.SaveApp(app)
 	if err != nil {

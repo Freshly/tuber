@@ -25,9 +25,20 @@ export type AppInput = {
   cloudSourceRepo?: Maybe<Scalars['String']>;
 };
 
+export type ClusterInfo = {
+  __typename?: 'ClusterInfo';
+  name: Scalars['String'];
+  region: Scalars['String'];
+};
+
 export type CreateReviewAppInput = {
   name: Scalars['String'];
   branchName: Scalars['String'];
+};
+
+export type ManualApplyInput = {
+  name: Scalars['ID'];
+  resources: Array<Maybe<Scalars['String']>>;
 };
 
 export type Mutation = {
@@ -48,6 +59,7 @@ export type Mutation = {
   setGithubURL?: Maybe<TuberApp>;
   setCloudSourceRepo?: Maybe<TuberApp>;
   setSlackChannel?: Maybe<TuberApp>;
+  manualApply?: Maybe<TuberApp>;
 };
 
 
@@ -130,10 +142,16 @@ export type MutationSetSlackChannelArgs = {
   input: AppInput;
 };
 
+
+export type MutationManualApplyArgs = {
+  input: ManualApplyInput;
+};
+
 export type Query = {
   __typename?: 'Query';
   getApp?: Maybe<TuberApp>;
   getApps: Array<TuberApp>;
+  getClusterInfo: ClusterInfo;
 };
 
 
@@ -271,7 +289,7 @@ export type GetFullAppQuery = (
   { __typename?: 'Query' }
   & { getApp?: Maybe<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubURL' | 'slackChannel'>
+    & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubURL' | 'slackChannel' | 'paused' | 'imageTag'>
     & { vars: Array<(
       { __typename?: 'Tuple' }
       & Pick<Tuple, 'key' | 'value'>
@@ -427,6 +445,19 @@ export type UnsetExcludedResourceMutation = (
   )> }
 );
 
+export type UpdateAppMutationVariables = Exact<{
+  input: AppInput;
+}>;
+
+
+export type UpdateAppMutation = (
+  { __typename?: 'Mutation' }
+  & { updateApp?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name' | 'paused' | 'slackChannel' | 'githubURL' | 'cloudSourceRepo' | 'imageTag'>
+  )> }
+);
+
 import { IntrospectionQuery } from 'graphql';
 export default {
   "__schema": {
@@ -438,6 +469,35 @@ export default {
     },
     "subscriptionType": null,
     "types": [
+      {
+        "kind": "OBJECT",
+        "name": "ClusterInfo",
+        "fields": [
+          {
+            "name": "name",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "region",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          }
+        ],
+        "interfaces": []
+      },
       {
         "kind": "OBJECT",
         "name": "Mutation",
@@ -761,6 +821,26 @@ export default {
                 }
               }
             ]
+          },
+          {
+            "name": "manualApply",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
           }
         ],
         "interfaces": []
@@ -803,6 +883,18 @@ export default {
                     "ofType": null
                   }
                 }
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "getClusterInfo",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "OBJECT",
+                "name": "ClusterInfo",
+                "ofType": null
               }
             },
             "args": []
@@ -1257,6 +1349,8 @@ export const GetFullAppDocument = gql`
     cloudSourceRepo
     githubURL
     slackChannel
+    paused
+    imageTag
     vars {
       key
       value
@@ -1402,4 +1496,20 @@ export const UnsetExcludedResourceDocument = gql`
 
 export function useUnsetExcludedResourceMutation() {
   return Urql.useMutation<UnsetExcludedResourceMutation, UnsetExcludedResourceMutationVariables>(UnsetExcludedResourceDocument);
+};
+export const UpdateAppDocument = gql`
+    mutation UpdateApp($input: AppInput!) {
+  updateApp(input: $input) {
+    name
+    paused
+    slackChannel
+    githubURL
+    cloudSourceRepo
+    imageTag
+  }
+}
+    `;
+
+export function useUpdateAppMutation() {
+  return Urql.useMutation<UpdateAppMutation, UpdateAppMutationVariables>(UpdateAppDocument);
 };

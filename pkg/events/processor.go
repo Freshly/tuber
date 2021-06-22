@@ -146,6 +146,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	var ti tagInfo
 	if app.GithubURL != "" {
+		var err error
 		ti, err = getTagInfo(app, yamls)
 		if err != nil {
 			logger.Error("error prevented git diffs and release events for a release", zap.Error(err))

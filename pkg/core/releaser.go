@@ -233,7 +233,7 @@ type appResource struct {
 }
 
 func (a appResource) hasMonitoring() bool {
-	return a.sentryUrl != ""
+	return a.watchDuration != 0
 }
 
 func (a appResource) isWorkload() bool {

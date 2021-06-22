@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { TuberApp, useGetAppsQuery } from '../src/generated/graphql'
 import { throwError } from '../src/throwError'
@@ -8,6 +8,20 @@ import { useFuzzy } from 'react-use-fuzzy'
 const HomePage = () => {
 	const [{ data }] = throwError(useGetAppsQuery())
 	const { result, search, keyword } = useFuzzy<Pick<TuberApp, 'name' | 'paused' | 'imageTag'>>(data.getApps, { keys: ['name', 'imageTag'] })
+	const searchRef = useRef(null)
+
+	const handleKeyDown = (ev) => {
+		let i = searchRef.current
+		if (ev.key === '/' && i !== document.activeElement) {
+			ev.preventDefault()
+			i.focus()
+		}
+	}
+
+	useEffect(() => {
+		document.addEventListener('keydown', handleKeyDown)
+		return () => document.removeEventListener('keydown', handleKeyDown)
+	})
 
 	return <>
 		<TextInput
@@ -15,12 +29,13 @@ const HomePage = () => {
 			value={keyword}
 			className="mb-3 block w-[100%]"
 			onChange={(e) => search(e.target.value)}
+			ref={searchRef}
 		/>
 
 		<section className="grid grid-cols-3 gap-2">
 			{result.map(app =>
 				<Card key={app.name} className="shadow-dark-50 shadow">
-					<div className="flex align-middle justify-between">
+					<div className="flex justify-between">
 						<Link href={`/apps/${app.name}`} passHref>
 							<a className="text-blue-500 text-lg hover:underline">
 								<h1>{app.name}</h1>
