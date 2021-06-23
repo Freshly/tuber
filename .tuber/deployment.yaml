@@ -18,7 +18,10 @@ spec:
       labels:
         app: tuber
     spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: "default-pool"
       serviceAccountName: tuber
+      terminationGracePeriodSeconds: 1200
       containers:
         - image: "{{ .tuberImage }}"
           name: tuber

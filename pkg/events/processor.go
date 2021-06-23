@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -136,7 +137,8 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	logger.Info("release starting")
 
-	yamls, err := gcr.GetTuberLayer(event.digest, p.creds)
+	yamls, err := gcr.GetTuberLayer(logger, event.digest, p.creds)
+	logger.Debug("current tags detected from gcr digest: " + strings.Join(yamls.Tags, ", ") + " :<-")
 	if err != nil {
 		p.slackClient.Message(logger, ":skull_and_crossbones: image or tuber layer not found for "+app.Name, app.SlackChannel)
 		logger.Error("failed to find tuber layer", zap.Error(err))
@@ -170,13 +172,14 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 	if err != nil {
 		logger.Warn("release failed", zap.Error(err), zap.Duration("duration", time.Since(startTime)))
-		p.slackClient.Message(logger, "<!here> :loudspeaker: release failed for *"+app.Name+"*", app.SlackChannel)
+		p.slackClient.Message(logger, "<!here> :loudspeaker: release failed for *"+app.Name+"*\n```"+err.Error()+"```", app.SlackChannel)
 		return
 	}
 
 	p.slackClient.Message(logger, ":checkered_flag: *"+app.Name+"*: release complete", app.SlackChannel)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 
+	logger.Debug("completed event taginfo", zap.String("branch", ti.branch), zap.String("newsha", ti.newSHA))
 	if ti.hasEventData() {
 		logger.Info("posting completed event")
 		err = p.postCompleted(app, ti)

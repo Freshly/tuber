@@ -6,11 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/google"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"go.uber.org/zap"
 )
 
 const megabyte = 1_000_000
@@ -59,13 +62,15 @@ type AppYamls struct {
 }
 
 // GetTuberLayer downloads yamls for an image
-func GetTuberLayer(tagOrDigest string, creds []byte) (*AppYamls, error) {
+func GetTuberLayer(logger *zap.Logger, tagOrDigest string, creds []byte) (*AppYamls, error) {
 	ref, err := name.ParseReference(tagOrDigest)
 	if err != nil {
 		return nil, err
 	}
 
-	img, err := remote.Image(ref, remote.WithAuth(google.NewJSONKeyAuthenticator(string(creds))))
+	auth := google.NewJSONKeyAuthenticator(string(creds))
+
+	img, err := remote.Image(ref, remote.WithAuth(auth))
 	if err != nil {
 		return nil, err
 	}
@@ -78,22 +83,41 @@ func GetTuberLayer(tagOrDigest string, creds []byte) (*AppYamls, error) {
 		return nil, err
 	}
 
-	repoImages, err := google.List(ref.Context(), google.WithAuth(google.NewJSONKeyAuthenticator(string(creds))))
-	if err != nil {
-		return nil, err
-	}
-	if repoImages == nil {
-		return nil, fmt.Errorf("no repo images found")
-	}
-
-	digest, err := img.Digest()
+	tags, err := getTwoTags(logger, ref.Context(), auth, img)
 	if err != nil {
 		return nil, err
 	}
 
-	yamls.Tags = repoImages.Manifests[digest.String()].Tags
+	yamls.Tags = tags
 
 	return yamls, nil
+}
+
+func getTwoTags(logger *zap.Logger, repository name.Repository, auth authn.Authenticator, img v1.Image) ([]string, error) {
+	var tags []string
+	for i := 1; i <= 3; i++ {
+		repoImages, err := google.List(repository, google.WithAuth(auth))
+		if err != nil {
+			return nil, err
+		}
+		if repoImages == nil {
+			return nil, fmt.Errorf("no repo images found")
+		}
+
+		digest, err := img.Digest()
+		if err != nil {
+			return nil, err
+		}
+
+		tags = repoImages.Manifests[digest.String()].Tags
+		if len(tags) == 2 {
+			logger.Debug("get two tags attempt " + fmt.Sprintf("%d", i) + " nailed it")
+			return tags, nil
+		}
+		logger.Debug("get two tags attempt " + fmt.Sprintf("%d", i) + "had" + strings.Join(tags, ", ") + " <- yeah those")
+		time.Sleep(5 * time.Second)
+	}
+	return tags, nil
 }
 
 func getTuberYamls(layers []v1.Layer) (*AppYamls, error) {

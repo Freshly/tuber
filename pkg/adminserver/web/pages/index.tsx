@@ -4,6 +4,7 @@ import { TuberApp, useGetAppsQuery } from '../src/generated/graphql'
 import { throwError } from '../src/throwError'
 import { Card, TextInput } from '../src/components'
 import { useFuzzy } from 'react-use-fuzzy'
+import Head from 'next/head'
 
 const HomePage = () => {
 	const [{ data }] = throwError(useGetAppsQuery())
@@ -24,6 +25,10 @@ const HomePage = () => {
 	})
 
 	return <>
+		<Head>
+			<title>Tuber Dashboard</title>
+		</Head>
+
 		<TextInput
 			placeholder="Search apps"
 			value={keyword}

@@ -81,6 +81,7 @@ func getApp(appName string) (*model.TuberApp, error) {
 				paused
 				reviewApp
 				currentTags
+				githubURL
 				reviewAppsConfig{
 					enabled
 					vars {

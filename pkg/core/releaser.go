@@ -530,6 +530,10 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 		return
 	}
 
+	if r.app.Name == "tuber" {
+		return
+	}
+
 	if !resource.hasMonitoring() {
 		err := k8s.RolloutStatus(resource.kind, resource.name, r.app.Name, timeout)
 		if err != nil {
