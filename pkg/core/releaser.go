@@ -99,7 +99,7 @@ func (r releaser) release() error {
 	r.logger.Debug("releaser starting")
 	r.slackClient.Message(r.logger, ":game_die: *"+r.app.Name+"*: release starting"+r.diffText, r.app.SlackChannel)
 
-	prereleaseResources, configs, workloads, postreleaseResources, err := r.resourcesToApply()
+	rr, err := r.resourcesToApply()
 	if err != nil {
 		return r.releaseError(err)
 	}
@@ -109,10 +109,10 @@ func (r releaser) release() error {
 		return r.releaseError(err)
 	}
 
-	if len(prereleaseResources) > 0 {
+	if len(rr.Prerelease) > 0 {
 		r.logger.Debug("prerelease starting")
 
-		err = RunPrerelease(prereleaseResources, r.app)
+		err = RunPrerelease(rr.Prerelease, r.app)
 		if err != nil {
 			return ErrorContext{context: "prerelease", err: err}
 		}
@@ -120,14 +120,14 @@ func (r releaser) release() error {
 		r.logger.Debug("prerelease complete")
 	}
 
-	appliedConfigs, err := r.apply(configs)
+	appliedConfigs, err := r.apply(rr.Configs)
 	if err != nil {
 		_ = r.releaseError(err)
 		r.rollback(appliedConfigs, decodedStateBeforeApply)
 		return err
 	}
 
-	appliedWorkloads, err := r.apply(workloads)
+	appliedWorkloads, err := r.apply(rr.Workloads)
 	if err != nil {
 		_ = r.releaseError(err)
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
@@ -142,8 +142,8 @@ func (r releaser) release() error {
 		return err
 	}
 
-	if len(postreleaseResources) != 0 {
-		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
+	if len(rr.Postrelease) != 0 {
+		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: canary rollout starting"+r.diffText, r.app.SlackChannel)
 	}
 
 	rolloutErr, err := r.watchWorkloads(appliedWorkloads)
@@ -165,7 +165,11 @@ func (r releaser) release() error {
 		return err
 	}
 
-	appliedPostreleaseResources, err := r.apply(postreleaseResources)
+	if len(rr.Postrelease) != 0 {
+		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
+	}
+
+	appliedPostreleaseResources, err := r.apply(rr.Postrelease)
 	if err != nil {
 		_ = r.releaseError(err)
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
@@ -233,7 +237,7 @@ type appResource struct {
 }
 
 func (a appResource) hasMonitoring() bool {
-	return a.sentryUrl != ""
+	return a.watchDuration != 0
 }
 
 func (a appResource) isWorkload() bool {
@@ -316,24 +320,31 @@ func (r releaser) exclude(res []appResource) []appResource {
 	return included
 }
 
-func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResource, []appResource, error) {
+type ResourceCollection struct {
+	Prerelease  []appResource
+	Configs     []appResource
+	Workloads   []appResource
+	Postrelease []appResource
+}
+
+func (r releaser) resourcesToApply() (*ResourceCollection, error) {
 	d := releaseData(r.digest, r.app, r.data)
 
 	prereleaseResources, err := r.yamlToAppResource(r.prereleaseYamls, d)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 	prereleaseResources = r.exclude(prereleaseResources)
 
 	releaseResources, err := r.yamlToAppResource(r.releaseYamls, d)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 	releaseResources = r.exclude(releaseResources)
 
 	postreleaseResources, err := r.yamlToAppResource(r.postreleaseYamls, d)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 	postreleaseResources = r.exclude(postreleaseResources)
 
@@ -361,7 +372,11 @@ func (r releaser) resourcesToApply() ([]appResource, []appResource, []appResourc
 		}
 	}
 
-	return filteredPrereleasers, configs, workloads, filteredPostreleasers, nil
+	return &ResourceCollection{
+		Prerelease:  filteredPrereleasers,
+		Configs:     configs,
+		Workloads:   workloads,
+		Postrelease: filteredPostreleasers}, nil
 }
 
 func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (appResources, error) {
@@ -516,6 +531,10 @@ func goWait(wg *sync.WaitGroup, done chan bool) {
 func (r releaser) goWatch(resource appResource, timeout time.Duration, errors chan rolloutError, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if !resource.supportsRollback() {
+		return
+	}
+
+	if r.app.Name == "tuber" {
 		return
 	}
 

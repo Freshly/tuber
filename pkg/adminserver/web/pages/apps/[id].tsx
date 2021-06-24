@@ -1,11 +1,12 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
-import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, ConfirmButton, Button } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
 	useDeployMutation,
+	useUpdateAppMutation,
 	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
@@ -13,7 +14,7 @@ import {
 	useSetAppVarMutation, useUnsetAppVarMutation,
 	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubUrlMutation,
 } from '../../src/generated/graphql'
-
+import Head from 'next/head'
 
 const CreateForm = ({ app }) => {
 	const [{ error, fetching }, create] = useCreateReviewAppMutation()
@@ -45,9 +46,12 @@ const ShowApp = () => {
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
 	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
-	const [{ error: deployErr }, deploy] = useDeployMutation()
 
 	return <div>
+		<Head>
+			<title>{app.name}</title>
+		</Head>
+
 		<section className="flex justify-between p-3 mb-2">
 			<div className="flex justify-between">
 				<div className="mr-3">
@@ -70,49 +74,65 @@ const ShowApp = () => {
 				</div>
 			</div>
 
-			<div>
-				{deployErr && <div className="bg-red-700 text-white border-red-700 p-2">
-					{deployErr.message}
-				</div>}
-
-				<div className="text-white bg-green-700 p-2 rounded-md cursor-pointer" onClick={() => deploy({ input: { name: app.name } }) }>
-					<span>Deploy</span>
+			<div className="flex">
+				<div className="mr-1">
+					<Button
+						input={{ name: app.name, paused: !app.paused }}
+						title={app.paused ? 'Resume' : 'Pause'}
+						useMutation={useUpdateAppMutation}
+						className="bg-yellow-700 border-yellow-700"
+					/>
 				</div>
+				<ConfirmButton input={{ name: app.name }} title={'Deploy'} useMutation={useDeployMutation} className="bg-green-700 border-green-700" />
 			</div>
 		</section>
 
 		<section>
-			<Card className="mb-2">
-				<div className="inline-grid grid-cols-2 leading-7">
+			<Card className="mb-2 shadow-dark-50 shadow">
+				<div
+					className="inline-grid leading-8"
+					style={{ 'gridTemplateColumns': 'repeat(2, minmax(300px, 352px))' }}>
 					<div>Slack Channel</div>
 					<TextInputForm
 						value={app.slackChannel}
-						keyName="slackChannel"
-						appName={app.name}
 						useSet={useSetSlackChannelMutation}
+						appName={app.name}
+						keyName="slackChannel"
+						className="min-w-300px"
 					/>
 
 					<div>Github URL</div>
 					<TextInputForm
 						value={app.githubURL}
-						keyName="githubURL"
-						appName={app.name}
 						useSet={useSetGithubUrlMutation}
+						appName={app.name}
+						keyName="githubURL"
+						className="min-w-300px"
 					/>
 
 					<div>Cloud Source Repo</div>
 					<TextInputForm
 						value={app.cloudSourceRepo}
-						keyName="cloudSourceRepo"
-						appName={app.name}
 						useSet={useSetCloudSourceRepoMutation}
+						appName={app.name}
+						keyName="cloudSourceRepo"
+						className="min-w-300px"
+					/>
+
+					<div>Image Tag</div>
+					<TextInputForm
+						value={app.imageTag}
+						useSet={useUpdateAppMutation}
+						appName={app.name}
+						keyName="imageTag"
+						className="min-w-300px"
 					/>
 				</div>
 			</Card>
 		</section>
 
 		<section>
-			<Card className="mb-2">
+			<Card className="mb-2 shadow-dark-50 shadow">
 				<h2 className="text-xl mb-2">YAML Interpolation Vars</h2>
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
@@ -123,14 +143,14 @@ const ShowApp = () => {
 		</section>
 
 		{app.reviewApp || <>
-			<Card className="mb-2">
+			<Card className="mb-2 shadow-dark-50 shadow">
 				<h2 className="text-xl mb-2">Create a review app</h2>
 				<CreateForm app={app} />
-				<Heading>Review apps</Heading>
 				{destroyAppError && <div className="bg-red-700 text-white border-red-700 p-2">
 					{destroyAppError.message}
 				</div>}
 
+				{app.reviewApps && <Heading>Review apps</Heading>}
 				{app.reviewApps && app.reviewApps.map(reviewApp =>
 					<div key={reviewApp.name}>
 						<a href={`/tuber/apps/${reviewApp.name}`}>{reviewApp.name}</a>
@@ -140,7 +160,7 @@ const ShowApp = () => {
 			</Card>
 		</>}
 
-		<Card className="mb-2">
+		<Card className="mb-2 shadow-dark-50 shadow">
 			<ExcludedResources
 				appName={app.name}
 				resources={app.excludedResources}
@@ -149,7 +169,7 @@ const ShowApp = () => {
 			/>
 		</Card>
 
-		<Card>
+		<Card className="shadow-dark-50 shadow">
 			<Collapsible heading={'Environment Variables'} collapsed={true}>
 				<TextInputGroup
 					vars={app.env} appName={app.name}

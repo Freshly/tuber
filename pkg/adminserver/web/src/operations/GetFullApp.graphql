@@ -5,6 +5,8 @@ query GetFullApp($name: String!) {
     cloudSourceRepo
     githubURL
     slackChannel
+    paused
+    imageTag
 
     vars {
       key

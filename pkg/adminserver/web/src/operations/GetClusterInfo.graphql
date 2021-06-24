@@ -1,0 +1,6 @@
+query GetClusterInfo {
+  getClusterInfo {
+    name
+    region
+  }
+}

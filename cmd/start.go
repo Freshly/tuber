@@ -48,6 +48,7 @@ func start(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// hi
 	db, err := openDB()
 	if err != nil {
 		return err

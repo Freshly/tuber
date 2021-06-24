@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -36,5 +35,5 @@ func newK8sError(out []byte, err error) error {
 		return NotFoundError{K8sError{message, err}}
 	}
 
-	return errors.New(message)
+	return K8sError{message, err}
 }
