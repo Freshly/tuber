@@ -299,32 +299,27 @@ type parsedResource struct {
 	Metadata   metadata `yaml:"metadata"`
 }
 
-func (r releaser) exclude(res []appResource) []appResource {
-	included := []appResource{}
-
-	for _, rs := range res {
-		excluded := false
-
-		for _, ex := range r.app.ExcludedResources {
-			if rs.name == ex.Name && rs.kind == ex.Kind {
-				excluded = true
-				break
-			}
-		}
-
-		if !excluded {
-			included = append(included, rs)
-		}
-	}
-
-	return included
-}
-
 type ResourceCollection struct {
 	Prerelease  []appResource
 	Configs     []appResource
 	Workloads   []appResource
 	Postrelease []appResource
+}
+
+func exclusionKey(kind string, name string) string {
+	return kind + ":" + name
+}
+
+func (r releaser) exclusions(data map[string]string) (map[string]bool, error) {
+	exc := make(map[string]bool)
+	for _, resource := range r.app.ExcludedResources {
+		name, err := interpolate(resource.Name, data)
+		if err != nil {
+			return nil, err
+		}
+		exc[exclusionKey(resource.Kind, string(name))] = true
+	}
+	return exc, nil
 }
 
 func (r releaser) resourcesToApply() (*ResourceCollection, error) {
@@ -334,19 +329,16 @@ func (r releaser) resourcesToApply() (*ResourceCollection, error) {
 	if err != nil {
 		return nil, err
 	}
-	prereleaseResources = r.exclude(prereleaseResources)
 
 	releaseResources, err := r.yamlToAppResource(r.releaseYamls, d)
 	if err != nil {
 		return nil, err
 	}
-	releaseResources = r.exclude(releaseResources)
 
 	postreleaseResources, err := r.yamlToAppResource(r.postreleaseYamls, d)
 	if err != nil {
 		return nil, err
 	}
-	postreleaseResources = r.exclude(postreleaseResources)
 
 	var workloads []appResource
 	var configs []appResource
@@ -354,29 +346,16 @@ func (r releaser) resourcesToApply() (*ResourceCollection, error) {
 	for _, releaseResource := range releaseResources {
 		if releaseResource.isWorkload() {
 			workloads = append(workloads, releaseResource)
-		} else if releaseResource.canBeManaged() {
+		} else {
 			configs = append(configs, releaseResource)
 		}
 	}
 
-	var filteredPrereleasers []appResource
-	for _, prereleaser := range prereleaseResources {
-		if prereleaser.canBeManaged() {
-			filteredPrereleasers = append(filteredPrereleasers, prereleaser)
-		}
-	}
-	var filteredPostreleasers []appResource
-	for _, postreleaser := range postreleaseResources {
-		if postreleaser.canBeManaged() {
-			filteredPostreleasers = append(filteredPostreleasers, postreleaser)
-		}
-	}
-
 	return &ResourceCollection{
-		Prerelease:  filteredPrereleasers,
+		Prerelease:  prereleaseResources,
 		Configs:     configs,
 		Workloads:   workloads,
-		Postrelease: filteredPostreleasers}, nil
+		Postrelease: postreleaseResources}, nil
 }
 
 func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (appResources, error) {
@@ -392,12 +371,21 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 		}
 	}
 
+	exc, err := r.exclusions(data)
+	if err != nil {
+		return nil, ErrorContext{err: err, context: "interpolation"}
+	}
+
 	var resources appResources
 	for _, resourceYaml := range interpolated {
 		var parsed parsedResource
-		err := yaml.Unmarshal(resourceYaml, &parsed)
+		err = yaml.Unmarshal(resourceYaml, &parsed)
 		if err != nil {
 			return nil, ErrorContext{err: err, context: "unmarshalling raw resources for apply"}
+		}
+
+		if exc[exclusionKey(parsed.Kind, parsed.Metadata.Name)] {
+			continue
 		}
 
 		scope := r.errorScope.AddScope(report.Scope{"resourceName": parsed.Metadata.Name, "resourceKind": parsed.Kind})
@@ -445,7 +433,10 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			watchDuration:   watchDuration,
 		}
 
-		resources = append(resources, resource)
+		if resource.canBeManaged() {
+			resources = append(resources, resource)
+		}
+
 	}
 	return resources, nil
 }
