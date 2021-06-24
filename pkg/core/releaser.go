@@ -143,7 +143,7 @@ func (r releaser) release() error {
 	}
 
 	if len(rr.Postrelease) != 0 {
-		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
+		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: canary rollout starting"+r.diffText, r.app.SlackChannel)
 	}
 
 	rolloutErr, err := r.watchWorkloads(appliedWorkloads)
@@ -163,6 +163,10 @@ func (r releaser) release() error {
 			_ = r.releaseError(watchError)
 		}
 		return err
+	}
+
+	if len(rr.Postrelease) != 0 {
+		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
 	}
 
 	appliedPostreleaseResources, err := r.apply(rr.Postrelease)
