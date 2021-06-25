@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -32,14 +33,14 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 	table.Append([]string{"Name", app.Name})
 	table.Append([]string{"ImageTag", app.ImageTag})
 	table.Append([]string{"Current Tags", strings.Join(app.CurrentTags, "\n")})
-	if app.ReviewAppsConfig != nil {
-		table.Append([]string{"Review Apps Enabled", strconv.FormatBool(app.ReviewAppsConfig.Enabled)})
-	} else {
-		table.Append([]string{"Review Apps Enabled", "false"})
-	}
 	var vars []string
 	for _, tuple := range app.Vars {
-		vars = append(vars, tuple.Key+": "+tuple.Value)
+		value := tuple.Value
+		if len(value) > 70 {
+
+			value = value[:69] + fmt.Sprintf("\n%*s%v", len(tuple.Key)+3, " ", value[69:])
+		}
+		vars = append(vars, tuple.Key+": "+value)
 	}
 	table.Append([]string{"Vars", strings.Join(vars, "\n")})
 	table.Append([]string{"Paused", strconv.FormatBool(app.Paused)})
@@ -50,14 +51,23 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 		for _, tuple := range app.ReviewAppsConfig.Vars {
 			reviewVars = append(reviewVars, tuple.Key+": "+tuple.Value)
 		}
-		table.Append([]string{"Starting Review App Vars", strings.Join(reviewVars, "\n")})
+		if len(reviewVars) != 0 {
+			table.Append([]string{"Starting Review App Vars", strings.Join(reviewVars, "\n")})
+		}
+		var racExclusions []string
+		for _, resource := range app.ReviewAppsConfig.ExcludedResources {
+			racExclusions = append(racExclusions, resource.Kind+": "+resource.Name)
+		}
+		if len(racExclusions) != 0 {
+			table.Append([]string{"Starting Review App Excluded Resources", strings.Join(racExclusions, "\n")})
+		}
 	}
 
-	// var excludedResources []string
-	// for _, resource := range app.ExcludedResources {
-	// 	excludedResources = append(excludedResources, resource.Kind+": "+resource.Name)
-	// }
-	// table.Append([]string{"Excluded Resources", strings.Join(reviewVars, "\n")})
+	var excludedResources []string
+	for _, resource := range app.ExcludedResources {
+		excludedResources = append(excludedResources, resource.Kind+": "+resource.Name)
+	}
+	table.Append([]string{"Excluded Resources", strings.Join(excludedResources, "\n")})
 
 	table.Append([]string{"Slack Channel", app.SlackChannel})
 	if app.ReviewApp {

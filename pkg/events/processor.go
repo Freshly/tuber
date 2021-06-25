@@ -147,10 +147,10 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 	}
 
 	var ti tagInfo
-	if app.GithubURL != "" {
-		var err error
-		ti, err = getTagInfo(app, yamls)
-		if err != nil {
+	if app.GithubRepo != "" {
+		var tagErr error
+		ti, tagErr = getTagInfo(app, yamls)
+		if tagErr != nil {
 			logger.Error("error prevented git diffs and release events for a release", zap.Error(err))
 			// report.Error(err, errorScope.WithContext("error prevented git diffs and release events for a release"))
 		}
@@ -176,7 +176,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 		return
 	}
 
-	p.slackClient.Message(logger, ":checkered_flag: *"+app.Name+"*: release complete", app.SlackChannel)
+	p.slackClient.Message(logger, ":checkered_flag: *"+app.Name+"*: release complete"+ti.diffText, app.SlackChannel)
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 
 	logger.Debug("completed event taginfo", zap.String("branch", ti.branch), zap.String("newsha", ti.newSHA))
@@ -229,7 +229,7 @@ func getTagInfo(app *model.TuberApp, yamls *gcr.AppYamls) (tagInfo, error) {
 
 	var diffText string
 	if oldSHA != "" {
-		diffText = fmt.Sprintf(" - <%s|Compare Diff>", "https://github.com/"+app.GithubURL+"/compare/"+oldSHA+"..."+newSHA)
+		diffText = fmt.Sprintf(" - <%s|Compare Diff>", "https://github.com/"+app.GithubRepo+"/compare/"+oldSHA+"..."+newSHA)
 	}
 
 	return tagInfo{
@@ -257,7 +257,7 @@ func (p Processor) postCompleted(app *model.TuberApp, t tagInfo) error {
 	msg := Message{
 		AppName:   app.Name,
 		CommitSha: t.newSHA,
-		Repo:      app.GithubURL,
+		Repo:      app.GithubRepo,
 		Branch:    t.branch,
 	}
 	marshalled, err := json.Marshal(&msg)

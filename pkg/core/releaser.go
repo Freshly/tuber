@@ -307,7 +307,7 @@ type ResourceCollection struct {
 }
 
 func exclusionKey(kind string, name string) string {
-	return kind + ":" + name
+	return strings.ToLower(kind) + ":" + strings.ToLower(name)
 }
 
 func (r releaser) exclusions(data map[string]string) (map[string]bool, error) {
@@ -661,18 +661,18 @@ func (r releaser) deleteRemovedResources(stateBeforeApply []appResource, applied
 }
 
 func (r releaser) updateState(appliedResources appResources) error {
-	updatedApp := r.app
-	if updatedApp.State == nil {
-		updatedApp.State = &model.State{}
+	latest, err := r.db.App(r.app.Name)
+	if err != nil {
+		return ErrorContext{err: err, context: "save new state and tags: pull latest app data"}
 	}
 
-	updatedApp.State.Previous = updatedApp.State.Current
-	updatedApp.State.Current = appliedResources.encode()
-	updatedApp.CurrentTags = r.tags
+	latest.State.Previous = latest.State.Current
+	latest.State.Current = appliedResources.encode()
+	latest.CurrentTags = r.tags
 
-	err := r.db.SaveApp(updatedApp)
+	err = r.db.SaveApp(latest)
 	if err != nil {
-		return ErrorContext{err: err, context: "save new state"}
+		return ErrorContext{err: err, context: "save new state and tags"}
 	}
 	return nil
 }

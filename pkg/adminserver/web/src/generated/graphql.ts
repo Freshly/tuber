@@ -20,7 +20,7 @@ export type AppInput = {
   isIstio?: Maybe<Scalars['Boolean']>;
   imageTag?: Maybe<Scalars['String']>;
   paused?: Maybe<Scalars['Boolean']>;
-  githubURL?: Maybe<Scalars['String']>;
+  githubRepo?: Maybe<Scalars['String']>;
   slackChannel?: Maybe<Scalars['String']>;
   cloudSourceRepo?: Maybe<Scalars['String']>;
 };
@@ -56,10 +56,15 @@ export type Mutation = {
   setExcludedResource?: Maybe<TuberApp>;
   unsetExcludedResource?: Maybe<TuberApp>;
   rollback?: Maybe<TuberApp>;
-  setGithubURL?: Maybe<TuberApp>;
+  setGithubRepo?: Maybe<TuberApp>;
   setCloudSourceRepo?: Maybe<TuberApp>;
   setSlackChannel?: Maybe<TuberApp>;
   manualApply?: Maybe<TuberApp>;
+  setRacEnabled?: Maybe<TuberApp>;
+  setRacVar?: Maybe<TuberApp>;
+  unsetRacVar?: Maybe<TuberApp>;
+  setRacExclusion?: Maybe<TuberApp>;
+  unsetRacExclusion?: Maybe<TuberApp>;
 };
 
 
@@ -128,7 +133,7 @@ export type MutationRollbackArgs = {
 };
 
 
-export type MutationSetGithubUrlArgs = {
+export type MutationSetGithubRepoArgs = {
   input: AppInput;
 };
 
@@ -145,6 +150,31 @@ export type MutationSetSlackChannelArgs = {
 
 export type MutationManualApplyArgs = {
   input: ManualApplyInput;
+};
+
+
+export type MutationSetRacEnabledArgs = {
+  input: SetRacEnabledInput;
+};
+
+
+export type MutationSetRacVarArgs = {
+  input: SetTupleInput;
+};
+
+
+export type MutationUnsetRacVarArgs = {
+  input: SetTupleInput;
+};
+
+
+export type MutationSetRacExclusionArgs = {
+  input: SetResourceInput;
+};
+
+
+export type MutationUnsetRacExclusionArgs = {
+  input: SetResourceInput;
 };
 
 export type Query = {
@@ -173,6 +203,11 @@ export type ReviewAppsConfig = {
   excludedResources: Array<Resource>;
 };
 
+export type SetRacEnabledInput = {
+  name: Scalars['ID'];
+  enabled: Scalars['Boolean'];
+};
+
 export type SetResourceInput = {
   appName: Scalars['ID'];
   name: Scalars['String'];
@@ -195,7 +230,7 @@ export type TuberApp = {
   __typename?: 'TuberApp';
   cloudSourceRepo: Scalars['String'];
   currentTags?: Maybe<Array<Scalars['String']>>;
-  githubURL: Scalars['String'];
+  githubRepo: Scalars['String'];
   imageTag: Scalars['String'];
   name: Scalars['ID'];
   paused: Scalars['Boolean'];
@@ -300,8 +335,18 @@ export type GetFullAppQuery = (
   { __typename?: 'Query' }
   & { getApp?: Maybe<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubURL' | 'slackChannel' | 'paused' | 'imageTag'>
-    & { vars: Array<(
+    & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubRepo' | 'slackChannel' | 'paused' | 'imageTag'>
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & Pick<ReviewAppsConfig, 'enabled'>
+      & { excludedResources: Array<(
+        { __typename?: 'Resource' }
+        & Pick<Resource, 'kind' | 'name'>
+      )>, vars: Array<(
+        { __typename?: 'Tuple' }
+        & Pick<Tuple, 'key' | 'value'>
+      )> }
+    )>, vars: Array<(
       { __typename?: 'Tuple' }
       & Pick<Tuple, 'key' | 'value'>
     )>, env?: Maybe<Array<(
@@ -380,16 +425,73 @@ export type SetExcludedResourceMutation = (
   )> }
 );
 
-export type SetGithubUrlMutationVariables = Exact<{
+export type SetGithubRepoMutationVariables = Exact<{
   input: AppInput;
 }>;
 
 
-export type SetGithubUrlMutation = (
+export type SetGithubRepoMutation = (
   { __typename?: 'Mutation' }
-  & { setGithubURL?: Maybe<(
+  & { setGithubRepo?: Maybe<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name' | 'githubURL'>
+    & Pick<TuberApp, 'name' | 'githubRepo'>
+  )> }
+);
+
+export type SetRacEnabledMutationVariables = Exact<{
+  input: SetRacEnabledInput;
+}>;
+
+
+export type SetRacEnabledMutation = (
+  { __typename?: 'Mutation' }
+  & { setRacEnabled?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & Pick<ReviewAppsConfig, 'enabled'>
+    )> }
+  )> }
+);
+
+export type SetRacExclusionMutationVariables = Exact<{
+  input: SetResourceInput;
+}>;
+
+
+export type SetRacExclusionMutation = (
+  { __typename?: 'Mutation' }
+  & { setRacExclusion?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & { excludedResources: Array<(
+        { __typename?: 'Resource' }
+        & Pick<Resource, 'name' | 'kind'>
+      )> }
+    )> }
+  )> }
+);
+
+export type SetRacVarMutationVariables = Exact<{
+  input: SetTupleInput;
+}>;
+
+
+export type SetRacVarMutation = (
+  { __typename?: 'Mutation' }
+  & { setRacVar?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & { vars: Array<(
+        { __typename?: 'Tuple' }
+        & Pick<Tuple, 'key' | 'value'>
+      )> }
+    )> }
   )> }
 );
 
@@ -456,6 +558,46 @@ export type UnsetExcludedResourceMutation = (
   )> }
 );
 
+export type UnsetRacExclusionMutationVariables = Exact<{
+  input: SetResourceInput;
+}>;
+
+
+export type UnsetRacExclusionMutation = (
+  { __typename?: 'Mutation' }
+  & { unsetRacExclusion?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & { excludedResources: Array<(
+        { __typename?: 'Resource' }
+        & Pick<Resource, 'name' | 'kind'>
+      )> }
+    )> }
+  )> }
+);
+
+export type UnsetRacVarMutationVariables = Exact<{
+  input: SetTupleInput;
+}>;
+
+
+export type UnsetRacVarMutation = (
+  { __typename?: 'Mutation' }
+  & { unsetRacVar?: Maybe<(
+    { __typename?: 'TuberApp' }
+    & Pick<TuberApp, 'name'>
+    & { reviewAppsConfig?: Maybe<(
+      { __typename?: 'ReviewAppsConfig' }
+      & { vars: Array<(
+        { __typename?: 'Tuple' }
+        & Pick<Tuple, 'key' | 'value'>
+      )> }
+    )> }
+  )> }
+);
+
 export type UpdateAppMutationVariables = Exact<{
   input: AppInput;
 }>;
@@ -465,7 +607,7 @@ export type UpdateAppMutation = (
   { __typename?: 'Mutation' }
   & { updateApp?: Maybe<(
     { __typename?: 'TuberApp' }
-    & Pick<TuberApp, 'name' | 'paused' | 'slackChannel' | 'githubURL' | 'cloudSourceRepo' | 'imageTag'>
+    & Pick<TuberApp, 'name' | 'paused' | 'slackChannel' | 'githubRepo' | 'cloudSourceRepo' | 'imageTag'>
   )> }
 );
 
@@ -774,7 +916,7 @@ export default {
             ]
           },
           {
-            "name": "setGithubURL",
+            "name": "setGithubRepo",
             "type": {
               "kind": "OBJECT",
               "name": "TuberApp",
@@ -835,6 +977,106 @@ export default {
           },
           {
             "name": "manualApply",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "setRacEnabled",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "setRacVar",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "unsetRacVar",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "setRacExclusion",
+            "type": {
+              "kind": "OBJECT",
+              "name": "TuberApp",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "unsetRacExclusion",
             "type": {
               "kind": "OBJECT",
               "name": "TuberApp",
@@ -1080,7 +1322,7 @@ export default {
             "args": []
           },
           {
-            "name": "githubURL",
+            "name": "githubRepo",
             "type": {
               "kind": "NON_NULL",
               "ofType": {
@@ -1370,10 +1612,21 @@ export const GetFullAppDocument = gql`
     name
     reviewApp
     cloudSourceRepo
-    githubURL
+    githubRepo
     slackChannel
     paused
     imageTag
+    reviewAppsConfig {
+      enabled
+      excludedResources {
+        kind
+        name
+      }
+      vars {
+        key
+        value
+      }
+    }
     vars {
       key
       value
@@ -1452,17 +1705,65 @@ export const SetExcludedResourceDocument = gql`
 export function useSetExcludedResourceMutation() {
   return Urql.useMutation<SetExcludedResourceMutation, SetExcludedResourceMutationVariables>(SetExcludedResourceDocument);
 };
-export const SetGithubUrlDocument = gql`
-    mutation SetGithubURL($input: AppInput!) {
-  setGithubURL(input: $input) {
+export const SetGithubRepoDocument = gql`
+    mutation SetGithubRepo($input: AppInput!) {
+  setGithubRepo(input: $input) {
     name
-    githubURL
+    githubRepo
   }
 }
     `;
 
-export function useSetGithubUrlMutation() {
-  return Urql.useMutation<SetGithubUrlMutation, SetGithubUrlMutationVariables>(SetGithubUrlDocument);
+export function useSetGithubRepoMutation() {
+  return Urql.useMutation<SetGithubRepoMutation, SetGithubRepoMutationVariables>(SetGithubRepoDocument);
+};
+export const SetRacEnabledDocument = gql`
+    mutation SetRacEnabled($input: SetRacEnabledInput!) {
+  setRacEnabled(input: $input) {
+    name
+    reviewAppsConfig {
+      enabled
+    }
+  }
+}
+    `;
+
+export function useSetRacEnabledMutation() {
+  return Urql.useMutation<SetRacEnabledMutation, SetRacEnabledMutationVariables>(SetRacEnabledDocument);
+};
+export const SetRacExclusionDocument = gql`
+    mutation SetRacExclusion($input: SetResourceInput!) {
+  setRacExclusion(input: $input) {
+    name
+    reviewAppsConfig {
+      excludedResources {
+        name
+        kind
+      }
+    }
+  }
+}
+    `;
+
+export function useSetRacExclusionMutation() {
+  return Urql.useMutation<SetRacExclusionMutation, SetRacExclusionMutationVariables>(SetRacExclusionDocument);
+};
+export const SetRacVarDocument = gql`
+    mutation SetRacVar($input: SetTupleInput!) {
+  setRacVar(input: $input) {
+    name
+    reviewAppsConfig {
+      vars {
+        key
+        value
+      }
+    }
+  }
+}
+    `;
+
+export function useSetRacVarMutation() {
+  return Urql.useMutation<SetRacVarMutation, SetRacVarMutationVariables>(SetRacVarDocument);
 };
 export const SetSlackChannelDocument = gql`
     mutation SetSlackChannel($input: AppInput!) {
@@ -1520,13 +1821,47 @@ export const UnsetExcludedResourceDocument = gql`
 export function useUnsetExcludedResourceMutation() {
   return Urql.useMutation<UnsetExcludedResourceMutation, UnsetExcludedResourceMutationVariables>(UnsetExcludedResourceDocument);
 };
+export const UnsetRacExclusionDocument = gql`
+    mutation UnsetRacExclusion($input: SetResourceInput!) {
+  unsetRacExclusion(input: $input) {
+    name
+    reviewAppsConfig {
+      excludedResources {
+        name
+        kind
+      }
+    }
+  }
+}
+    `;
+
+export function useUnsetRacExclusionMutation() {
+  return Urql.useMutation<UnsetRacExclusionMutation, UnsetRacExclusionMutationVariables>(UnsetRacExclusionDocument);
+};
+export const UnsetRacVarDocument = gql`
+    mutation UnsetRacVar($input: SetTupleInput!) {
+  unsetRacVar(input: $input) {
+    name
+    reviewAppsConfig {
+      vars {
+        key
+        value
+      }
+    }
+  }
+}
+    `;
+
+export function useUnsetRacVarMutation() {
+  return Urql.useMutation<UnsetRacVarMutation, UnsetRacVarMutationVariables>(UnsetRacVarDocument);
+};
 export const UpdateAppDocument = gql`
     mutation UpdateApp($input: AppInput!) {
   updateApp(input: $input) {
     name
     paused
     slackChannel
-    githubURL
+    githubRepo
     cloudSourceRepo
     imageTag
   }

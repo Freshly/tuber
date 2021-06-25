@@ -10,7 +10,7 @@ import (
 var appsSetImageTagCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
-	Use:           "set-tag [app name] [image tag]",
+	Use:           "tag [app name] [image tag]",
 	Short:         "set the docker image tag to deploy the app from",
 	Args:          cobra.ExactArgs(2),
 	PreRunE:       promptCurrentContext,

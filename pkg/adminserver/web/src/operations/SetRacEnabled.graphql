@@ -1,0 +1,8 @@
+mutation SetRacEnabled($input: SetRacEnabledInput!) {
+	setRacEnabled(input: $input) {
+		name
+		reviewAppsConfig {
+			enabled
+		}
+	}
+}

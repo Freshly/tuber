@@ -3,7 +3,7 @@ mutation UpdateApp($input: AppInput!) {
 		name
 		paused
 		slackChannel
-		githubURL
+		githubRepo
 		cloudSourceRepo
 		imageTag
 	}

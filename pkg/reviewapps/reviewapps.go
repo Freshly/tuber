@@ -105,6 +105,24 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		})
 	}
 
+	racExclusions := sourceApp.ReviewAppsConfig.ExcludedResources
+	var reviewAppExlusions []*model.Resource
+	for _, e := range sourceApp.ExcludedResources {
+		reviewAppExlusions = append(reviewAppExlusions, e)
+	}
+	for _, r := range racExclusions {
+		var found bool
+		for _, e := range sourceApp.ExcludedResources {
+			if strings.ToLower(e.Kind) == strings.ToLower(r.Kind) && strings.ToLower(e.Name) == strings.ToLower(r.Name) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			reviewAppExlusions = append(reviewAppExlusions, r)
+		}
+	}
+
 	reviewApp := &model.TuberApp{
 		CloudSourceRepo:   sourceApp.CloudSourceRepo,
 		ImageTag:          imageTag,
@@ -116,7 +134,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		State:             nil,
 		TriggerID:         triggerID,
 		Vars:              vars,
-		ExcludedResources: sourceApp.ExcludedResources,
+		ExcludedResources: reviewAppExlusions,
 	}
 
 	err = db.SaveApp(reviewApp)

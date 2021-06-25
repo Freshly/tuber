@@ -7,7 +7,7 @@ type AppInput struct {
 	IsIstio         *bool   `json:"isIstio"`
 	ImageTag        *string `json:"imageTag"`
 	Paused          *bool   `json:"paused"`
-	GithubURL       *string `json:"githubURL"`
+	GithubRepo      *string `json:"githubRepo"`
 	SlackChannel    *string `json:"slackChannel"`
 	CloudSourceRepo *string `json:"cloudSourceRepo"`
 }
@@ -39,6 +39,11 @@ type ReviewAppsConfig struct {
 	ExcludedResources []*Resource `json:"excludedResources"`
 }
 
+type SetRacEnabledInput struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
 type SetResourceInput struct {
 	AppName string `json:"appName"`
 	Name    string `json:"name"`
@@ -59,7 +64,7 @@ type State struct {
 type TuberApp struct {
 	CloudSourceRepo   string            `json:"cloudSourceRepo"`
 	CurrentTags       []string          `json:"currentTags"`
-	GithubURL         string            `json:"githubURL"`
+	GithubRepo        string            `json:"githubRepo"`
 	ImageTag          string            `json:"imageTag"`
 	Name              string            `json:"name"`
 	Paused            bool              `json:"paused"`

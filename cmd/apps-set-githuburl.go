@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var appsSetGithubURLCmd = &cobra.Command{
+var appsSetGithubRepoCmd = &cobra.Command{
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	Use:           "github-url [app name] [url]",
@@ -16,10 +16,10 @@ var appsSetGithubURLCmd = &cobra.Command{
 under the hood, it simply appends 'oldSha...newSha' to whatever's in this field if present.`,
 	Args:    cobra.ExactArgs(2),
 	PreRunE: promptCurrentContext,
-	RunE:    runAppsSetGithubURLCmd,
+	RunE:    runAppsSetGithubRepoCmd,
 }
 
-func runAppsSetGithubURLCmd(cmd *cobra.Command, args []string) error {
+func runAppsSetGithubRepoCmd(cmd *cobra.Command, args []string) error {
 	graphql, err := gqlClient()
 	if err != nil {
 		return err
@@ -29,8 +29,8 @@ func runAppsSetGithubURLCmd(cmd *cobra.Command, args []string) error {
 	url := args[1]
 
 	input := &model.AppInput{
-		Name:      appName,
-		GithubURL: &url,
+		Name:       appName,
+		GithubRepo: &url,
 	}
 
 	var respData struct {
@@ -39,7 +39,7 @@ func runAppsSetGithubURLCmd(cmd *cobra.Command, args []string) error {
 
 	gql := `
 		mutation($input: AppInput!) {
-			setGithubURL(input: $input) {
+			setGithubRepo(input: $input) {
 				name
 			}
 		}
@@ -49,5 +49,5 @@ func runAppsSetGithubURLCmd(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	appsSetCmd.AddCommand(appsSetGithubURLCmd)
+	appsSetCmd.AddCommand(appsSetGithubRepoCmd)
 }

@@ -328,7 +328,7 @@ func (r *mutationResolver) Rollback(ctx context.Context, input model.AppInput) (
 	return app, nil
 }
 
-func (r *mutationResolver) SetGithubURL(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+func (r *mutationResolver) SetGithubRepo(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -338,11 +338,11 @@ func (r *mutationResolver) SetGithubURL(ctx context.Context, input model.AppInpu
 		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
 	}
 
-	if input.GithubURL == nil {
-		return nil, fmt.Errorf("GithubURL required for SetGithubURL")
+	if input.GithubRepo == nil {
+		return nil, fmt.Errorf("GithubRepo required for SetGithubRepo")
 	}
 
-	app.GithubURL = *input.GithubURL
+	app.GithubRepo = *input.GithubRepo
 
 	err = r.Resolver.db.SaveApp(app)
 	if err != nil {
@@ -419,7 +419,7 @@ func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualAp
 		decoded, decodeErr := base64.StdEncoding.DecodeString(*resource)
 		if decodeErr != nil {
 			r.logger.Error(decodeErr.Error())
-			return nil, errors.New("decode error, nothing applied")
+			return nil, fmt.Errorf("decode error, nothing applied: %v", err)
 		}
 		resources = append(resources, string(decoded))
 	}
@@ -430,24 +430,208 @@ func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualAp
 		return nil, fmt.Errorf("unable to parse app's current image tag, nothing applied: %v", err)
 	}
 
-	var digest string
+	var gitSha string
 	for _, tag := range app.CurrentTags {
 		if branch != tag {
-			digest = tag
+			gitSha = tag
 			break
 		}
+	}
+
+	if gitSha == "" {
+		return nil, fmt.Errorf("git sha not found in current tags, nothing applied: %v", err)
+	}
+
+	digest, err := gcr.DigestFromTag(gitSha, r.Resolver.credentials)
+	if err != nil {
+		r.logger.Error(err.Error())
+		return nil, fmt.Errorf("unable to pull digest from git sha, nothing applied: %v", err)
 	}
 
 	imageTagWithDigest, err := gcr.SwapTags(app.ImageTag, digest)
 	if err != nil {
 		r.logger.Error(err.Error())
-		return nil, errors.New("unable to parse currently deployed image, nothing applied")
+		return nil, fmt.Errorf("unable to parse currently deployed image, nothing applied: %v", err)
 	}
 
 	err = core.BypassReleaser(app, imageTagWithDigest, resources, r.Resolver.processor.ClusterData)
 	if err != nil {
 		r.logger.Error(err.Error())
 		return nil, err
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) SetRacEnabled(ctx context.Context, input model.SetRacEnabledInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	app.ReviewAppsConfig.Enabled = input.Enabled
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) SetRacVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.Key == "" {
+		return nil, fmt.Errorf("key required for SetRacVar")
+	}
+
+	if input.Value == "" {
+		return nil, fmt.Errorf("value required for SetRacVar")
+	}
+
+	rac := app.ReviewAppsConfig
+	vars := rac.Vars
+
+	var found bool
+	for _, t := range vars {
+		if t.Key == input.Key {
+			t.Value = input.Value
+			found = true
+		}
+	}
+	if !found {
+		vars = append(vars, &model.Tuple{Key: input.Key, Value: input.Value})
+	}
+	rac.Vars = vars
+	app.ReviewAppsConfig = rac
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) UnsetRacVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.Name)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.Key == "" {
+		return nil, fmt.Errorf("key required for UnsetRacVar")
+	}
+
+	rac := app.ReviewAppsConfig
+	vars := rac.Vars
+
+	var updatedVars []*model.Tuple
+	for _, t := range vars {
+		if t.Key != input.Key {
+			updatedVars = append(vars, t)
+		}
+	}
+	rac.Vars = updatedVars
+	app.ReviewAppsConfig = rac
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) SetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.AppName)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.Name == "" {
+		return nil, fmt.Errorf("resource name required for SetRacExclusion")
+	}
+
+	if input.Kind == "" {
+		return nil, fmt.Errorf("resource kind required for SetRacExclusion")
+	}
+
+	rac := app.ReviewAppsConfig
+	exclusions := rac.ExcludedResources
+
+	for _, t := range exclusions {
+		if strings.ToLower(t.Name) == strings.ToLower(input.Name) && strings.ToLower(t.Kind) == strings.ToLower(input.Kind) {
+			return app, nil
+		}
+	}
+
+	exclusions = append(exclusions, &model.Resource{Name: input.Name, Kind: input.Kind})
+	rac.ExcludedResources = exclusions
+	app.ReviewAppsConfig = rac
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
+	return app, nil
+}
+
+func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	app, err := r.Resolver.db.App(input.AppName)
+	if err != nil {
+		if errors.As(err, &db.NotFoundError{}) {
+			return nil, errors.New("could not find app")
+		}
+
+		return nil, fmt.Errorf("unexpected error while trying to find app: %v", err)
+	}
+
+	if input.Name == "" {
+		return nil, fmt.Errorf("resource name required for UnsetRacExclusion")
+	}
+
+	if input.Kind == "" {
+		return nil, fmt.Errorf("resource kind required for UnsetRacExclusion")
+	}
+
+	rac := app.ReviewAppsConfig
+	exclusions := rac.ExcludedResources
+
+	var updatedExclusions []*model.Resource
+	for _, t := range exclusions {
+		if strings.ToLower(t.Name) != strings.ToLower(input.Name) && strings.ToLower(t.Kind) != strings.ToLower(input.Kind) {
+			updatedExclusions = append(updatedExclusions, t)
+		}
+	}
+
+	rac.ExcludedResources = updatedExclusions
+	app.ReviewAppsConfig = rac
+
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
 	}
 
 	return app, nil

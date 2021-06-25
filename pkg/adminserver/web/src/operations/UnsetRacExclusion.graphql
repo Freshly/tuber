@@ -1,0 +1,11 @@
+mutation UnsetRacExclusion($input: SetResourceInput!) {
+	unsetRacExclusion(input: $input) {
+		name
+		reviewAppsConfig {
+			excludedResources {
+				name
+				kind
+			}
+		}
+	}
+}

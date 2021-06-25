@@ -1,0 +1,11 @@
+mutation SetRacVar($input: SetTupleInput!) {
+	setRacVar(input: $input) {
+		name
+		reviewAppsConfig {
+			vars {
+				key
+				value
+			}
+		}
+	}
+}

@@ -37,5 +37,8 @@ func (t TuberApp) DBUnmarshal(data []byte) (db.Model, error) {
 	if app.State == nil {
 		app.State = &State{}
 	}
+	if app.ReviewAppsConfig == nil {
+		app.ReviewAppsConfig = &ReviewAppsConfig{}
+	}
 	return app, nil
 }

@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
+import Switch from 'react-switch'
 import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, ConfirmButton, Button } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
@@ -10,9 +11,12 @@ import {
 	useGetFullAppQuery,
 	useDestroyAppMutation,
 	useCreateReviewAppMutation,
+	useSetRacEnabledMutation,
+	useSetRacExclusionMutation, useUnsetRacExclusionMutation,
+	useSetRacVarMutation, useUnsetRacVarMutation,
 	useSetExcludedResourceMutation, useUnsetExcludedResourceMutation,
 	useSetAppVarMutation, useUnsetAppVarMutation,
-	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubUrlMutation,
+	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubRepoMutation,
 } from '../../src/generated/graphql'
 import Head from 'next/head'
 
@@ -46,6 +50,8 @@ const ShowApp = () => {
 	const [{ data: { getApp: app } }] = throwError(useGetFullAppQuery({ variables: { name: id } }))
 	const [{ error: destroyAppError }, destroyApp] = useDestroyAppMutation()
 	const hostname = `https://${app.name}.staging.freshlyservices.net/`
+
+	const [{ error: racEnableError }, setEnabled] = useSetRacEnabledMutation()
 
 	return <div>
 		<Head>
@@ -88,7 +94,7 @@ const ShowApp = () => {
 		</section>
 
 		<section>
-			<Card className="mb-2 shadow-dark-50 shadow">
+			<Card>
 				<div
 					className="inline-grid leading-8"
 					style={{ 'gridTemplateColumns': 'repeat(2, minmax(300px, 352px))' }}>
@@ -101,12 +107,12 @@ const ShowApp = () => {
 						className="min-w-300px"
 					/>
 
-					<div>Github URL</div>
+					<div>Github Repo</div>
 					<TextInputForm
-						value={app.githubURL}
-						useSet={useSetGithubUrlMutation}
+						value={app.githubRepo}
+						useSet={useSetGithubRepoMutation}
 						appName={app.name}
-						keyName="githubURL"
+						keyName="githubRepo"
 						className="min-w-300px"
 					/>
 
@@ -132,7 +138,7 @@ const ShowApp = () => {
 		</section>
 
 		<section>
-			<Card className="mb-2 shadow-dark-50 shadow">
+			<Card>
 				<h2 className="text-xl mb-2">YAML Interpolation Vars</h2>
 				<TextInputGroup
 					vars={app.vars} appName={app.name}
@@ -143,7 +149,7 @@ const ShowApp = () => {
 		</section>
 
 		{app.reviewApp || <>
-			<Card className="mb-2 shadow-dark-50 shadow">
+			<Card>
 				<h2 className="text-xl mb-2">Create a review app</h2>
 				<CreateForm app={app} />
 				{destroyAppError && <div className="bg-red-700 text-white border-red-700 p-2">
@@ -158,9 +164,46 @@ const ShowApp = () => {
 					</div>,
 				)}
 			</Card>
+
+			<Card>
+				<div className="mb-4">
+					<h2 className="text-xl">Configure Review Apps</h2>
+					<p className=""><small>Configure how review apps created based off this app behave</small></p>
+				</div>
+
+				<div className="mb-4">
+					<label>
+						<div className="mb-2">Enable/Disable Review Apps</div>
+						<Switch
+							onChange={() => { setEnabled({ input: { name: app.name, enabled: !app.reviewAppsConfig.enabled } }) }}
+							checked={app.reviewAppsConfig.enabled}
+						/>
+					</label>
+				</div>
+
+				<div className="mb-4">
+					<h3>Review App Vars</h3>
+					<TextInputGroup
+						vars={app.reviewAppsConfig.vars} appName={app.name}
+						useSet={useSetRacVarMutation}
+						useUnset={useUnsetRacVarMutation}
+					/>
+				</div>
+
+				<div className="mb-4">
+					<h3 className="text-l mb-2">Excluded Resources</h3>
+					<ExcludedResources
+						appName={app.name}
+						resources={app.reviewAppsConfig.excludedResources}
+						useSet={useSetRacExclusionMutation}
+						useUnset={useUnsetRacExclusionMutation}
+					/>
+				</div>
+			</Card>
 		</>}
 
-		<Card className="mb-2 shadow-dark-50 shadow">
+		<Card>
+			<h2 className="text-xl mb-2">Excluded Resources</h2>
 			<ExcludedResources
 				appName={app.name}
 				resources={app.excludedResources}

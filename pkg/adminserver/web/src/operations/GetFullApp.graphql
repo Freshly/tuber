@@ -3,10 +3,21 @@ query GetFullApp($name: String!) {
     name
     reviewApp
     cloudSourceRepo
-    githubURL
+    githubRepo
     slackChannel
     paused
     imageTag
+    reviewAppsConfig {
+      enabled
+      excludedResources {
+        kind
+        name
+      }
+      vars {
+        key
+        value
+      }
+    }
 
     vars {
       key

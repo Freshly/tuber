@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/fatih/color"
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
@@ -127,7 +128,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	var respData struct {
-		destoryApp *model.TuberApp
+		createReviewApp *model.TuberApp
 	}
 
 	gql := `
@@ -138,7 +139,13 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	`
 
-	return graphql.Mutation(context.Background(), gql, nil, input, &respData)
+	err = graphql.Mutation(context.Background(), gql, nil, input, &respData)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Created app " + color.GreenString(respData.createReviewApp.Name) + " successfully, and a build has been triggered.")
+	return nil
 }
 
 func delete(cmd *cobra.Command, args []string) error {
