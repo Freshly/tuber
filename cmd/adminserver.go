@@ -27,6 +27,7 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		viper.GetString("TUBER_CLUSTER_NAME"),
 		viper.GetString("TUBER_CLUSTER_REGION"),
 		viper.GetString("TUBER_ADMINSERVER_PREFIX"),
+		viper.GetBool("TUBER_USE_DEVSERVER"),
 	)
 
 	if err != nil {

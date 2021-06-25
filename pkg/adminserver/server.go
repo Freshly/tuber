@@ -13,7 +13,6 @@ import (
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/go-http-utils/logger"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
@@ -33,9 +32,10 @@ type server struct {
 	clusterName         string
 	clusterRegion       string
 	prefix              string
+	useDevServer        bool
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string, prefix string) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string, prefix string, useDevServer bool) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -60,6 +60,7 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 		clusterName:         clusterName,
 		clusterRegion:       clusterRegion,
 		prefix:              prefix,
+		useDevServer:        useDevServer,
 	}.start()
 }
 
@@ -86,12 +87,11 @@ func prefixRoute(route string, serverPrefix string) string {
 }
 
 func (s server) start() error {
-	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	mux := http.NewServeMux()
 	mux.HandleFunc(prefixRoute("/graphql/playground", s.prefix), playground.Handler("GraphQL playground", prefixRoute("/graphql", s.prefix)))
 	mux.Handle(prefixRoute("/graphql", s.prefix), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion))
 
-	if viper.GetBool("TUBER_USE_DEVSERVER") {
+	if s.useDevServer {
 		mux.HandleFunc(prefixRoute("/", s.prefix), localDevServer)
 	}
 
