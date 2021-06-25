@@ -82,17 +82,17 @@ func localDevServer(res http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(res, req)
 }
 
-func prefixRoute(route string, serverPrefix string) string {
-	return fmt.Sprintf("%s%s", serverPrefix, route)
+func (s server) prefixed(route string) string {
+	return fmt.Sprintf("%s%s", s.prefix, route)
 }
 
 func (s server) start() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc(prefixRoute("/graphql/playground", s.prefix), playground.Handler("GraphQL playground", prefixRoute("/graphql", s.prefix)))
-	mux.Handle(prefixRoute("/graphql", s.prefix), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion))
+	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
+	mux.Handle(s.prefixed("/graphql"), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion))
 
 	if s.useDevServer {
-		mux.HandleFunc(prefixRoute("/", s.prefix), localDevServer)
+		mux.HandleFunc(s.prefixed("/"), localDevServer)
 	}
 
 	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)
