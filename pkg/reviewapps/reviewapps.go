@@ -106,20 +106,18 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 	}
 
 	racExclusions := sourceApp.ReviewAppsConfig.ExcludedResources
-	var reviewAppExlusions []*model.Resource
-	for _, e := range sourceApp.ExcludedResources {
-		reviewAppExlusions = append(reviewAppExlusions, e)
-	}
+	var reviewAppExclusions []*model.Resource
+	reviewAppExclusions = append(reviewAppExclusions, sourceApp.ExcludedResources...)
 	for _, r := range racExclusions {
 		var found bool
 		for _, e := range sourceApp.ExcludedResources {
-			if strings.ToLower(e.Kind) == strings.ToLower(r.Kind) && strings.ToLower(e.Name) == strings.ToLower(r.Name) {
+			if strings.EqualFold(e.Kind, r.Kind) && strings.EqualFold(e.Name, r.Name) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			reviewAppExlusions = append(reviewAppExlusions, r)
+			reviewAppExclusions = append(reviewAppExclusions, r)
 		}
 	}
 
@@ -134,7 +132,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 		State:             nil,
 		TriggerID:         triggerID,
 		Vars:              vars,
-		ExcludedResources: reviewAppExlusions,
+		ExcludedResources: reviewAppExclusions,
 	}
 
 	err = db.SaveApp(reviewApp)
