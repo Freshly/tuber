@@ -173,6 +173,10 @@ func CreateRefreshToken() error {
 
 func CreateIDToken(IAPAudience string) (string, error) {
 	rts, err := LoadOrCreateRefreshTokens()
+	if err != nil {
+		return "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
+	}
+
 	var activeToken *audienceToken
 	for _, t := range rts.Tokens {
 		if t.Audience == IAPAudience {
