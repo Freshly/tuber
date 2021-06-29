@@ -8,6 +8,7 @@ spec:
     cloud.google.com/gke-nodepool: "default-pool"
   serviceAccountName: tuber
   terminationGracePeriodSeconds: 1200
+  restartPolicy: Never
   containers:
     - image: "gcr.io/freshly-docker/tuber@sha256:eb22d5d0795a07980219e696bf139e518cb49e000a09f5ca09efda74d560feeb"
       name: tuber
