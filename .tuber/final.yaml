@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tuber
+  namespace: tuber
+  annotations:
+    "tuber/rolloutTimeout": 30m
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tuber
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: tuber
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: "default-pool"
+      serviceAccountName: tuber
+      terminationGracePeriodSeconds: 1200
+      containers:
+        - image: "gcr.io/freshly-docker/tuber@sha256:eb22d5d0795a07980219e696bf139e518cb49e000a09f5ca09efda74d560feeb"
+          name: tuber
+          command:
+            - "/app/tuber"
+            - "start"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "1"
+            limits:
+              memory: "256Mi"
+              cpu: "1"
+          volumeMounts:
+            - name: tuber-credentials
+              readOnly: true
+              mountPath: "/etc/tuber-credentials"
+            - name: tuber-bolt
+              mountPath: "/etc/tuber-bolt"
+          envFrom:
+            - secretRef:
+                name: tuber-env
+          ports:
+            - containerPort: 3000
+      volumes:
+        - name: tuber-credentials
+          secret:
+            secretName: tuber-credentials.json
+        - name: tuber-bolt
+          persistentVolumeClaim:
+            claimName: tuber
