@@ -14,26 +14,27 @@ import (
 
 type tuberConfig struct {
 	ActiveClusterName string `yaml:"active_cluster_name"`
-	Clusters          []*Cluster
-	Auth              *Auth
+	Clusters          []*cluster
 }
 
-// Auth is not a cluster
-type Auth struct {
-	OAuthClientID string `yaml:"oauth_client_id"`
-	OAuthSecret   string `yaml:"oauth_secret"`
+// all pulled from the "APIs and Services - Credentials page"
+// The backend resource powering IAP will have a web client with an ID
+// A tuber client must also be created there, as a Desktop App. The client and secret are BOTH not actually secret for that type.
+type auth struct {
+	TuberDesktopClientID     string `yaml:"tuber_desktop_client_id"`
+	TuberDesktopClientSecret string `yaml:"tuber_desktop_client_secret"`
+	Audience                 string `yaml:"iap_backend_web_client_id"`
 }
 
-// Cluster is a cluster
-type Cluster struct {
-	Name        string `yaml:"name"`
-	Shorthand   string `yaml:"shorthand"`
-	URL         string `yaml:"url"`
-	IAPClientID string `yaml:"iap_client_id"`
+type cluster struct {
+	Name      string `yaml:"name"`
+	Shorthand string `yaml:"shorthand"`
+	URL       string `yaml:"url"`
+	Auth      *auth  `yaml:"auth"`
 }
 
-func (c *tuberConfig) SetActive(cluster *Cluster) error {
-	c.ActiveClusterName = cluster.Name
+func (c *tuberConfig) SetActive(cl *cluster) error {
+	c.ActiveClusterName = cl.Name
 	err := Save(c)
 	if err != nil {
 		return fmt.Errorf("config invalid, please run 'tuber config'")
@@ -41,7 +42,7 @@ func (c *tuberConfig) SetActive(cluster *Cluster) error {
 	return nil
 }
 
-func (c *tuberConfig) CurrentClusterConfig() (*Cluster, error) {
+func (c *tuberConfig) CurrentClusterConfig() (*cluster, error) {
 	k8sCheckErr := exec.Command("kubectl", "version", "--client").Run()
 	k8sPresent := k8sCheckErr == nil
 
@@ -57,9 +58,9 @@ func (c *tuberConfig) CurrentClusterConfig() (*Cluster, error) {
 			return nil, fmt.Errorf("kubectl cluster %s not in config, please run 'tuber switch' or 'tuber config'", kctlClusterName)
 		}
 
-		var cluster *Cluster
+		var cl *cluster
 		if c.ActiveClusterName != "" {
-			cluster, err = c.FindByName(c.ActiveClusterName)
+			cl, err = c.FindByName(c.ActiveClusterName)
 			if err != nil {
 				return nil, fmt.Errorf("active cluster not in config, please run 'tuber switch' or 'tuber config'")
 			}
@@ -73,22 +74,22 @@ func (c *tuberConfig) CurrentClusterConfig() (*Cluster, error) {
 			return k8sCluster, nil
 		}
 
-		return cluster, nil
+		return cl, nil
 	}
 
 	if c.ActiveClusterName == "" {
 		return nil, fmt.Errorf("active cluster not set, please run 'tuber switch'")
 	}
 
-	cluster, err := c.FindByName(c.ActiveClusterName)
+	cl, err := c.FindByName(c.ActiveClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("active cluster not in config, please run 'tuber switch' or 'tuber config'")
 	}
 
-	return cluster, nil
+	return cl, nil
 }
 
-func (c *tuberConfig) FindByShortName(name string) (*Cluster, error) {
+func (c *tuberConfig) FindByShortName(name string) (*cluster, error) {
 	if name == "" {
 		return nil, fmt.Errorf("shorthand empty")
 	}
@@ -102,7 +103,7 @@ func (c *tuberConfig) FindByShortName(name string) (*Cluster, error) {
 	return nil, fmt.Errorf("cluster not found in config")
 }
 
-func (c *tuberConfig) FindByName(name string) (*Cluster, error) {
+func (c *tuberConfig) FindByName(name string) (*cluster, error) {
 	if name == "" {
 		return nil, fmt.Errorf("name empty")
 	}
@@ -132,6 +133,16 @@ func Load() (*tuberConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("tuber config invalid, please run `tuber config`")
 	}
+
+	var nonNilAuthClusters []*cluster
+	for _, cl := range t.Clusters {
+		if cl.Auth == nil {
+			cl.Auth = &auth{}
+		}
+		nonNilAuthClusters = append(nonNilAuthClusters, cl)
+	}
+
+	t.Clusters = nonNilAuthClusters
 
 	return &t, nil
 }

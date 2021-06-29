@@ -23,10 +23,10 @@ var defaultTuberConfig = `# clusters:
 #   - shorthand: some-shorthand-name
 #     name: fully_qualified_gke_cluster_name <- run 'kubectl config current-context'
 #     url: https://tuber-url-for-this-cluster-without-slash-tuber.com
-#     iap_client_id: client id from the OAuth client
-# auth:
-#   oauth_client_id: client id for the OAuth application
-#   oauth_secret: secret (public - this is NOT used for auth) from the OAuth client
+#     auth:
+#     	tuber_desktop_client_id: desktop client id specific to tuber
+#     	tuber_desktop_client_secret: desktop client secret specific to tuber (not actually secret)
+#     	iap_backend_web_client_id: client ID from the backend powering your cluster's IAP ingress
 `
 
 func openConfig(cmd *cobra.Command, args []string) error {

@@ -63,7 +63,7 @@ func gqlClient() (*graph.GraphqlClient, error) {
 		return nil, err
 	}
 
-	return graph.NewClient(cluster.URL, cluster.IAPClientID), nil
+	return graph.NewClient(cluster.URL, cluster.Auth.Audience), nil
 }
 
 func getApp(appName string) (*model.TuberApp, error) {
@@ -187,8 +187,12 @@ func credentials() ([]byte, error) {
 	return creds, nil
 }
 
-func checkAuth() error {
-	if !iap.RefreshTokenExists() {
+func checkAuth(audience string) error {
+	exists, err := iap.RefreshTokenExists(audience)
+	if err != nil {
+		return err
+	}
+	if !exists {
 		return errors.New("tuber is not authorized. Please run `tuber auth`")
 	}
 
@@ -196,10 +200,6 @@ func checkAuth() error {
 }
 
 func promptCurrentContext(cmd *cobra.Command, args []string) error {
-	if err := checkAuth(); err != nil {
-		return err
-	}
-
 	skipConfirmation, err := cmd.Flags().GetBool("confirm")
 	if err != nil {
 		return err
@@ -217,6 +217,11 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 	cluster, err := c.CurrentClusterConfig()
 	if err != nil {
 		return fmt.Errorf("unable to get current cluster context. reason: %s", err.Error())
+	}
+
+	err = checkAuth(cluster.Auth.Audience)
+	if err != nil {
+		return err
 	}
 
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond, spinner.WithWriter(os.Stderr))
@@ -241,10 +246,6 @@ func promptCurrentContext(cmd *cobra.Command, args []string) error {
 }
 
 func displayCurrentContext(cmd *cobra.Command, args []string) error {
-	if err := checkAuth(); err != nil {
-		return err
-	}
-
 	skipConfirmation, err := cmd.Flags().GetBool("confirm")
 	if err != nil {
 		return err
@@ -260,6 +261,11 @@ func displayCurrentContext(cmd *cobra.Command, args []string) error {
 	}
 
 	cluster, err := c.CurrentClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	err = checkAuth(cluster.Auth.Audience)
 	if err != nil {
 		return err
 	}

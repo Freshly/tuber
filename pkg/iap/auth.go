@@ -4,30 +4,86 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/iap/internal"
+	"github.com/goccy/go-yaml"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
-var refreshTokenFile string
-
-func init() {
-	dir, err := config.Dir()
+func RefreshTokenExists(audience string) (bool, error) {
+	path, err := RefreshTokenPath()
 	if err != nil {
-		panic(err)
+		return false, err
+	}
+	_, err = os.Stat(path)
+	if err != nil && os.IsNotExist(err) {
+		return false, nil
 	}
 
-	refreshTokenFile = path.Join(dir, "refresh_token")
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
-func RefreshTokenExists() bool {
-	_, err := os.Stat(refreshTokenFile)
-	return !os.IsNotExist(err)
+func dir() (string, error) {
+	basePath, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(basePath, "tuber"), nil
+}
+
+func RefreshTokenPath() (string, error) {
+	directory, err := dir()
+	if err != nil {
+		return "", fmt.Errorf("config not set up, please run 'tuber config'")
+	}
+	return path.Join(directory, "refresh_tokens"), nil
+}
+
+type refreshTokens struct {
+	Tokens []*audienceToken `yaml:"tokens"`
+}
+
+type audienceToken struct {
+	Audience     string `yaml:"audience"`
+	RefreshToken string `yaml:"refreshToken"`
+}
+
+func LoadOrCreateRefreshTokens() (*refreshTokens, error) {
+	path, err := RefreshTokenPath()
+	if err != nil {
+		return nil, err
+	}
+
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		_, err = os.Create(path)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create tuber auth: %v", err)
+		}
+		raw, err = ioutil.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("created tuber auth but reading failed: %v", err)
+		}
+	}
+
+	var rts refreshTokens
+	err = yaml.Unmarshal(raw, &rts)
+	if err != nil {
+		return nil, fmt.Errorf("tuber auth invalid, please run `tuber auth`")
+	}
+
+	return &rts, nil
 }
 
 func newOAuthConfig() (*oauth2.Config, error) {
@@ -36,14 +92,15 @@ func newOAuthConfig() (*oauth2.Config, error) {
 		return nil, err
 	}
 
-	if cnf.Auth == nil {
-		cnf.Auth = &config.Auth{}
+	cluster, err := cnf.CurrentClusterConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	return &oauth2.Config{
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		ClientID:     cnf.Auth.OAuthClientID,
-		ClientSecret: cnf.Auth.OAuthSecret,
+		ClientID:     cluster.Auth.TuberDesktopClientID,
+		ClientSecret: cluster.Auth.TuberDesktopClientSecret,
 		Scopes:       []string{"openid", "email"},
 		Endpoint:     google.Endpoint,
 	}, nil
@@ -51,6 +108,26 @@ func newOAuthConfig() (*oauth2.Config, error) {
 
 func CreateRefreshToken() error {
 	c, err := newOAuthConfig()
+	if err != nil {
+		return err
+	}
+
+	cnf, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	cluster, err := cnf.CurrentClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	rts, err := LoadOrCreateRefreshTokens()
+	if err != nil {
+		return err
+	}
+
+	path, err := RefreshTokenPath()
 	if err != nil {
 		return err
 	}
@@ -68,13 +145,42 @@ func CreateRefreshToken() error {
 		return err
 	}
 
-	return os.WriteFile(refreshTokenFile, []byte(token.RefreshToken), 0600)
+	var tokens []*audienceToken
+	var found bool
+	for _, t := range rts.Tokens {
+		if t.Audience == cluster.Auth.Audience {
+			found = true
+			t.RefreshToken = token.RefreshToken
+		}
+		tokens = append(tokens, t)
+	}
+	if !found {
+		tokens = append(tokens, &audienceToken{
+			Audience:     cluster.Auth.Audience,
+			RefreshToken: token.RefreshToken,
+		})
+	}
+
+	rts.Tokens = tokens
+
+	out, err := yaml.Marshal(rts)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, out, os.ModePerm)
 }
 
-func CreateIDToken(IAPClientID string) (string, error) {
-	refreshToken, err := os.ReadFile(refreshTokenFile)
-	if err != nil {
-		return "", err
+func CreateIDToken(IAPAudience string) (string, error) {
+	rts, err := LoadOrCreateRefreshTokens()
+	var activeToken *audienceToken
+	for _, t := range rts.Tokens {
+		if t.Audience == IAPAudience {
+			activeToken = t
+		}
+	}
+	if activeToken == nil || activeToken.RefreshToken == "" {
+		return "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
 	}
 
 	c, err := newOAuthConfig()
@@ -84,8 +190,8 @@ func CreateIDToken(IAPClientID string) (string, error) {
 
 	v := url.Values{
 		"grant_type":    {"refresh_token"},
-		"refresh_token": {string(refreshToken)},
-		"audience":      {IAPClientID},
+		"refresh_token": {activeToken.RefreshToken},
+		"audience":      {IAPAudience},
 	}
 
 	token, err := internal.RetrieveToken(context.Background(), c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle))
