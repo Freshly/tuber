@@ -23,7 +23,7 @@ spec:
       serviceAccountName: tuber
       terminationGracePeriodSeconds: 1200
       containers:
-        - image: "{{ .tuberImage }}"
+        - image: "gcr.io/freshly-docker/tuber:main"
           name: tuber-bolt
           command:
             - "/app/tuber"
