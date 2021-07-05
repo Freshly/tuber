@@ -96,7 +96,7 @@ func runConfigCmd(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		conf, err = config.Load()
+		_, err = config.Load()
 		if err != nil {
 			return err
 		}
