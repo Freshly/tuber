@@ -114,7 +114,7 @@ func getTwoTags(logger *zap.Logger, repository name.Repository, auth authn.Authe
 			logger.Debug("get two tags attempt " + fmt.Sprintf("%d", i) + " nailed it")
 			return tags, nil
 		}
-		logger.Debug("get two tags attempt " + fmt.Sprintf("%d", i) + "had" + strings.Join(tags, ", ") + " <- yeah those")
+		logger.Debug("get two tags attempt " + fmt.Sprintf("%d", i) + " had " + strings.Join(tags, ", ") + " <- yeah those")
 		time.Sleep(5 * time.Second)
 	}
 	return tags, nil

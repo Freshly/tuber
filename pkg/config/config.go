@@ -14,6 +14,7 @@ import (
 
 type tuberConfig struct {
 	ActiveClusterName string `yaml:"active_cluster_name"`
+	ConfigSourceUrl   string `yaml:"config_source_url"`
 	Clusters          []*cluster
 }
 
