@@ -647,12 +647,11 @@ func (r releaser) deleteRemovedResources(stateBeforeApply []appResource, applied
 		if !cachedWasPartOfRelease {
 			scope, logger := cached.scopes(r)
 			out, err := k8s.Get(cached.kind, cached.name, r.app.Name, "-o", "yaml")
+			if _, notFound := err.(k8s.NotFoundError); notFound {
+				continue
+			}
 			if err != nil {
-				if _, notFound := err.(k8s.NotFoundError); notFound {
-					continue
-				} else {
-					return ErrorContext{err: err, context: "exists check resource removed from state", scope: scope, logger: logger}
-				}
+				return ErrorContext{err: err, context: "exists check resource removed from state", scope: scope, logger: logger}
 			}
 
 			var parsed stateResource
