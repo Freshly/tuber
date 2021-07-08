@@ -19,40 +19,53 @@ var envCmd = &cobra.Command{
 
 var envSetCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "set [app] [key] [value]",
+	Use:          "set [appName (deprecated, use --app or -a)] [key] [value]",
 	Short:        "set an environment variable",
 	RunE:         envSet,
-	Args:         cobra.ExactArgs(3),
+	Args:         cobra.RangeArgs(2, 3),
 	PreRunE:      promptCurrentContext,
 }
 
 var envUnsetCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "unset [app] [key]",
+	Use:          "unset [appName (deprecated, use --app or -a)] [key]",
 	Short:        "unset an environment variable",
 	RunE:         envUnset,
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.RangeArgs(1, 2),
 	PreRunE:      promptCurrentContext,
 }
 
 var envGetCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "get [app] [key]",
+	Use:          "get [appName (deprecated, use --app or -a)] [key]",
 	Short:        "display the value of an environment variable",
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.RangeArgs(1, 2),
 	RunE:         envGet,
 	PreRunE:      displayCurrentContext,
 }
 
 var fileCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "file [app] [local filepath]",
+	Use:          "file [appName (deprecated, use --app or -a)] [local filepath]",
 	Short:        "batch set environment variables based on the contents of a yaml file",
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.RangeArgs(1, 2),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		appName := args[0]
-		err := k8s.CreateEnvFromFile(appName, args[1])
+		var appName string
+		var filePath string
+		if len(args) == 2 {
+			fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
+			appName = args[0]
+			filePath = args[1]
+		}
+		if len(args) == 1 {
+			if appNameFlag == "" {
+				return fmt.Errorf("app name required, specify with -a or --app")
+			}
+			appName = appNameFlag
+			filePath = args[0]
+		}
+		err := k8s.CreateEnvFromFile(appName, filePath)
 
 		if err != nil {
 			return err
@@ -64,17 +77,31 @@ var fileCmd = &cobra.Command{
 
 var envListCmd = &cobra.Command{
 	SilenceUsage: true,
-	Use:          "list [app]",
+	Use:          "list [appName (deprecated, use --app or -a)]",
 	Short:        "display all environment variables",
 	RunE:         envList,
-	Args:         cobra.ExactArgs(1),
+	Args:         cobra.RangeArgs(0, 1),
 	PreRunE:      displayCurrentContext,
 }
 
 func envSet(cmd *cobra.Command, args []string) error {
-	appName := args[0]
-	key := args[1]
-	value := args[2]
+	var appName string
+	var key string
+	var value string
+	if len(args) == 3 {
+		fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
+		appName = args[0]
+		key = args[1]
+		value = args[2]
+	}
+	if len(args) == 2 {
+		if appNameFlag == "" {
+			return fmt.Errorf("app name required, specify with -a or --app")
+		}
+		appName = appNameFlag
+		key = args[0]
+		value = args[1]
+	}
 
 	graphql, err := gqlClient()
 	if err != nil {
@@ -103,8 +130,20 @@ func envSet(cmd *cobra.Command, args []string) error {
 }
 
 func envUnset(cmd *cobra.Command, args []string) error {
-	appName := args[0]
-	key := args[1]
+	var appName string
+	var key string
+	if len(args) == 2 {
+		fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
+		appName = args[0]
+		key = args[1]
+	}
+	if len(args) == 1 {
+		if appNameFlag == "" {
+			return fmt.Errorf("app name required, specify with -a or --app")
+		}
+		appName = appNameFlag
+		key = args[0]
+	}
 
 	graphql, err := gqlClient()
 	if err != nil {
@@ -132,8 +171,20 @@ func envUnset(cmd *cobra.Command, args []string) error {
 }
 
 func envGet(cmd *cobra.Command, args []string) error {
-	appName := args[0]
-	key := args[1]
+	var appName string
+	var key string
+	if len(args) == 2 {
+		fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
+		appName = args[0]
+		key = args[1]
+	}
+	if len(args) == 1 {
+		if appNameFlag == "" {
+			return fmt.Errorf("app name required, specify with -a or --app")
+		}
+		appName = appNameFlag
+		key = args[0]
+	}
 
 	m, err := getAllEnvGraphqlQuery(appName)
 	if err != nil {
@@ -145,7 +196,16 @@ func envGet(cmd *cobra.Command, args []string) error {
 }
 
 func envList(cmd *cobra.Command, args []string) error {
-	appName := args[0]
+	var appName string
+	if len(args) == 1 {
+		fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
+		appName = args[0]
+	} else {
+		if appNameFlag == "" {
+			return fmt.Errorf("app name required, specify with -a or --app")
+		}
+		appName = appNameFlag
+	}
 
 	m, err := getAllEnvGraphqlQuery(appName)
 	if err != nil {
@@ -184,7 +244,9 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 		GetApp *model.TuberApp
 	}
 
-	if err := graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName)); err != nil {
+	err = graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName))
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -199,9 +261,14 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 
 func init() {
 	rootCmd.AddCommand(envCmd)
+	envSetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envSetCmd)
+	envUnsetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envUnsetCmd)
+	fileCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(fileCmd)
+	envGetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envGetCmd)
+	envListCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envListCmd)
 }
