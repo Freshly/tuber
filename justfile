@@ -28,3 +28,7 @@ local-image:
     -v /usr/lib/google-cloud-sdk:/usr/lib/google-cloud-sdk \
     tuber \
     /app/tuber adminserver -y
+
+remove-tag *version:
+  git tag -d {{version}}
+  git push origin :{{version}}

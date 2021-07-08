@@ -2,15 +2,24 @@ before:
   hooks:
     - go mod download
 builds:
-- env:
-  - CGO_ENABLED=0
+  -
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
 archives:
-- replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
+  - 
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip   
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -21,12 +30,20 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
-brews:
-  - tap:
-      owner: Freshly
-      name: homebrew-taps
-    folder: Formula
-    homepage: https://github.com/Freshly/tuber
-    description: 🥔
-    test: |
-      system "#{bin}/tuber -v"
+# brews:
+#   - tap:
+#       owner: Freshly
+#       name: homebrew-taps
+#     folder: Formula
+#     homepage: https://github.com/Freshly/tuber
+#     description: 🥔
+#     test: |
+#       system "#{bin}/tuber -v"
+scoop:
+  url_template: "http://github.com/freshly/tuber/releases/{{ .Tag }}/{{ .ArtifactName }}"
+  bucket:
+    owner: Freshly
+    name: scoops
+  folder: bucket
+  homepage: https://github.com/Freshly/tuber
+  description: 🥔
