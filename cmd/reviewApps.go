@@ -43,7 +43,7 @@ var reviewAppsDeleteCmd = &cobra.Command{
 var reviewAppsListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list [source app name]",
-	Short:        "Delete a review app",
+	Short:        "List current review apps for a particular source app",
 	Args:         cobra.ExactArgs(1),
 	RunE:         listReviewApps,
 	PreRunE:      displayCurrentContext,
