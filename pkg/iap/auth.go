@@ -101,7 +101,7 @@ func newOAuthConfig() (*oauth2.Config, error) {
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
 		ClientID:     cluster.Auth.TuberDesktopClientID,
 		ClientSecret: cluster.Auth.TuberDesktopClientSecret,
-		Scopes:       []string{"openid", "email"},
+		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
 		Endpoint:     google.Endpoint,
 	}, nil
 }
@@ -211,6 +211,7 @@ func CreateIDToken(IAPAudience string) (string, error) {
 	if !ok {
 		return "", errors.New("could not assert raw token values")
 	}
+	fmt.Println(vals)
 
 	return vals["id_token"].(string), nil
 }
