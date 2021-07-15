@@ -86,10 +86,17 @@ func (s server) prefixed(route string) string {
 	return fmt.Sprintf("%s%s", s.prefix, route)
 }
 
+func debugTime(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println(r.Header)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
-	mux.Handle(s.prefixed("/graphql"), graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled))
+	mux.Handle(s.prefixed("/graphql"), debugTime(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
 
 	if s.useDevServer {
 		mux.HandleFunc(s.prefixed("/"), localDevServer)
