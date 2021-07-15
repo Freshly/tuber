@@ -202,6 +202,8 @@ func CreateIDToken(IAPAudience string) (string, error) {
 		"audience":      {IAPAudience},
 	}
 
+	fmt.Println(c.Endpoint.TokenURL)
+	fmt.Println(c.Endpoint.AuthStyle)
 	token, err := internal.RetrieveToken(context.Background(), c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle))
 	if err != nil {
 		return "", err

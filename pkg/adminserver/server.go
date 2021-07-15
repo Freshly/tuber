@@ -14,6 +14,8 @@ import (
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/go-http-utils/logger"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
 )
@@ -89,6 +91,21 @@ func (s server) prefixed(route string) string {
 func debugTime(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.Header)
+		googJwt := r.Header.Get("X-Goog-Iap-Jwt-Assertion")
+		if googJwt != "" {
+			c := &oauth2.Config{
+				RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
+				ClientID:     "1060298202659-p0qlrqlbg8ffgh3h9g1q0ksash29lb3d.apps.googleusercontent.com",
+				ClientSecret: "Ddasq36J3xvsB0Ip5_mJE4wj",
+				Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
+				Endpoint:     google.Endpoint,
+			}
+			token, err := c.Exchange(context.Background(), googJwt)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Println(token)
+		}
 		next.ServeHTTP(w, r)
 	})
 }
