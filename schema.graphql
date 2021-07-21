@@ -8,6 +8,12 @@ type Tuple {
   value: String!
 }
 
+type Build {
+  status: String!
+  Link: String!
+  startTime: String!
+}
+
 type TuberApp {
   cloudSourceRepo: String!
   currentTags: [String!]
@@ -25,6 +31,7 @@ type TuberApp {
   reviewApps: [TuberApp!] @goField(forceResolver: true)
   env: [Tuple!] @goField(forceResolver: true)
   excludedResources: [Resource!]!
+  cloudBuildStatuses: [Build!]! @goField(forceResolver: true)
 }
 
 input AppInput {
