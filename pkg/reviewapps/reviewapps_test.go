@@ -68,6 +68,11 @@ var testCases = []struct {
 		input:    "----",
 		expected: fmt.Sprintf("review-app-%d", time.Now().Unix()),
 	},
+	{
+		name:     "real world case",
+		input:    "qa-replicated-ssr-plus-chunks-single-commit",
+		expected: "qa-replicated-ssr-plus-chunks",
+	},
 }
 
 func TestMakeDNS1123Compatible(t *testing.T) {
