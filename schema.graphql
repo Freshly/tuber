@@ -10,7 +10,7 @@ type Tuple {
 
 type Build {
   status: String!
-  Link: String!
+  link: String!
   startTime: String!
 }
 

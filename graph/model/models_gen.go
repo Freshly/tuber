@@ -14,7 +14,7 @@ type AppInput struct {
 
 type Build struct {
 	Status    string `json:"status"`
-	Link      string `json:"Link"`
+	Link      string `json:"link"`
 	StartTime string `json:"startTime"`
 }
 

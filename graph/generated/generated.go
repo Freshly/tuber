@@ -181,7 +181,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Build.Link":
+	case "Build.link":
 		if e.complexity.Build.Link == nil {
 			break
 		}
@@ -778,7 +778,7 @@ type Tuple {
 
 type Build {
   status: String!
-  Link: String!
+  link: String!
   startTime: String!
 }
 
@@ -1338,7 +1338,7 @@ func (ec *executionContext) _Build_status(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Build_Link(ctx context.Context, field graphql.CollectedField, obj *model.Build) (ret graphql.Marshaler) {
+func (ec *executionContext) _Build_link(ctx context.Context, field graphql.CollectedField, obj *model.Build) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4819,8 +4819,8 @@ func (ec *executionContext) _Build(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "Link":
-			out.Values[i] = ec._Build_Link(ctx, field, obj)
+		case "link":
+			out.Values[i] = ec._Build_link(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

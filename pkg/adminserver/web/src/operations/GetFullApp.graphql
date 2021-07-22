@@ -10,7 +10,7 @@ query GetFullApp($name: String!) {
     cloudBuildStatuses {
       status
       startTime
-      Link
+      link
     }
     reviewAppsConfig {
       enabled

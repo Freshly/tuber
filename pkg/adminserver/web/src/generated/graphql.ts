@@ -28,7 +28,7 @@ export type AppInput = {
 export type Build = {
   __typename?: 'Build';
   status: Scalars['String'];
-  Link: Scalars['String'];
+  link: Scalars['String'];
   startTime: Scalars['String'];
 };
 
@@ -347,7 +347,7 @@ export type GetFullAppQuery = (
     & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubRepo' | 'slackChannel' | 'paused' | 'imageTag'>
     & { cloudBuildStatuses: Array<(
       { __typename?: 'Build' }
-      & Pick<Build, 'status' | 'startTime' | 'Link'>
+      & Pick<Build, 'status' | 'startTime' | 'link'>
     )>, reviewAppsConfig?: Maybe<(
       { __typename?: 'ReviewAppsConfig' }
       & Pick<ReviewAppsConfig, 'enabled'>
@@ -650,7 +650,7 @@ export default {
             "args": []
           },
           {
-            "name": "Link",
+            "name": "link",
             "type": {
               "kind": "NON_NULL",
               "ofType": {
@@ -1701,7 +1701,7 @@ export const GetFullAppDocument = gql`
     cloudBuildStatuses {
       status
       startTime
-      Link
+      link
     }
     reviewAppsConfig {
       enabled
