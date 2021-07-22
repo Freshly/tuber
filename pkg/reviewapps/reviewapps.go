@@ -209,7 +209,7 @@ func makeDNS1123Compatible(name string) string {
 		case symbolsRe.Match(n):
 			n = symbolsRe.ReplaceAll(n, []byte(""))
 		case bytes.Compare(n, []byte("-")) == 1:
-			n = bytes.TrimRight(n, "-")
+			n = bytes.Trim(n, "-")
 		default:
 			return fmt.Sprintf("review-app-%d", time.Now().Unix())
 		}
