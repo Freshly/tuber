@@ -141,7 +141,7 @@ const ShowApp = () => {
 			<Card>
 				<h2 className="text-xl mb-2">Recent Builds</h2>
 				{app.cloudBuildStatuses.map(bs =>
-					<div key={bs.startTime} className="flex justify-between">
+					<div key={bs.startTime} className="grid grid-cols-3">
 						<span>{bs.startTime}</span>
 						<span>{bs.status}</span>
 						<a href={bs.Link} className="underline" target="_blank" rel="noreferrer">Build Logs</a>
