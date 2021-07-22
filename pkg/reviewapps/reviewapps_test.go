@@ -1,8 +1,10 @@
 package reviewapps
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -57,6 +59,11 @@ func TestMakeDNS1123Compatible(t *testing.T) {
 			name:     "trailing hyphen",
 			input:    "foo-",
 			expected: "foo",
+		},
+		{
+			name:     "only hyphens",
+			input:    "----",
+			expected: fmt.Sprintf("review-app-%d", time.Now().Unix()),
 		},
 	}
 

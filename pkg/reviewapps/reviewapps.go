@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
@@ -210,7 +211,7 @@ func makeDNS1123Compatible(name string) string {
 		case bytes.Compare(n, []byte("-")) == 1:
 			n = bytes.TrimRight(n, "-")
 		default:
-			return "busted"
+			return fmt.Sprintf("review-app-%d", time.Now().Unix())
 		}
 	}
 
