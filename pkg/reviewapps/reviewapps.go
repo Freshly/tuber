@@ -195,7 +195,7 @@ func makeDNS1123Compatible(name string) string {
 		name = name[0:DNS1123NameMaximumLength]
 	}
 
-	return name
+	return strings.Trim(name, "-")
 }
 
 func ReviewAppName(appName string, branch string) string {
