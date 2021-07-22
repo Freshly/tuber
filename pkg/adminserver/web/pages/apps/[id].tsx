@@ -145,7 +145,7 @@ const ShowApp = () => {
 					<div key={bs.startTime} className="grid grid-cols-3">
 						<span>{dateformat(bs.startTime, 'ddd mmm dS, h:MM TT')}</span>
 						<span>{bs.status}</span>
-						<a href={bs.Link} className="underline" target="_blank" rel="noreferrer">Build Logs</a>
+						<a href={bs.link} className="underline" target="_blank" rel="noreferrer">Build Logs</a>
 					</div>,
 				)}
 			</Card>
