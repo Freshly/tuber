@@ -682,7 +682,7 @@ func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*mod
 }
 
 func (r *tuberAppResolver) CloudBuildStatuses(ctx context.Context, obj *model.TuberApp) ([]*model.Build, error) {
-	builds, err := builds.FindByApp(obj, "freshly-docker")
+	builds, err := builds.FindByApp(obj, r.projectName)
 	if err != nil {
 		return nil, err
 	}
