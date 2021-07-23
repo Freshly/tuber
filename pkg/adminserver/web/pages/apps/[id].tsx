@@ -139,7 +139,7 @@ const ShowApp = () => {
 			</Card>
 		</section>
 		<section>
-			<Card>
+			{app.reviewApp && <Card>
 				<h2 className="text-xl mb-2">Recent Builds</h2>
 				{app.cloudBuildStatuses.map(bs =>
 					<div key={bs.startTime} className="grid grid-cols-3">
@@ -148,7 +148,7 @@ const ShowApp = () => {
 						<a href={bs.link} className="underline" target="_blank" rel="noreferrer">Build Logs</a>
 					</div>,
 				)}
-			</Card>
+			</Card>}
 		</section>
 
 		<section>
