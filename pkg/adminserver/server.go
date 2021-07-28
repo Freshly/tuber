@@ -97,6 +97,7 @@ func debugTime(next http.Handler) http.Handler {
 var changeMeToEnvLater = "asdfasdf"
 
 func lauren(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("yeah use this ya idiot 1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com")
 	c := &oauth2.Config{
 		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
 		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
