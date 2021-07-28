@@ -14,6 +14,8 @@ import (
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/go-http-utils/logger"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
 )
@@ -88,29 +90,54 @@ func debugTime(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.Header)
 		fmt.Println(r.Cookies())
-		// googJwt := r.Header.Get("X-Goog-Iap-Jwt-Assertion")
-		// if googJwt != "" {
-		// 	c := &oauth2.Config{
-		// 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		// 		ClientID:     "1060298202659-p0qlrqlbg8ffgh3h9g1q0ksash29lb3d.apps.googleusercontent.com",
-		// 		ClientSecret: "Ddasq36J3xvsB0Ip5_mJE4wj",
-		// 		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
-		// 		Endpoint:     google.Endpoint,
-		// 	}
-		// 	token, err := c.Exchange(context.Background(), googJwt)
-		// 	if err != nil {
-		// 		fmt.Println(err)
-		// 	}
-		// 	fmt.Println(token)
-		// }
 		next.ServeHTTP(w, r)
 	})
+}
+
+var changeMeToEnvLater = "asdfasdf"
+
+func lauren(w http.ResponseWriter, r *http.Request) {
+	c := &oauth2.Config{
+		RedirectURL:  "https://admin.freshlyhq.com/tuber/successQuestion",
+		ClientID:     "1060298202659-p0qlrqlbg8ffgh3h9g1q0ksash29lb3d.apps.googleusercontent.com",
+		ClientSecret: "Ddasq36J3xvsB0Ip5_mJE4wj",
+		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
+		Endpoint:     google.Endpoint,
+	}
+	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
+}
+
+func successQuestion(w http.ResponseWriter, r *http.Request) {
+	queryVals := r.URL.Query()
+	if queryVals.Get("error") != "" {
+		fmt.Fprintf(w, fmt.Sprintf("<h1>error in the redirect response</h1><h1>%s</h1>", queryVals.Get("error")))
+		return
+	}
+	if queryVals.Get("code") == "" {
+		fmt.Fprintf(w, "<h1>no code or error?</h1>")
+		return
+	}
+	c := &oauth2.Config{
+		RedirectURL:  "https://admin.freshlyhq.com/tuber/successQuestion",
+		ClientID:     "1060298202659-p0qlrqlbg8ffgh3h9g1q0ksash29lb3d.apps.googleusercontent.com",
+		ClientSecret: "Ddasq36J3xvsB0Ip5_mJE4wj",
+		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
+		Endpoint:     google.Endpoint,
+	}
+	token, err := c.Exchange(context.Background(), queryVals.Get("code"))
+	if err != nil {
+		fmt.Fprintf(w, fmt.Sprintf("<h1>exchange error :(</h1><h1>%s</h1>", err.Error()))
+		return
+	}
+	fmt.Fprintf(w, fmt.Sprintf("<h1>success???????</h1><h1>%s</h1>", token))
 }
 
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
 	mux.Handle(s.prefixed("/graphql"), debugTime(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
+	mux.HandleFunc(s.prefixed("/lauren"), lauren)
+	mux.HandleFunc(s.prefixed("/successQuestion"), successQuestion)
 
 	if s.useDevServer {
 		mux.HandleFunc(s.prefixed("/"), localDevServer)
