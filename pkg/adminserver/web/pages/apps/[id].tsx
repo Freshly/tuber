@@ -2,6 +2,7 @@
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
 import Switch from 'react-switch'
+import dateformat from 'dateformat'
 import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, ConfirmButton, Button } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
@@ -136,6 +137,18 @@ const ShowApp = () => {
 					/>
 				</div>
 			</Card>
+		</section>
+		<section>
+			{app.reviewApp && <Card>
+				<h2 className="text-xl mb-2">Recent Builds</h2>
+				{app.cloudBuildStatuses.map(bs =>
+					<div key={bs.startTime} className="grid grid-cols-3">
+						<span>{dateformat(bs.startTime, 'ddd mmm dS, h:MM TT')}</span>
+						<span>{bs.status}</span>
+						<a href={bs.link} className="underline" target="_blank" rel="noreferrer">Build Logs</a>
+					</div>,
+				)}
+			</Card>}
 		</section>
 
 		<section>

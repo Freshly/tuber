@@ -176,7 +176,7 @@ func DeleteReviewApp(ctx context.Context, db *core.DB, reviewAppName string, cre
 
 // yoinked from https://gitlab.com/gitlab-org/gitlab-runner/-/blob/0e2ae0001684f681ff901baa85e0d63ec7838568/executors/kubernetes/util.go#L23
 const (
-	DNS1123NameMaximumLength         = 63
+	DNS1123NameMaximumLength         = 30 // quick loophole to handle resource names. Originally 63
 	DNS1123NotAllowedCharacters      = "[^-a-z0-9]"
 	DNS1123NotAllowedStartCharacters = "^[^a-z0-9]+"
 )
@@ -195,7 +195,7 @@ func makeDNS1123Compatible(name string) string {
 		name = name[0:DNS1123NameMaximumLength]
 	}
 
-	return name
+	return strings.Trim(name, "-")
 }
 
 func ReviewAppName(appName string, branch string) string {
