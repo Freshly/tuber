@@ -98,16 +98,16 @@ var changeMeToEnvLater = "asdfasdf"
 
 func lauren(w http.ResponseWriter, r *http.Request) {
 	c := &oauth2.Config{
-		RedirectURL:  "https://admin.freshlyhq.com/tuber/successQuestion",
-		ClientID:     "1060298202659-p0qlrqlbg8ffgh3h9g1q0ksash29lb3d.apps.googleusercontent.com",
-		ClientSecret: "Ddasq36J3xvsB0Ip5_mJE4wj",
+		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
+		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
+		ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
 		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
 		Endpoint:     google.Endpoint,
 	}
 	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
 }
 
-func successQuestion(w http.ResponseWriter, r *http.Request) {
+func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	queryVals := r.URL.Query()
 	if queryVals.Get("error") != "" {
 		fmt.Fprintf(w, fmt.Sprintf("<h1>error in the redirect response</h1><h1>%s</h1>", queryVals.Get("error")))
@@ -118,9 +118,9 @@ func successQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := &oauth2.Config{
-		RedirectURL:  "https://admin.freshlyhq.com/tuber/successQuestion",
-		ClientID:     "1060298202659-p0qlrqlbg8ffgh3h9g1q0ksash29lb3d.apps.googleusercontent.com",
-		ClientSecret: "Ddasq36J3xvsB0Ip5_mJE4wj",
+		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
+		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
+		ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
 		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
 		Endpoint:     google.Endpoint,
 	}
@@ -137,7 +137,7 @@ func (s server) start() error {
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
 	mux.Handle(s.prefixed("/graphql"), debugTime(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
 	mux.HandleFunc(s.prefixed("/lauren"), lauren)
-	mux.HandleFunc(s.prefixed("/successQuestion"), successQuestion)
+	mux.HandleFunc(s.prefixed("/auth"), receiveAuthRedirect)
 
 	if s.useDevServer {
 		mux.HandleFunc(s.prefixed("/"), localDevServer)
