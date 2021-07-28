@@ -137,8 +137,8 @@ func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
 	mux.Handle(s.prefixed("/graphql"), debugTime(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
-	mux.HandleFunc(s.prefixed("/lauren"), lauren)
-	mux.HandleFunc(s.prefixed("/auth"), receiveAuthRedirect)
+	mux.HandleFunc(s.prefixed("/lauren/"), lauren)
+	mux.HandleFunc(s.prefixed("/auth/"), receiveAuthRedirect)
 
 	if s.useDevServer {
 		mux.HandleFunc(s.prefixed("/"), localDevServer)
