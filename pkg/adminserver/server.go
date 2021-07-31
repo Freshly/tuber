@@ -86,7 +86,7 @@ func (s server) prefixed(route string) string {
 	return fmt.Sprintf("%s%s", s.prefix, route)
 }
 
-var cookieName = "tuber-auth"
+var cookieName = "TUBER"
 
 func requireAuthCookie(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +153,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
 		Endpoint:     google.Endpoint,
 	}
-	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 401)
+	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
 }
 
 func (s server) start() error {
