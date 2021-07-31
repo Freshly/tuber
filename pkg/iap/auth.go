@@ -175,10 +175,10 @@ func CreateRefreshToken() error {
 	return os.WriteFile(path, out, os.ModePerm)
 }
 
-func CreateIDToken(IAPAudience string) (string, error) {
+func CreateIDToken(IAPAudience string) (string, string, error) {
 	rts, err := LoadOrCreateRefreshTokens()
 	if err != nil {
-		return "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
+		return "", "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
 	}
 
 	var activeToken *audienceToken
@@ -188,12 +188,12 @@ func CreateIDToken(IAPAudience string) (string, error) {
 		}
 	}
 	if activeToken == nil || activeToken.RefreshToken == "" {
-		return "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
+		return "", "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
 	}
 
 	c, err := newOAuthConfig()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	v := url.Values{
@@ -202,17 +202,15 @@ func CreateIDToken(IAPAudience string) (string, error) {
 		"audience":      {IAPAudience},
 	}
 
-	fmt.Println(c.Endpoint.TokenURL)
 	token, err := internal.RetrieveToken(context.Background(), c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	vals, ok := token.Raw.(map[string]interface{})
 	if !ok {
-		return "", errors.New("could not assert raw token values")
+		return "", "", errors.New("could not assert raw token values")
 	}
-	fmt.Println(vals)
 
-	return vals["id_token"].(string), nil
+	return vals["id_token"].(string), vals["access_token"].(string), nil
 }

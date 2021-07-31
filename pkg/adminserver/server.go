@@ -88,13 +88,14 @@ func (s server) prefixed(route string) string {
 
 var cookieName = "TUBER"
 
-func requireAuthCookie(next http.Handler) http.Handler {
+func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.Header)
-		fmt.Println(r.Cookies())
+		if r.Header.Get("Tuber-Token") != "" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		for _, cookie := range r.Cookies() {
 			if cookie.Name == cookieName && cookie.Value != "" {
-				fmt.Println("cookie found! " + cookie.Value)
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -135,8 +136,6 @@ func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), 401)
 		return
 	}
-	fmt.Println("access token: " + token.AccessToken)
-	fmt.Println("refresh token: " + token.RefreshToken)
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token.AccessToken, HttpOnly: true, Secure: true, Path: "/"})
 	http.Redirect(w, r, "/tuber/", 301)
 }
@@ -161,7 +160,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
-	mux.Handle(s.prefixed("/graphql"), requireAuthCookie(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
+	mux.Handle(s.prefixed("/graphql"), requireAuth(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
 	mux.HandleFunc(s.prefixed("/unauthorized/"), unauthorized)
 	mux.HandleFunc(s.prefixed("/auth/"), receiveAuthRedirect)
 	mux.HandleFunc(s.prefixed("/login/"), login)
