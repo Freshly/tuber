@@ -94,10 +94,12 @@ func requireAuthCookie(next http.Handler) http.Handler {
 		fmt.Println(r.Cookies())
 		for _, cookie := range r.Cookies() {
 			if cookie.Name == cookieName && cookie.Value != "" {
+				fmt.Println("cookie found! " + cookie.Value)
 				next.ServeHTTP(w, r)
 				return
 			}
 		}
+		fmt.Println("cookie not found, redirecting?")
 		c := &oauth2.Config{
 			RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
 			ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
@@ -105,8 +107,7 @@ func requireAuthCookie(next http.Handler) http.Handler {
 			Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
 			Endpoint:     google.Endpoint,
 		}
-		http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
-		next.ServeHTTP(w, r)
+		http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 401)
 	})
 }
 
