@@ -17,9 +17,11 @@ spec:
         - uri:
             prefix: /tuber/graphql
         - uri:
-            prefix: /tuber/lauren
+            prefix: /tuber/login
         - uri:
             prefix: /tuber/auth
+        - uri:
+            prefix: /tuber/unauthorized
     - route:
         - destination:
             host: tuber-frontend.tuber-frontend.svc.cluster.local

@@ -143,12 +143,26 @@ func unauthorized(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, fmt.Sprintf("<h2>unauthorized: %s</h2>", r.URL.Query().Get("error")))
 }
 
+// can't / won't figure out how to tell nextjs to follow a server redirect. easy to reimplement once that's supported.
+// for now first step will be to manually go here first to get yourself a cookie
+func login(w http.ResponseWriter, r *http.Request) {
+	c := &oauth2.Config{
+		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
+		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
+		ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
+		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
+		Endpoint:     google.Endpoint,
+	}
+	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 401)
+}
+
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
 	mux.Handle(s.prefixed("/graphql"), requireAuthCookie(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
 	mux.HandleFunc(s.prefixed("/unauthorized/"), unauthorized)
 	mux.HandleFunc(s.prefixed("/auth/"), receiveAuthRedirect)
+	mux.HandleFunc(s.prefixed("/login/"), login)
 
 	if s.useDevServer {
 		mux.HandleFunc(s.prefixed("/"), localDevServer)
