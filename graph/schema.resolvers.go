@@ -641,7 +641,6 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
-	printContextInternals(ctx, true)
 	return r.Resolver.db.App(name)
 }
 
@@ -673,7 +672,7 @@ func printContextInternals(ctx interface{}, inner bool) {
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	ctx.Value()
+	printContextInternals(ctx, true)
 	return r.Resolver.db.SourceApps()
 }
 
