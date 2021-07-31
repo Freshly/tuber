@@ -106,6 +106,7 @@ func requireAuthCookie(next http.Handler) http.Handler {
 			Endpoint:     google.Endpoint,
 		}
 		http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
+		next.ServeHTTP(w, r)
 	})
 }
 
