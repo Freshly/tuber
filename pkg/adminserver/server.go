@@ -137,7 +137,7 @@ func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("access token: " + token.AccessToken)
 	fmt.Println("refresh token: " + token.RefreshToken)
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token.AccessToken, HttpOnly: true, Secure: true})
+	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token.AccessToken, HttpOnly: true, Secure: true, Path: "/"})
 	http.Redirect(w, r, "/tuber/", 301)
 }
 
