@@ -1,6 +1,9 @@
 package graph
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
 	"go.uber.org/zap"
@@ -34,4 +37,13 @@ func NewResolver(db *core.DB, logger *zap.Logger, processor *events.Processor, c
 		clusterRegion:     clusterRegion,
 		reviewAppsEnabled: reviewAppsEnabled,
 	}
+}
+
+// where do helper funcs go
+func getToken(ctx context.Context) (string, error) {
+	token, ok := ctx.Value("accessToken").(string)
+	if !ok || token == "" {
+		return "", fmt.Errorf("no token found on request")
+	}
+	return token, nil
 }
