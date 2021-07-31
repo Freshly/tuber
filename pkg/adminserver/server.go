@@ -86,36 +86,39 @@ func (s server) prefixed(route string) string {
 	return fmt.Sprintf("%s%s", s.prefix, route)
 }
 
-func debugTime(next http.Handler) http.Handler {
+var cookieName = "tuber-auth"
+
+func requireAuthCookie(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.Header)
 		fmt.Println(r.Cookies())
-		next.ServeHTTP(w, r)
+		for _, cookie := range r.Cookies() {
+			if cookie.Name == cookieName && cookie.Value != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		c := &oauth2.Config{
+			RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
+			ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
+			ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
+			Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
+			Endpoint:     google.Endpoint,
+		}
+		http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
 	})
 }
 
 var changeMeToEnvLater = "asdfasdf"
 
-func lauren(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("yeah use this ya idiot 1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com")
-	c := &oauth2.Config{
-		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
-		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
-		ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
-		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
-		Endpoint:     google.Endpoint,
-	}
-	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
-}
-
 func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	queryVals := r.URL.Query()
 	if queryVals.Get("error") != "" {
-		fmt.Fprintf(w, fmt.Sprintf("<h1>error in the redirect response</h1><h1>%s</h1>", queryVals.Get("error")))
+		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", queryVals.Get("error")), 401)
 		return
 	}
 	if queryVals.Get("code") == "" {
-		fmt.Fprintf(w, "<h1>no code or error?</h1>")
+		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", "no auth code returned from iap"), 401)
 		return
 	}
 	c := &oauth2.Config{
@@ -127,17 +130,22 @@ func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := c.Exchange(context.Background(), queryVals.Get("code"))
 	if err != nil {
-		fmt.Fprintf(w, fmt.Sprintf("<h1>exchange error :(</h1><h1>%s</h1>", err.Error()))
+		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), 401)
 		return
 	}
-	fmt.Fprintf(w, fmt.Sprintf("<h1>success???????</h1><h1>%s</h1>", token))
+	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token.RefreshToken, HttpOnly: true, Secure: true})
+	http.Redirect(w, r, "/tuber/", 301)
+}
+
+func unauthorized(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, fmt.Sprintf("<h2>unauthorized: %s</h2>", r.URL.Query().Get("error")))
 }
 
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
-	mux.Handle(s.prefixed("/graphql"), debugTime(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
-	mux.HandleFunc(s.prefixed("/lauren/"), lauren)
+	mux.Handle(s.prefixed("/graphql"), requireAuthCookie(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
+	mux.HandleFunc(s.prefixed("/unauthorized/"), unauthorized)
 	mux.HandleFunc(s.prefixed("/auth/"), receiveAuthRedirect)
 
 	if s.useDevServer {
