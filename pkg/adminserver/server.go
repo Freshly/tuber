@@ -91,11 +91,15 @@ var cookieName = "TUBER"
 func requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Tuber-Token") != "" {
+			ctx := context.WithValue(r.Context(), "accessToken", r.Header.Get("Tuber-Token"))
+			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 			return
 		}
 		for _, cookie := range r.Cookies() {
 			if cookie.Name == cookieName && cookie.Value != "" {
+				ctx := context.WithValue(r.Context(), "accessToken", cookie.Value)
+				r = r.WithContext(ctx)
 				next.ServeHTTP(w, r)
 				return
 			}
