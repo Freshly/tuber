@@ -56,7 +56,7 @@ var expirationTimeFormat = time.RFC3339
 func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 	accessToken, ok := ctx.Value(accessTokenCtxKey).(string)
 	if !ok || accessToken == "" {
-		return "", fmt.Errorf("no access token found, t")
+		return "", fmt.Errorf("no access token found, try /login")
 	}
 
 	return accessToken, nil
@@ -119,8 +119,8 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 	r = r.WithContext(context.WithValue(r.Context(), accessTokenExpirationCtxKey, accessTokenExpiration))
 
 	cookies := []*http.Cookie{
-		{Name: refreshTokenCookieKey(), Value: accessToken, HttpOnly: true, Secure: true, Path: "/"},
-		{Name: accessTokenCookieKey(), Value: refreshToken, HttpOnly: true, Secure: true, Path: "/"},
+		{Name: refreshTokenCookieKey(), Value: refreshToken, HttpOnly: true, Secure: true, Path: "/"},
+		{Name: accessTokenCookieKey(), Value: accessToken, HttpOnly: true, Secure: true, Path: "/"},
 		{Name: accessTokenExpirationCookieKey(), Value: accessTokenExpiration, HttpOnly: true, Secure: true, Path: "/"},
 	}
 	for _, cookie := range cookies {
