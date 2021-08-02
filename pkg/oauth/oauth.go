@@ -72,7 +72,7 @@ func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 
 func (a *Authenticator) TrySetAccessTokenContext(request *http.Request) (*http.Request, bool) {
 	accessTokenHeaderValue := request.Header.Get(AccessTokenHeaderKey())
-	if accessTokenHeaderValue != "" {
+	if accessTokenHeaderValue == "" {
 		return request, false
 	}
 	request = request.WithContext(context.WithValue(request.Context(), accessTokenCtxKey(), accessTokenHeaderValue))
