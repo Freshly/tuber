@@ -92,7 +92,7 @@ func (s server) prefixed(route string) string {
 func (s server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var authed bool
-		r, authed = s.authenticator.TrySetAccessTokenContext(r)
+		r, authed = s.authenticator.TrySetHeaderAuthContext(r)
 		if authed {
 			fmt.Println("access token on headers")
 			next.ServeHTTP(w, r)
@@ -100,9 +100,9 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 		}
 		fmt.Println("no access token on headers")
 
-		r, authed = s.authenticator.TrySetRefreshTokenContext(r)
+		var err error
+		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r)
 		if authed {
-			fmt.Println("refresh token in cookies")
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -110,6 +110,9 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 
 		// does not even server side, even with 301, pending frontend updates. But it errors so that's good.
 		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), 401)
+		if err != nil {
+			fmt.Println(err)
+		}
 	})
 }
 
@@ -124,12 +127,14 @@ func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", "no auth code returned from iap"), 401)
 		return
 	}
-	token, err := s.authenticator.GetRefreshTokenFromAuthToken(r.Context(), queryVals.Get("code"))
+	cookies, err := s.authenticator.GetTokenCookiesFromAuthToken(r.Context(), queryVals.Get("code"))
 	if err != nil {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), 401)
 		return
 	}
-	http.SetCookie(w, s.authenticator.RefreshTokenCookie(token))
+	for _, cookie := range cookies {
+		http.SetCookie(w, cookie)
+	}
 	http.Redirect(w, r, "/tuber/", 301)
 }
 
