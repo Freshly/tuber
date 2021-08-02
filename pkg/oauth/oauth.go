@@ -52,6 +52,7 @@ func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 
 	refreshToken, ok := ctx.Value(refreshTokenCtxKey()).(string)
 	if !ok || refreshToken == "" {
+		fmt.Println(refreshToken)
 		return "", fmt.Errorf("no token found on request")
 	}
 
@@ -85,8 +86,8 @@ func (a *Authenticator) RefreshTokenCookie(refreshToken string) *http.Cookie {
 func (a *Authenticator) TrySetRefreshTokenContext(request *http.Request) (*http.Request, bool) {
 	for _, cookie := range request.Cookies() {
 		if cookie.Name == refreshTokenCookieKey() && cookie.Value != "" {
-			request = request.WithContext(context.WithValue(request.Context(), refreshTokenCtxKey(), cookie.Value))
-			return request, true
+			fmt.Println("refresh token cookie found: " + cookie.Value)
+			return request.WithContext(context.WithValue(request.Context(), refreshTokenCtxKey(), cookie.Value)), true
 		}
 	}
 	return request, false
