@@ -99,6 +99,7 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 		return w, r, false, nil
 	}
 
+	var refreshed bool
 	expiration, expParseErr := time.Parse(expirationTimeFormat, accessTokenExpiration)
 	// 1 min of space just in case it's about to expire and WOULD before a can-i check further in the request
 	// this also implies we'll never run an entire deploy impersonating, using a web access token, unless we were to manually refresh it beforehand
@@ -112,19 +113,22 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 		}
 		accessToken = token.AccessToken
 		accessTokenExpiration = token.Expiry.Format(expirationTimeFormat)
+		refreshed = true
 	}
 
 	r = r.WithContext(context.WithValue(r.Context(), refreshTokenCtxKey, refreshToken))
 	r = r.WithContext(context.WithValue(r.Context(), accessTokenCtxKey, accessToken))
 	r = r.WithContext(context.WithValue(r.Context(), accessTokenExpirationCtxKey, accessTokenExpiration))
 
-	cookies := []*http.Cookie{
-		{Name: refreshTokenCookieKey(), Value: refreshToken, HttpOnly: true, Secure: true, Path: "/"},
-		{Name: accessTokenCookieKey(), Value: accessToken, HttpOnly: true, Secure: true, Path: "/"},
-		{Name: accessTokenExpirationCookieKey(), Value: accessTokenExpiration, HttpOnly: true, Secure: true, Path: "/"},
-	}
-	for _, cookie := range cookies {
-		http.SetCookie(w, cookie)
+	if refreshed {
+		cookies := []*http.Cookie{
+			{Name: refreshTokenCookieKey(), Value: refreshToken, HttpOnly: true, Secure: true, Path: "/"},
+			{Name: accessTokenCookieKey(), Value: accessToken, HttpOnly: true, Secure: true, Path: "/"},
+			{Name: accessTokenExpirationCookieKey(), Value: accessTokenExpiration, HttpOnly: true, Secure: true, Path: "/"},
+		}
+		for _, cookie := range cookies {
+			http.SetCookie(w, cookie)
+		}
 	}
 
 	return w, r, true, nil
