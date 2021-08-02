@@ -130,13 +130,13 @@ func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, fmt.Sprintf("<h2>unauthorized: %s</h2>", r.URL.Query().Get("error")))
+	fmt.Fprintf(w, "<h2>unauthorized: "+r.URL.Query().Get("error")+"</h2>")
 }
 
 // can't / won't figure out how to tell nextjs to follow a server redirect. easy to reimplement once that's supported.
 // for now first step will be to manually go here first to get yourself a cookie
 func (s server) login(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(s.authenticator.RefreshTokenConsentUrl())
+	fmt.Println("refresh token consent url: " + s.authenticator.RefreshTokenConsentUrl())
 	http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), 301)
 }
 
