@@ -63,9 +63,10 @@ func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 		return "", err
 	}
 	if token.AccessToken == "" {
-		fmt.Println(token)
 		return "", fmt.Errorf("cookie refresh token reissue returned blank access token")
 	}
+
+	fmt.Println(token)
 
 	return token.AccessToken, nil
 }
