@@ -94,15 +94,19 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 		var authed bool
 		r, authed = s.authenticator.TrySetAccessTokenContext(r)
 		if authed {
+			fmt.Println("access token on headers")
 			next.ServeHTTP(w, r)
 			return
 		}
+		fmt.Println("no access token on headers")
 
 		r, authed = s.authenticator.TrySetRefreshTokenContext(r)
 		if authed {
+			fmt.Println("refresh token in cookies")
 			next.ServeHTTP(w, r)
 			return
 		}
+		fmt.Println("no refresh token in cookies")
 
 		// does not even server side, even with 301, pending frontend updates. But it errors so that's good.
 		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), 401)

@@ -52,7 +52,7 @@ func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 
 	refreshToken, ok := ctx.Value(refreshTokenCtxKey()).(string)
 	if !ok || refreshToken == "" {
-		fmt.Println(refreshToken)
+		fmt.Println("context refresh token" + refreshToken)
 		return "", fmt.Errorf("no token found on request")
 	}
 
