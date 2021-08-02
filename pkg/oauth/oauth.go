@@ -53,7 +53,7 @@ var accessTokenExpirationCtxKey oauthCtxKey = "accessTokenExpiration"
 var accessTokenRefreshed oauthCtxKey = "accessTokenRefreshed"
 var expirationTimeFormat = time.RFC3339
 
-func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
+func GetAccessToken(ctx context.Context) (string, error) {
 	accessToken, ok := ctx.Value(accessTokenCtxKey).(string)
 	if !ok || accessToken == "" {
 		return "", fmt.Errorf("no access token found, try /login")

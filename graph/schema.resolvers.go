@@ -18,6 +18,7 @@ import (
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/freshly/tuber/pkg/reviewapps"
 	"go.uber.org/zap"
 )
@@ -643,7 +644,7 @@ func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberAp
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	token, err := r.authenticator.GetAccessToken(ctx)
+	token, err := oauth.GetAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}
