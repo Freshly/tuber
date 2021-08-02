@@ -2,7 +2,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/freshly/tuber/pkg/iap"
@@ -68,7 +67,6 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 	if err != nil {
 		return err
 	}
-	fmt.Println(idToken)
 
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Authorization", "Bearer "+idToken)

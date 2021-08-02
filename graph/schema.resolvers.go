@@ -643,7 +643,7 @@ func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberAp
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	token, err := getToken(ctx)
+	token, err := r.authenticator.GetAccessToken(ctx)
 	if err != nil {
 		return nil, err
 	}

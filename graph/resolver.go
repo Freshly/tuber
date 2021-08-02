@@ -1,11 +1,9 @@
 package graph
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/oauth"
 	"go.uber.org/zap"
 )
 
@@ -24,9 +22,10 @@ type Resolver struct {
 	clusterName       string
 	clusterRegion     string
 	reviewAppsEnabled bool
+	authenticator     *oauth.Authenticator
 }
 
-func NewResolver(db *core.DB, logger *zap.Logger, processor *events.Processor, credentials []byte, projectName string, clusterName string, clusterRegion string, reviewAppsEnabled bool) *Resolver {
+func NewResolver(db *core.DB, logger *zap.Logger, processor *events.Processor, credentials []byte, projectName string, clusterName string, clusterRegion string, reviewAppsEnabled bool, authenticator *oauth.Authenticator) *Resolver {
 	return &Resolver{
 		db:                db,
 		logger:            logger,
@@ -36,14 +35,6 @@ func NewResolver(db *core.DB, logger *zap.Logger, processor *events.Processor, c
 		clusterName:       clusterName,
 		clusterRegion:     clusterRegion,
 		reviewAppsEnabled: reviewAppsEnabled,
+		authenticator:     authenticator,
 	}
-}
-
-// where do helper funcs go
-func getToken(ctx context.Context) (string, error) {
-	token, ok := ctx.Value("accessToken").(string)
-	if !ok || token == "" {
-		return "", fmt.Errorf("no token found on request")
-	}
-	return token, nil
 }

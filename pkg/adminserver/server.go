@@ -12,10 +12,9 @@ import (
 	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/go-http-utils/logger"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
 )
@@ -34,9 +33,12 @@ type server struct {
 	clusterRegion       string
 	prefix              string
 	useDevServer        bool
+	authenticator       *oauth.Authenticator
 }
 
-func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string, creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string, prefix string, useDevServer bool) error {
+func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string,
+	creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string,
+	prefix string, useDevServer bool, authenticator *oauth.Authenticator) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -61,6 +63,7 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 		clusterRegion:       clusterRegion,
 		prefix:              prefix,
 		useDevServer:        useDevServer,
+		authenticator:       authenticator,
 	}.start()
 }
 
@@ -86,39 +89,27 @@ func (s server) prefixed(route string) string {
 	return fmt.Sprintf("%s%s", s.prefix, route)
 }
 
-var cookieName = "TUBER"
-
-func requireAuth(next http.Handler) http.Handler {
+func (s server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Tuber-Token") != "" {
-			ctx := context.WithValue(r.Context(), "accessToken", r.Header.Get("Tuber-Token"))
-			r = r.WithContext(ctx)
+		var authed bool
+		r, authed = s.authenticator.TrySetAccessTokenContext(r)
+		if authed {
 			next.ServeHTTP(w, r)
 			return
 		}
-		for _, cookie := range r.Cookies() {
-			if cookie.Name == cookieName && cookie.Value != "" {
-				ctx := context.WithValue(r.Context(), "accessToken", cookie.Value)
-				r = r.WithContext(ctx)
-				next.ServeHTTP(w, r)
-				return
-			}
+
+		r, authed = s.authenticator.TrySetRefreshTokenContext(r)
+		if authed {
+			next.ServeHTTP(w, r)
+			return
 		}
-		fmt.Println("cookie not found, redirecting?")
-		c := &oauth2.Config{
-			RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
-			ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
-			ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
-			Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
-			Endpoint:     google.Endpoint,
-		}
-		http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 401)
+
+		// does not even server side, even with 301, pending frontend updates. But it errors so that's good.
+		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), 401)
 	})
 }
 
-var changeMeToEnvLater = "asdfasdf"
-
-func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
+func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	queryVals := r.URL.Query()
 	if queryVals.Get("error") != "" {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", queryVals.Get("error")), 401)
@@ -128,19 +119,12 @@ func receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", "no auth code returned from iap"), 401)
 		return
 	}
-	c := &oauth2.Config{
-		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
-		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
-		ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
-		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
-		Endpoint:     google.Endpoint,
-	}
-	token, err := c.Exchange(context.Background(), queryVals.Get("code"))
+	token, err := s.authenticator.GetRefreshTokenFromAuthToken(r.Context(), queryVals.Get("code"))
 	if err != nil {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), 401)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token.AccessToken, HttpOnly: true, Secure: true, Path: "/"})
+	http.SetCookie(w, s.authenticator.RefreshTokenCookie(token))
 	http.Redirect(w, r, "/tuber/", 301)
 }
 
@@ -150,24 +134,17 @@ func unauthorized(w http.ResponseWriter, r *http.Request) {
 
 // can't / won't figure out how to tell nextjs to follow a server redirect. easy to reimplement once that's supported.
 // for now first step will be to manually go here first to get yourself a cookie
-func login(w http.ResponseWriter, r *http.Request) {
-	c := &oauth2.Config{
-		RedirectURL:  "https://admin.freshlyhq.com/tuber/auth",
-		ClientID:     "1060298202659-ulji10nd13lpp7ltldhko6j3fq9ub8i9.apps.googleusercontent.com",
-		ClientSecret: "-VpmGDw5xcc-SEbZUlAgYx1A",
-		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
-		Endpoint:     google.Endpoint,
-	}
-	http.Redirect(w, r, c.AuthCodeURL(changeMeToEnvLater), 301)
+func (s server) login(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), 301)
 }
 
 func (s server) start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
-	mux.Handle(s.prefixed("/graphql"), requireAuth(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
+	mux.Handle(s.prefixed("/graphql"), s.requireAuth(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled, s.authenticator)))
 	mux.HandleFunc(s.prefixed("/unauthorized/"), unauthorized)
-	mux.HandleFunc(s.prefixed("/auth/"), receiveAuthRedirect)
-	mux.HandleFunc(s.prefixed("/login/"), login)
+	mux.HandleFunc(s.prefixed("/auth/"), s.receiveAuthRedirect)
+	mux.HandleFunc(s.prefixed("/login/"), s.login)
 
 	if s.useDevServer {
 		mux.HandleFunc(s.prefixed("/"), localDevServer)

@@ -6,6 +6,7 @@ import (
 	"github.com/freshly/tuber/pkg/adminserver"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/oauth"
 	"go.uber.org/zap"
 
 	"github.com/spf13/viper"
@@ -19,6 +20,8 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		panic("need a review apps triggers project name")
 	}
 
+	auth := oauth.NewAuthenticator(viper.GetString("TUBER_OAUTH_REDIRECT_URL"), viper.GetString("TUBER_OAUTH_WEB_CLIENT_SECRET"), viper.GetString("TUBER_OAUTH_WEB_CLIENT_ID"), viper.GetString("TUBER_OAUTH_STATE_KEY"))
+
 	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	err := adminserver.Start(ctx, logger, db, processor, triggersProjectName, creds,
 		reviewAppsEnabled,
@@ -28,6 +31,7 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		viper.GetString("TUBER_CLUSTER_REGION"),
 		viper.GetString("TUBER_ADMINSERVER_PREFIX"),
 		viper.GetBool("TUBER_USE_DEVSERVER"),
+		auth,
 	)
 
 	if err != nil {
