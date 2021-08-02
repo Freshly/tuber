@@ -33,7 +33,15 @@ func AccessTokenHeaderKey() string {
 }
 
 func refreshTokenCookieKey() string {
-	return "TUBERTOKEN"
+	return "TUBERRTOKEN"
+}
+
+func accessTokenCookieKey() string {
+	return "TUBERATOKEN"
+}
+
+func accessTokenExpirationCookieKey() string {
+	return "TUBERATOKENEXP"
 }
 
 func accessTokenCtxKey() string {
@@ -66,6 +74,7 @@ func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("cookie refresh token reissue returned blank access token")
 	}
 
+	fmt.Println("access token (re)retrieval:")
 	fmt.Println(token)
 
 	return token.AccessToken, nil
@@ -102,6 +111,8 @@ func (a *Authenticator) GetRefreshTokenFromAuthToken(ctx context.Context, author
 	if token.RefreshToken == "" {
 		return "", fmt.Errorf("refresh token blank on auth code exchange")
 	}
+	fmt.Println("refresh token retrieval:")
+	fmt.Println(token)
 	return token.RefreshToken, nil
 }
 
