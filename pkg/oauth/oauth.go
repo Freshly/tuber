@@ -104,5 +104,5 @@ func (a *Authenticator) GetRefreshTokenFromAuthToken(ctx context.Context, author
 }
 
 func (a *Authenticator) RefreshTokenConsentUrl() string {
-	return a.oauthConfig.AuthCodeURL(a.oauthStateKey, oauth2.AccessTypeOffline)
+	return a.oauthConfig.AuthCodeURL(a.oauthStateKey, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 }
