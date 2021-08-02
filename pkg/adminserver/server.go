@@ -111,6 +111,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 
 func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	queryVals := r.URL.Query()
+	fmt.Println(queryVals)
 	if queryVals.Get("error") != "" {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", queryVals.Get("error")), 401)
 		return
@@ -135,6 +136,7 @@ func unauthorized(w http.ResponseWriter, r *http.Request) {
 // can't / won't figure out how to tell nextjs to follow a server redirect. easy to reimplement once that's supported.
 // for now first step will be to manually go here first to get yourself a cookie
 func (s server) login(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(s.authenticator.RefreshTokenConsentUrl())
 	http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), 301)
 }
 

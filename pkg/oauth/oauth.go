@@ -93,7 +93,7 @@ func (a *Authenticator) TrySetRefreshTokenContext(request *http.Request) (*http.
 }
 
 func (a *Authenticator) GetRefreshTokenFromAuthToken(ctx context.Context, authorizationToken string) (string, error) {
-	token, err := a.oauthConfig.Exchange(ctx, authorizationToken)
+	token, err := a.oauthConfig.Exchange(ctx, authorizationToken, oauth2.AccessTypeOffline)
 	if err != nil {
 		return "", err
 	}
