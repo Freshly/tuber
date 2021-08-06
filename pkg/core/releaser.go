@@ -242,7 +242,7 @@ type appResource struct {
 	name            string
 	timeout         time.Duration
 	rollbackTimeout time.Duration
-	sentryUrl       string
+	sentryUrls      []string
 	watchDuration   time.Duration
 }
 
@@ -419,9 +419,15 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			rollbackTimeout = duration
 		}
 
-		var sentryUrl string
-		if t, ok := parsed.Metadata.Annotations["tuber/sentryUrl"].(string); ok && t != "" {
-			sentryUrl = t
+		var sentryUrls []string
+		for k, v := range parsed.Metadata.Annotations {
+			if strings.HasPrefix(k, "tuber/sentryUrl") {
+				url, ok := v.(string)
+				if !ok || url == "" {
+					continue
+				}
+				sentryUrls = append(sentryUrls, url)
+			}
 		}
 
 		var watchDuration time.Duration
@@ -439,7 +445,7 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			contents:        resourceYaml,
 			timeout:         timeout,
 			rollbackTimeout: rollbackTimeout,
-			sentryUrl:       sentryUrl,
+			sentryUrls:      sentryUrls,
 			watchDuration:   watchDuration,
 		}
 
@@ -554,11 +560,11 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 			wg.Done()
 		}(errors, wg)
 
-		if resource.sentryUrl != "" {
+		for _, url := range resource.sentryUrls {
 			wg.Add(1)
 			go func(errors chan rolloutError, wg *sync.WaitGroup) {
 				_, logger := resource.scopes(r)
-				healthy, message := monitor.Sentry(logger, resource.sentryUrl, r.sentryBearerToken, resource.watchDuration)
+				healthy, message := monitor.Sentry(logger, url, r.sentryBearerToken, resource.watchDuration)
 				if !healthy {
 					errors <- rolloutError{
 						err:                fmt.Errorf("sentry monitoring found failure"),
