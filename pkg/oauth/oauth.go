@@ -89,7 +89,6 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 			if err != nil {
 				return w, r, false, err
 			}
-			fmt.Println("refresh decoded - " + *decoded)
 			refreshToken = *decoded
 			continue
 		}
@@ -100,7 +99,6 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 			if err != nil {
 				return w, r, false, err
 			}
-			fmt.Println("access decoded - " + *decoded)
 			accessToken = *decoded
 			continue
 		}
