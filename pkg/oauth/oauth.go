@@ -84,14 +84,20 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == refreshTokenCookieKey() && cookie.Value != "" {
 			var decoded string
-			sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			err := sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			if err != nil {
+				return w, r, false, err
+			}
 			fmt.Println("refresh decoded - " + decoded)
 			refreshToken = decoded
 			continue
 		}
 		if cookie.Name == accessTokenCookieKey() && cookie.Value != "" {
 			var decoded string
-			sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			err := sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			if err != nil {
+				return w, r, false, err
+			}
 			fmt.Println("access decoded - " + decoded)
 			accessToken = decoded
 			continue
