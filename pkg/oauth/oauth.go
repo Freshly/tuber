@@ -85,12 +85,14 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 		if cookie.Name == refreshTokenCookieKey() && cookie.Value != "" {
 			var decoded string
 			sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			fmt.Println("refresh decoded - " + decoded)
 			refreshToken = decoded
 			continue
 		}
 		if cookie.Name == accessTokenCookieKey() && cookie.Value != "" {
 			var decoded string
 			sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			fmt.Println("access decoded - " + decoded)
 			accessToken = decoded
 			continue
 		}
