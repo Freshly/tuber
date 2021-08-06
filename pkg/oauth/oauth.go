@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/securecookie"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -76,17 +77,21 @@ func (a *Authenticator) TrySetHeaderAuthContext(request *http.Request) (*http.Re
 // this means that even requests that don't NEED an access token will have it refreshed when expired.
 // Given this is only every 30 minutes per user, it's not the worst.
 // But given we don't plan to be harsh on view access, it's unavoidable major overkill.
-func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request, bool, error) {
+func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.Request, sc *securecookie.SecureCookie) (http.ResponseWriter, *http.Request, bool, error) {
 	var refreshToken string
 	var accessToken string
 	var accessTokenExpiration string
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == refreshTokenCookieKey() && cookie.Value != "" {
-			refreshToken = cookie.Value
+			var decoded string
+			sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			refreshToken = decoded
 			continue
 		}
 		if cookie.Name == accessTokenCookieKey() && cookie.Value != "" {
-			accessToken = cookie.Value
+			var decoded string
+			sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			accessToken = decoded
 			continue
 		}
 		if cookie.Name == accessTokenExpirationCookieKey() && cookie.Value != "" {
@@ -120,9 +125,19 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 	r = r.WithContext(context.WithValue(r.Context(), accessTokenExpirationCtxKey, accessTokenExpiration))
 
 	if refreshed {
+		encodedRefresh, err := sc.Encode(refreshTokenCookieKey(), refreshToken)
+		if err != nil {
+			return w, r, false, fmt.Errorf("encode refresh token cookie error: %v", err)
+		}
+
+		encodedAccess, err := sc.Encode(refreshTokenCookieKey(), accessToken)
+		if err != nil {
+			return w, r, false, fmt.Errorf("encode access token cookie error: %v", err)
+		}
+
 		cookies := []*http.Cookie{
-			{Name: refreshTokenCookieKey(), Value: refreshToken, HttpOnly: true, Secure: true, Path: "/"},
-			{Name: accessTokenCookieKey(), Value: accessToken, HttpOnly: true, Secure: true, Path: "/"},
+			{Name: refreshTokenCookieKey(), Value: encodedRefresh, HttpOnly: true, Secure: true, Path: "/"},
+			{Name: accessTokenCookieKey(), Value: encodedAccess, HttpOnly: true, Secure: true, Path: "/"},
 			{Name: accessTokenExpirationCookieKey(), Value: accessTokenExpiration, HttpOnly: true, Secure: true, Path: "/"},
 		}
 		for _, cookie := range cookies {
@@ -133,7 +148,7 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 	return w, r, true, nil
 }
 
-func (a *Authenticator) GetTokenCookiesFromAuthToken(ctx context.Context, authorizationToken string) ([]*http.Cookie, error) {
+func (a *Authenticator) GetTokenCookiesFromAuthToken(ctx context.Context, authorizationToken string, sc *securecookie.SecureCookie) ([]*http.Cookie, error) {
 	token, err := a.oauthConfig.Exchange(ctx, authorizationToken, oauth2.AccessTypeOffline)
 	if err != nil {
 		return nil, err
@@ -141,9 +156,20 @@ func (a *Authenticator) GetTokenCookiesFromAuthToken(ctx context.Context, author
 	if token.RefreshToken == "" {
 		return nil, fmt.Errorf("refresh token blank on auth code exchange")
 	}
+
+	encodedRefresh, err := sc.Encode(refreshTokenCookieKey(), token.RefreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("encode refresh token cookie error: %v", err)
+	}
+
+	encodedAccess, err := sc.Encode(refreshTokenCookieKey(), token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("encode access token cookie error: %v", err)
+	}
+
 	return []*http.Cookie{
-		{Name: refreshTokenCookieKey(), Value: token.RefreshToken, HttpOnly: true, Secure: true, Path: "/"},
-		{Name: accessTokenCookieKey(), Value: token.AccessToken, HttpOnly: true, Secure: true, Path: "/"},
+		{Name: refreshTokenCookieKey(), Value: encodedRefresh, HttpOnly: true, Secure: true, Path: "/"},
+		{Name: accessTokenCookieKey(), Value: encodedAccess, HttpOnly: true, Secure: true, Path: "/"},
 		{Name: accessTokenExpirationCookieKey(), Value: token.Expiry.String(), HttpOnly: true, Secure: true, Path: "/"},
 	}, nil
 }

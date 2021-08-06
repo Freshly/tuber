@@ -14,6 +14,7 @@ import (
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/go-http-utils/logger"
+	"github.com/gorilla/securecookie"
 	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 	"google.golang.org/api/option"
@@ -34,11 +35,12 @@ type server struct {
 	prefix              string
 	useDevServer        bool
 	authenticator       *oauth.Authenticator
+	secureCookie        *securecookie.SecureCookie
 }
 
 func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *events.Processor, triggersProjectName string,
 	creds []byte, reviewAppsEnabled bool, clusterDefaultHost string, port string, clusterName string, clusterRegion string,
-	prefix string, useDevServer bool, authenticator *oauth.Authenticator) error {
+	prefix string, useDevServer bool, authenticator *oauth.Authenticator, secureCookie *securecookie.SecureCookie) error {
 	var cloudbuildClient *cloudbuild.Service
 
 	if reviewAppsEnabled {
@@ -64,6 +66,7 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 		prefix:              prefix,
 		useDevServer:        useDevServer,
 		authenticator:       authenticator,
+		secureCookie:        secureCookie,
 	}.start()
 }
 
@@ -99,7 +102,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 		}
 
 		var err error
-		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r)
+		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r, s.secureCookie)
 		if authed {
 			next.ServeHTTP(w, r)
 			return
@@ -122,7 +125,7 @@ func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", "no auth code returned from iap"), http.StatusUnauthorized)
 		return
 	}
-	cookies, err := s.authenticator.GetTokenCookiesFromAuthToken(r.Context(), queryVals.Get("code"))
+	cookies, err := s.authenticator.GetTokenCookiesFromAuthToken(r.Context(), queryVals.Get("code"), s.secureCookie)
 	if err != nil {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), http.StatusUnauthorized)
 		return
