@@ -423,10 +423,9 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 		for k, v := range parsed.Metadata.Annotations {
 			if strings.HasPrefix(k, "tuber/sentryUrl") {
 				url, ok := v.(string)
-				if !ok || url == "" {
-					continue
+				if ok && url != "" {
+					sentryUrls = append(sentryUrls, url)
 				}
-				sentryUrls = append(sentryUrls, url)
 			}
 		}
 
