@@ -83,23 +83,23 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 	var accessTokenExpiration string
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == refreshTokenCookieKey() && cookie.Value != "" {
-			var stringref string
-			decoded := &stringref
-			err := sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			var decodedVal string
+			decodedRef := &decodedVal
+			err := sc.Decode(refreshTokenCookieKey(), cookie.Value, decodedRef)
 			if err != nil {
 				return w, r, false, err
 			}
-			refreshToken = *decoded
+			refreshToken = *decodedRef
 			continue
 		}
 		if cookie.Name == accessTokenCookieKey() && cookie.Value != "" {
-			var stringref string
-			decoded := &stringref
-			err := sc.Decode(refreshTokenCookieKey(), cookie.Value, decoded)
+			var decodedVal string
+			decodedRef := &decodedVal
+			err := sc.Decode(refreshTokenCookieKey(), cookie.Value, decodedRef)
 			if err != nil {
 				return w, r, false, err
 			}
-			accessToken = *decoded
+			accessToken = *decodedRef
 			continue
 		}
 		if cookie.Name == accessTokenExpirationCookieKey() && cookie.Value != "" {
