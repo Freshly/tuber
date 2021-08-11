@@ -103,15 +103,17 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 
 		var err error
 		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r, s.secureCookie)
+		if err != nil {
+			http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
 		if authed {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusUnauthorized)
-		if err != nil {
-			fmt.Println(err)
-		}
 	})
 }
 
