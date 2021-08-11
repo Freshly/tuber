@@ -561,7 +561,7 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 
 		for _, url := range resource.sentryUrls {
 			wg.Add(1)
-			go func(errors chan rolloutError, wg *sync.WaitGroup) {
+			go func(url string, errors chan rolloutError, wg *sync.WaitGroup) {
 				_, logger := resource.scopes(r)
 				healthy, message := monitor.Sentry(logger, url, r.sentryBearerToken, resource.watchDuration)
 				if !healthy {
@@ -573,7 +573,7 @@ func (r releaser) goWatch(resource appResource, timeout time.Duration, errors ch
 					}
 				}
 				wg.Done()
-			}(errors, wg)
+			}(url, errors, wg)
 		}
 	}
 }
