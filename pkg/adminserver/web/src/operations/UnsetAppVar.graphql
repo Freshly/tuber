@@ -1,10 +1,5 @@
 mutation UnsetAppVar($input: SetTupleInput!) {
   unsetAppVar(input: $input) {
     name
-
-    env {
-      key
-      value
-    }
   }
 }

@@ -1,0 +1,6 @@
+query GetAppEnv($name: String!) {
+  getAppEnv(name: $name) {
+    key
+    value
+  }
+}

@@ -94,6 +94,10 @@ func (s server) prefixed(route string) string {
 
 func (s server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.useDevServer {
+			next.ServeHTTP(w, r)
+			return
+		}
 		var authed bool
 		r, authed = s.authenticator.TrySetHeaderAuthContext(r)
 		if authed {

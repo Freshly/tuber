@@ -3,7 +3,7 @@ import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
 import Switch from 'react-switch'
 import dateformat from 'dateformat'
-import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, ConfirmButton, Button } from '../../src/components'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, AppEnv, TextInputForm, ConfirmButton, Button } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
@@ -17,7 +17,7 @@ import {
 	useSetRacVarMutation, useUnsetRacVarMutation,
 	useSetExcludedResourceMutation, useUnsetExcludedResourceMutation,
 	useSetAppVarMutation, useUnsetAppVarMutation,
-	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubRepoMutation, useGetClusterInfoQuery,
+	useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubRepoMutation, useGetClusterInfoQuery,
 } from '../../src/generated/graphql'
 import Head from 'next/head'
 import { useClusterInfo } from '../../src/useClusterInfo'
@@ -227,13 +227,7 @@ const ShowApp = () => {
 		</Card>
 
 		<Card className="shadow-dark-50 shadow">
-			<Collapsible heading={'Environment Variables'} collapsed={true}>
-				<TextInputGroup
-					vars={app.env} appName={app.name}
-					useSet={useSetAppEnvMutation}
-					useUnset={useUnsetAppEnvMutation}
-				/>
-			</Collapsible>
+			<AppEnv heading={'Environment Variables'} collapsed={true} appName={app.name}></AppEnv>
 		</Card>
 	</div>
 }

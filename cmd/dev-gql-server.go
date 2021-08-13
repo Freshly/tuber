@@ -1,0 +1,67 @@
+package cmd
+
+import (
+	"context"
+
+	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/slack"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+var devGqlServerCmd = &cobra.Command{
+	SilenceErrors: true,
+	SilenceUsage:  true,
+	Use:           "dev-gql-server [appname]",
+	Short:         "for local development only! start a gql server with a tuber app",
+	RunE:          runDevGqlServer,
+	PreRunE:       promptCurrentContext,
+	Args:          cobra.ExactArgs(1),
+}
+
+func runDevGqlServer(cmd *cobra.Command, args []string) error {
+	app, err := getApp(args[0])
+	if err != nil {
+		return err
+	}
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+	err = db.SaveApp(app)
+	if err != nil {
+		return err
+	}
+
+	creds, err := credentials()
+	if err != nil {
+		return err
+	}
+
+	logger, err := createLogger()
+	if err != nil {
+		return err
+	}
+	defer logger.Sync()
+
+	ctx := context.Background()
+
+	data, err := clusterData()
+	if err != nil {
+		return err
+	}
+
+	slackClient := slack.New("", false, "")
+
+	viper.SetDefault("TUBER_USE_DEVSERVER", true)
+	viper.SetDefault("TUBER_ADMINSERVER_PORT", "3001")
+	viper.SetDefault("TUBER_DEBUG", true)
+	processor := events.NewProcessor(ctx, logger, db, creds, data, true, slackClient, "", "", "")
+	startAdminServer(ctx, db, processor, logger, creds)
+
+	return nil
+}
+
+func init() {
+	rootCmd.AddCommand(devGqlServerCmd)
+}

@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: plan-upgrade
+  namespace: freshly
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  restartPolicy: Never
+  containers:
+  - name: plan-upgrade
+    image: "gcr.io/freshly-docker/freshly:your-branch-if-there's-a-branch-otherwise-main"
+    command: ["/bin/sh"]
+    args: ["-c", "rake your_rake_task.rb > /dev/termination-log"]
+    terminationMessagePolicy: FallbackToLogsOnError
+    env:
+      - name: DD_ENTITY_ID
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.uid
+      - name: DOGSTATSD_HOST_IP
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.hostIP
+      - name: DD_AGENT_HOST
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: status.hostIP
+    nodeSelector:
+      cloud.google.com/gke-nodepool: freshly-n2d-c8-16
+    tolerations:
+      - effect: PreferNoSchedule
+        key: monolith
+        operator: Equal
+        value: "true"
+    resources:
+      resources:
+        limits:
+          cpu: "7"
+          memory: 14Gi
+        requests:
+          cpu: "6"
+          memory: 10Gi
+    envFrom:
+      - secretRef:
+          name: "freshly-env"

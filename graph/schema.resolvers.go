@@ -18,7 +18,6 @@ import (
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
-	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/freshly/tuber/pkg/reviewapps"
 	"go.uber.org/zap"
 )
@@ -639,34 +638,15 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 	return app, nil
 }
 
-func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
-	return r.Resolver.db.App(name)
-}
-
-func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	token, err := oauth.GetAccessToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-	k8s.CanDeploy("tuber", "--token", token)
-	return r.Resolver.db.SourceApps()
-}
-
-func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
-	return &model.ClusterInfo{
-		Name:              r.Resolver.clusterName,
-		Region:            r.Resolver.clusterRegion,
-		ReviewAppsEnabled: r.Resolver.reviewAppsEnabled,
-	}, nil
-}
-
-func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
-	return r.db.ReviewAppsFor(obj)
-}
-
-func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error) {
-	mapName := fmt.Sprintf("%s-env", obj.Name)
-	config, err := k8s.GetConfigResource(mapName, obj.Name, "Secret")
+func (r *queryResolver) GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error) {
+	fmt.Println("no fuckin way")
+	// token, err := oauth.GetAccessToken(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	mapName := fmt.Sprintf("%s-env", name)
+	config, err := k8s.GetConfigResource(mapName, name, "Secret")
+	// config, err := k8s.GetConfigResourceWithToken(mapName, name, "Secret", token)
 
 	if err != nil {
 		return nil, err
@@ -685,6 +665,26 @@ func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*mod
 	}
 
 	return list, nil
+}
+
+func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
+	return r.Resolver.db.App(name)
+}
+
+func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
+	return r.Resolver.db.SourceApps()
+}
+
+func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
+	return &model.ClusterInfo{
+		Name:              r.Resolver.clusterName,
+		Region:            r.Resolver.clusterRegion,
+		ReviewAppsEnabled: r.Resolver.reviewAppsEnabled,
+	}, nil
+}
+
+func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
+	return r.db.ReviewAppsFor(obj)
 }
 
 func (r *tuberAppResolver) CloudBuildStatuses(ctx context.Context, obj *model.TuberApp) ([]*model.Build, error) {

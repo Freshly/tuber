@@ -83,7 +83,6 @@ type TuberApp struct {
 	TriggerID          string            `json:"triggerID"`
 	Vars               []*Tuple          `json:"vars"`
 	ReviewApps         []*TuberApp       `json:"reviewApps"`
-	Env                []*Tuple          `json:"env"`
 	ExcludedResources  []*Resource       `json:"excludedResources"`
 	CloudBuildStatuses []*Build          `json:"cloudBuildStatuses"`
 }
