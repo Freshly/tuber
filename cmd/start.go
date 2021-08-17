@@ -101,14 +101,7 @@ func start(cmd *cobra.Command, args []string) error {
 
 	go startAdminServer(ctx, db, processor, logger, creds)
 
-	err = listener.Start()
-	if err != nil {
-		startupLogger.Warn("listener shutdown", zap.Error(err))
-		report.Error(err, scope.WithContext("listener shutdown"))
-		panic(err)
-	}
-
-	buildEventProcessor := builds.NewProcessor() // TODO
+	buildEventProcessor := builds.NewProcessor()
 	buildListener, err := pubsub.NewListener(
 		ctx,
 		logger,
@@ -118,6 +111,23 @@ func start(cmd *cobra.Command, args []string) error {
 		data,
 		buildEventProcessor,
 	)
+	if err != nil {
+		startupLogger.Error("failed to start cloud build listener", zap.Error(err))
+		report.Error(err, scope.WithContext("initialize cloud build listener"))
+		panic(err)
+	}
+
+	// TODO: handle error
+	go func() {
+		err = buildListener.Start()
+	}()
+
+	err = listener.Start()
+	if err != nil {
+		startupLogger.Warn("listener shutdown", zap.Error(err))
+		report.Error(err, scope.WithContext("listener shutdown"))
+		panic(err)
+	}
 
 	<-ctx.Done()
 	logger.Info("Shutting down...")
