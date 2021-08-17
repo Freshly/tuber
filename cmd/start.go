@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/freshly/tuber/pkg/builds"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
@@ -106,6 +107,17 @@ func start(cmd *cobra.Command, args []string) error {
 		report.Error(err, scope.WithContext("listener shutdown"))
 		panic(err)
 	}
+
+	buildEventProcessor := builds.NewProcessor() // TODO
+	buildListener, err := pubsub.NewListener(
+		ctx,
+		logger,
+		viper.GetString("TUBER_PUBSUB_PROJECT"),
+		viper.GetString("TUBER_PUBSUB_CLOUDBUILD_SUBSCRIPTION_NAME"),
+		creds,
+		data,
+		buildEventProcessor,
+	)
 
 	<-ctx.Done()
 	logger.Info("Shutting down...")

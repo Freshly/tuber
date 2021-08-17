@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/events"
 	"google.golang.org/api/cloudbuild/v1"
 )
 
@@ -13,6 +14,16 @@ type Build struct {
 	Status    string
 	Link      string
 	StartTime string
+}
+
+func NewProcessor() *Processor {
+	return &Processor{}
+}
+
+type Processor struct{}
+
+func (p *Processor) ProcessMessage(event *events.Event) {
+
 }
 
 func FindByApp(app *model.TuberApp, triggersProjectName string) ([]*model.Build, error) {

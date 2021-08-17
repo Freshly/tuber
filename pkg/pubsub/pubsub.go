@@ -23,12 +23,16 @@ type Listener struct {
 	subscriptionName string
 	credentials      []byte
 	clusterData      *core.ClusterData
-	processor        *events.Processor
+	processor        Processor
+}
+
+type Processor interface {
+	ProcessMessage(*events.Event)
 }
 
 // NewListener is a constructor for Listener with field validation
 func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, subscriptionName string,
-	credentials []byte, clusterData *core.ClusterData, processor *events.Processor) (*Listener, error) {
+	credentials []byte, clusterData *core.ClusterData, processor Processor) (*Listener, error) {
 	if logger == nil {
 		return nil, errors.New("zap logger is required")
 	}
