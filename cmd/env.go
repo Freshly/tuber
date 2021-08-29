@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/freshly/tuber/graph"
@@ -75,6 +76,7 @@ var fileCmd = &cobra.Command{
 	},
 }
 
+var listFmtFlag string
 var envListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list [appName (deprecated, use --app or -a)]",
@@ -212,12 +214,26 @@ func envList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	data, err := yaml.Marshal(m)
-	if err != nil {
-		return err
+	var output []byte
+	switch listFmtFlag {
+	case "env":
+		for k, v := range m {
+			output = append(output, []byte(fmt.Sprintf("%s = \"%s\"\n", k, v))...)
+		}
+	case "json":
+		output, err = json.Marshal(m)
+		if err != nil {
+			return err
+		}
+	default:
+		output, err = yaml.Marshal(m)
+		if err != nil {
+			return err
+		}
+
 	}
 
-	fmt.Print(string(data))
+	fmt.Print(string(output))
 	return nil
 }
 
@@ -270,5 +286,6 @@ func init() {
 	envGetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envGetCmd)
 	envListCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
+	envListCmd.Flags().StringVarP(&listFmtFlag, "output", "o", "", "output format to display environment variables")
 	envCmd.AddCommand(envListCmd)
 }
