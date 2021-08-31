@@ -41,7 +41,7 @@ func (p *Processor) ProcessMessage(event *events.Event) {
 	// }
 
 	// If we have a tag on the event, that would be SO cool
-	apps, err := p.db.AppsForTag(event.Tag)
+	_, err := p.db.AppsForTag(event.Tag)
 	if err != nil {
 		event.Logger.Error("failed to look up tuber apps", zap.Error(err))
 		return
