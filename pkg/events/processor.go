@@ -56,8 +56,8 @@ func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, creds []
 
 type Event struct {
 	digest     string
-	tag        string
-	logger     *zap.Logger
+	Tag        string
+	Logger     *zap.Logger
 	errorScope report.Scope
 }
 
@@ -66,23 +66,23 @@ func NewEvent(logger *zap.Logger, digest string, tag string) *Event {
 	scope := report.Scope{"tag": tag, "digest": digest}
 	return &Event{
 		digest:     digest,
-		tag:        tag,
-		logger:     logger,
+		Tag:        tag,
+		Logger:     logger,
 		errorScope: scope,
 	}
 }
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers releases for matching apps
 func (p Processor) ProcessMessage(event *Event) {
-	apps, err := p.db.AppsForTag(event.tag)
+	apps, err := p.db.AppsForTag(event.Tag)
 	if err != nil {
-		event.logger.Error("failed to look up tuber apps", zap.Error(err))
+		event.Logger.Error("failed to look up tuber apps", zap.Error(err))
 		report.Error(err, event.errorScope.WithContext("tuber apps lookup"))
 		return
 	}
 
 	if len(apps) == 0 {
-		event.logger.Debug("ignored event")
+		event.Logger.Debug("ignored event")
 		return
 	}
 
@@ -113,16 +113,16 @@ func (p Processor) ReleaseApp(event *Event, app *model.TuberApp) {
 	cond.L.Lock()
 	reloadedApp, err := p.db.ReloadApp(app)
 	if err != nil {
-		event.logger.Error("app could not be reloaded", zap.Error(err))
+		event.Logger.Error("app could not be reloaded", zap.Error(err))
 		report.Error(err, event.errorScope.WithContext("reload prior to paused check for release"))
-		p.slackClient.Message(event.logger, ":double_vertical_bar: release skipped for "+app.Name+" as it could not be reloaded", app.SlackChannel)
+		p.slackClient.Message(event.Logger, ":double_vertical_bar: release skipped for "+app.Name+" as it could not be reloaded", app.SlackChannel)
 		cond.L.Unlock()
 		return
 	}
 
 	if reloadedApp.Paused {
-		p.slackClient.Message(event.logger, ":double_vertical_bar: release skipped for "+reloadedApp.Name+" as it is paused", reloadedApp.SlackChannel)
-		event.logger.Warn("deployments are paused for this app; skipping", zap.String("appName", reloadedApp.Name))
+		p.slackClient.Message(event.Logger, ":double_vertical_bar: release skipped for "+reloadedApp.Name+" as it is paused", reloadedApp.SlackChannel)
+		event.Logger.Warn("deployments are paused for this app; skipping", zap.String("appName", reloadedApp.Name))
 		cond.L.Unlock()
 		return
 	}
@@ -132,7 +132,7 @@ func (p Processor) ReleaseApp(event *Event, app *model.TuberApp) {
 }
 
 func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
-	logger := event.logger.With(
+	logger := event.Logger.With(
 		zap.String("name", app.Name),
 		zap.String("imageTag", app.ImageTag),
 		zap.String("action", "release"),

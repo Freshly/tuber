@@ -101,7 +101,7 @@ func start(cmd *cobra.Command, args []string) error {
 
 	go startAdminServer(ctx, db, processor, logger, creds)
 
-	buildEventProcessor := builds.NewProcessor()
+	buildEventProcessor := builds.NewProcessor(ctx, logger, db, slackClient)
 	buildListener, err := pubsub.NewListener(
 		ctx,
 		logger,

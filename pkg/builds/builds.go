@@ -6,7 +6,10 @@ import (
 	"time"
 
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/slack"
+	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 )
 
@@ -16,17 +19,33 @@ type Build struct {
 	StartTime string
 }
 
-func NewProcessor() *Processor {
-	return &Processor{}
+func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, slackClient *slack.Client) *Processor {
+	return &Processor{
+		ctx:         ctx,
+		logger:      logger,
+		db:          db,
+		slackClient: slackClient,
+	}
 }
 
-type Processor struct{}
+type Processor struct {
+	ctx         context.Context
+	logger      *zap.Logger
+	db          *core.DB
+	slackClient *slack.Client
+}
 
 func (p *Processor) ProcessMessage(event *events.Event) {
-	// for now, we're going to pretend we have a message because I can't get pubsub to publish to
-	// my local tuber. It's likely going to be different than this.
+	// if event.Build.Status != "FAILED" {
+	// 		return
+	// }
 
-	// msg := map[string]string{"buildID": "1234"}
+	// If we have a tag on the event, that would be SO cool
+	apps, err := p.db.AppsForTag(event.Tag)
+	if err != nil {
+		event.Logger.Error("failed to look up tuber apps", zap.Error(err))
+		return
+	}
 }
 
 func FindByApp(app *model.TuberApp, triggersProjectName string) ([]*model.Build, error) {

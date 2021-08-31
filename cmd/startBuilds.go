@@ -7,6 +7,7 @@ import (
 	"github.com/freshly/tuber/pkg/builds"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
+	"github.com/freshly/tuber/pkg/slack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -42,6 +43,13 @@ func startBuilds(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
+	// hi
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
 	data, err := clusterData()
 	if err != nil {
 		startupLogger.Warn("failed to get cluster data", zap.Error(err))
@@ -52,12 +60,14 @@ func startBuilds(cmd *cobra.Command, args []string) error {
 	fmt.Println(viper.GetString("TUBER_PUBSUB_PROJECT"))
 	fmt.Println(viper.GetString("TUBER_PUBSUB_CLOUDBUILD_SUBSCRIPTION_NAME"))
 
-	buildEventProcessor := builds.NewProcessor()
+	slackClient := slack.New(viper.GetString("TUBER_SLACK_TOKEN"), viper.GetBool("TUBER_SLACK_ENABLED"), viper.GetString("TUBER_SLACK_CATCHALL_CHANNEL"))
+
+	buildEventProcessor := builds.NewProcessor(ctx, logger, db, slackClient)
 	buildListener, err := pubsub.NewListener(
 		ctx,
 		logger,
 		viper.GetString("TUBER_PUBSUB_PROJECT"),
-		"tuber-test-sub",
+		viper.GetString("TUBER_PUBSUB_CLOUDBUILD_SUBSCRIPTION_NAME"),
 		creds,
 		data,
 		buildEventProcessor,

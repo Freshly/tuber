@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
@@ -79,6 +80,16 @@ func (l *Listener) Start() error {
 	}
 
 	subscription := client.Subscription(l.subscriptionName)
+
+	perms, err := subscription.IAM().TestPermissions(l.ctx, []string{
+		"pubsub.subscriptions.consume",
+		"pubsub.subscriptions.update",
+	})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println(perms)
 
 	listenLogger.Debug("pubsub server starting")
 	listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
