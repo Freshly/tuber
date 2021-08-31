@@ -87,6 +87,9 @@ func (l *Listener) Start() error {
 		pubsubMessage.Ack()
 		// {"action":"INSERT","digest":"gcr.io/freshly-docker/freshly@sha256:17f4431497a07da98bc16e599ef9d38afb9817049b6e98b71b7e321b946a24d4",
 		// "tag":"gcr.io/freshly-docker/freshly:PIG-267-refactor-email-service"}
+
+		// TODO: The cloud-build messages store the full result of the build in the message.Data
+		// property, but it's base64 encoded. We may need slightly different treatment for cloud build messages.
 		var message Message
 		err := json.Unmarshal(pubsubMessage.Data, &message)
 		if err != nil {

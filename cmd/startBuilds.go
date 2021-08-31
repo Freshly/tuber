@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/freshly/tuber/pkg/builds"
 	"github.com/freshly/tuber/pkg/pubsub"
@@ -48,12 +49,15 @@ func startBuilds(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
+	fmt.Println(viper.GetString("TUBER_PUBSUB_PROJECT"))
+	fmt.Println(viper.GetString("TUBER_PUBSUB_CLOUDBUILD_SUBSCRIPTION_NAME"))
+
 	buildEventProcessor := builds.NewProcessor()
 	buildListener, err := pubsub.NewListener(
 		ctx,
 		logger,
 		viper.GetString("TUBER_PUBSUB_PROJECT"),
-		viper.GetString("TUBER_PUBSUB_CLOUDBUILD_SUBSCRIPTION_NAME"),
+		"tuber-test-sub",
 		creds,
 		data,
 		buildEventProcessor,

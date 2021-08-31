@@ -23,7 +23,10 @@ func NewProcessor() *Processor {
 type Processor struct{}
 
 func (p *Processor) ProcessMessage(event *events.Event) {
+	// for now, we're going to pretend we have a message because I can't get pubsub to publish to
+	// my local tuber. It's likely going to be different than this.
 
+	// msg := map[string]string{"buildID": "1234"}
 }
 
 func FindByApp(app *model.TuberApp, triggersProjectName string) ([]*model.Build, error) {
