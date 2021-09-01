@@ -57,17 +57,25 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 
 // Message json deserialization target for pubsub messages
 type Message struct {
+	// These attributes are for GCR Messages
 	Digest string `json:"digest"`
 	Tag    string `json:"tag"`
+
+	// These are for Cloud Build Notifications.
+	Name   string   `json:"name"`
+	Status string   `json:"status"`
+	Images []string `json:"images"`
+	Result struct {
+		Images []struct {
+			Name   string `json:"name"`
+			Digest string `json:"digest"`
+		} `json:"images"`
+	} `json:"results"`
 }
 
 // Start starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
 func (l *Listener) Start() error {
-	var client *pubsub.Client
-	var err error
-
-	client, err = pubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
-
+	client, err := pubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
 	if err != nil {
 		client, err = pubsub.NewClient(l.ctx, l.pubsubProject)
 	}
@@ -101,6 +109,12 @@ func (l *Listener) Start() error {
 
 		// TODO: The cloud-build messages store the full result of the build in the message.Data
 		// property, but it's base64 encoded. We may need slightly different treatment for cloud build messages.
+		// decoded, decodeErr := base64.StdEncoding.DecodeString(string(pubsubMessage.Data))
+		// if decodeErr != nil {
+		// 	return
+		// }
+		// fmt.Println(decoded)
+
 		var message Message
 		err := json.Unmarshal(pubsubMessage.Data, &message)
 		if err != nil {

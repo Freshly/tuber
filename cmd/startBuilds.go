@@ -43,7 +43,6 @@ func startBuilds(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	// hi
 	db, err := openDB()
 	if err != nil {
 		return err
