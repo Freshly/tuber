@@ -21,6 +21,7 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		panic("need a review apps triggers project name")
 	}
 
+	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	auth := oauth.NewAuthenticator(
 		viper.GetString("TUBER_OAUTH_REDIRECT_URL"),
 		viper.GetString("TUBER_OAUTH_WEB_CLIENT_SECRET"),
@@ -33,7 +34,6 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 	}
 	secureCookie := securecookie.New([]byte(viper.GetString("TUBER_COOKIE_HASH_KEY")), []byte(viper.GetString("TUBER_COOKIE_BLOCK_KEY")))
 
-	viper.SetDefault("TUBER_ADMINSERVER_PREFIX", "/tuber")
 	err := adminserver.Start(ctx, logger, db, processor, triggersProjectName, creds,
 		reviewAppsEnabled,
 		viper.GetString("TUBER_CLUSTER_DEFAULT_HOST"),
