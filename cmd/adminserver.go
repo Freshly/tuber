@@ -21,7 +21,13 @@ func startAdminServer(ctx context.Context, db *core.DB, processor *events.Proces
 		panic("need a review apps triggers project name")
 	}
 
-	auth := oauth.NewAuthenticator(viper.GetString("TUBER_OAUTH_REDIRECT_URL"), viper.GetString("TUBER_OAUTH_WEB_CLIENT_SECRET"), viper.GetString("TUBER_OAUTH_WEB_CLIENT_ID"), viper.GetString("TUBER_OAUTH_STATE_KEY"))
+	auth := oauth.NewAuthenticator(
+		viper.GetString("TUBER_OAUTH_REDIRECT_URL"),
+		viper.GetString("TUBER_OAUTH_WEB_CLIENT_SECRET"),
+		viper.GetString("TUBER_OAUTH_WEB_CLIENT_ID"),
+		viper.GetString("TUBER_OAUTH_STATE_KEY"),
+		viper.GetString("TUBER_ADMINSERVER_PREFIX"),
+	)
 	if len(viper.GetString("TUBER_COOKIE_BLOCK_KEY")) < 32 {
 		logger.Warn("starting admin server with TUBER_COOKIE_BLOCK_KEY set to a value under 32 characters. Use a 32 character value for aes-256.")
 	}

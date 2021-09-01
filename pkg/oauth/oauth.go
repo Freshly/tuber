@@ -14,9 +14,10 @@ import (
 type Authenticator struct {
 	oauthConfig   *oauth2.Config
 	oauthStateKey string
+	cookiePath    string
 }
 
-func NewAuthenticator(oauthRedirectUrl string, oauthClientSecret string, oauthClientID string, oauthStateKey string) *Authenticator {
+func NewAuthenticator(oauthRedirectUrl string, oauthClientSecret string, oauthClientID string, oauthStateKey string, cookiePath string) *Authenticator {
 	config := &oauth2.Config{
 		RedirectURL:  oauthRedirectUrl,
 		ClientID:     oauthClientID,
@@ -27,6 +28,7 @@ func NewAuthenticator(oauthRedirectUrl string, oauthClientSecret string, oauthCl
 	return &Authenticator{
 		oauthConfig:   config,
 		oauthStateKey: oauthStateKey,
+		cookiePath:    cookiePath,
 	}
 }
 
@@ -137,12 +139,7 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 			return w, r, false, fmt.Errorf("encode access token cookie error: %v", err)
 		}
 
-		cookies := []*http.Cookie{
-			{Name: RefreshTokenCookieKey(), Value: encodedRefresh, HttpOnly: true, Secure: true, Path: "/"},
-			{Name: AccessTokenCookieKey(), Value: encodedAccess, HttpOnly: true, Secure: true, Path: "/"},
-			{Name: AccessTokenExpirationCookieKey(), Value: accessTokenExpiration, HttpOnly: true, Secure: true, Path: "/"},
-		}
-		for _, cookie := range cookies {
+		for _, cookie := range a.toCookies(encodedRefresh, encodedAccess, accessTokenExpiration) {
 			http.SetCookie(w, cookie)
 		}
 	}
@@ -169,13 +166,17 @@ func (a *Authenticator) GetTokenCookiesFromAuthToken(ctx context.Context, author
 		return nil, fmt.Errorf("encode access token cookie error: %v", err)
 	}
 
-	return []*http.Cookie{
-		{Name: RefreshTokenCookieKey(), Value: encodedRefresh, HttpOnly: true, Secure: true, Path: "/"},
-		{Name: AccessTokenCookieKey(), Value: encodedAccess, HttpOnly: true, Secure: true, Path: "/"},
-		{Name: AccessTokenExpirationCookieKey(), Value: token.Expiry.String(), HttpOnly: true, Secure: true, Path: "/"},
-	}, nil
+	return a.toCookies(encodedRefresh, encodedAccess, token.Expiry.String()), nil
 }
 
 func (a *Authenticator) RefreshTokenConsentUrl() string {
 	return a.oauthConfig.AuthCodeURL(a.oauthStateKey, oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+}
+
+func (a *Authenticator) toCookies(refresh string, access string, exp string) []*http.Cookie {
+	return []*http.Cookie{
+		{Name: RefreshTokenCookieKey(), Value: refresh, HttpOnly: true, Secure: true, Path: a.cookiePath},
+		{Name: AccessTokenCookieKey(), Value: access, HttpOnly: true, Secure: true, Path: a.cookiePath},
+		{Name: AccessTokenExpirationCookieKey(), Value: exp, HttpOnly: true, Secure: true, Path: a.cookiePath},
+	}
 }
