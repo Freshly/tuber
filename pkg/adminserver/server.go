@@ -80,7 +80,6 @@ func (s server) prefixed(route string) string {
 
 func (s server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("requireAuth running")
 		var err error
 		if s.useDevServer {
 			w, r = s.devServerAuth(w, r)
@@ -109,6 +108,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 }
 
 func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("received auth redirect")
 	queryVals := r.URL.Query()
 	if queryVals.Get("error") != "" {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", queryVals.Get("error")), http.StatusUnauthorized)
@@ -126,7 +126,7 @@ func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	for _, cookie := range cookies {
 		http.SetCookie(w, cookie)
 	}
-	http.Redirect(w, r, "/tuber/", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/tuber/", http.StatusOK)
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
