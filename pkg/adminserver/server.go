@@ -134,7 +134,7 @@ func unauthorized(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s server) start() error {
-	var proxyUrl = "tuber-frontend.tuber-frontend.svc.cluster.local:3000"
+	var proxyUrl = "http://tuber-frontend.tuber-frontend.svc.cluster.local:3000"
 	if s.useDevServer {
 		proxyUrl = "http://localhost:3002"
 	}
