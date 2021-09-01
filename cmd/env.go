@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/goccy/go-yaml"
@@ -200,7 +199,6 @@ func envGet(cmd *cobra.Command, args []string) error {
 func envList(cmd *cobra.Command, args []string) error {
 	var appName string
 	if len(args) == 1 {
-		fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
 		appName = args[0]
 	} else {
 		if appNameFlag == "" {
@@ -244,21 +242,19 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 	}
 
 	gql := `
-		query($name: String!) {
-			getApp(name: $name) {
-				name
-
-				env {
-					key
-					value
-				}
+		query {
+			getAppEnv(name: "%s") {
+				key
+				value
 			}
 		}
 	`
 
-	var respData []*model.Tuple
+	var respData struct {
+		GetAppEnv []*model.Tuple
+	}
 
-	err = graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName))
+	err = graphql.Query(context.Background(), fmt.Sprintf(gql, appName), &respData)
 
 	if err != nil {
 		return nil, err
@@ -266,7 +262,7 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 
 	m := make(map[string]string)
 
-	for _, tuple := range respData {
+	for _, tuple := range respData.GetAppEnv {
 		m[tuple.Key] = tuple.Value
 	}
 
