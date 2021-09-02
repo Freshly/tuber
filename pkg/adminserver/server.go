@@ -94,7 +94,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r, s.secureCookie)
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("cookie auth error: %v", err.Error()))
-			http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusMovedPermanently)
+			http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusUnauthorized)
 			return
 		}
 
@@ -103,7 +103,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusFound)
+		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusUnauthorized)
 	})
 }
 
@@ -126,7 +126,7 @@ func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	for _, cookie := range cookies {
 		http.SetCookie(w, cookie)
 	}
-	http.Redirect(w, r, "/tuber/", http.StatusOK)
+	http.Redirect(w, r, "/tuber/", http.StatusFound)
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
