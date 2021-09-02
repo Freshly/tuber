@@ -825,26 +825,6 @@ func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) 
 	return r.db.ReviewAppsFor(obj)
 }
 
-func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
-	return r.Resolver.db.App(name)
-}
-
-func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	return r.Resolver.db.SourceApps()
-}
-
-func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
-	return &model.ClusterInfo{
-		Name:              r.Resolver.clusterName,
-		Region:            r.Resolver.clusterRegion,
-		ReviewAppsEnabled: r.Resolver.reviewAppsEnabled,
-	}, nil
-}
-
-func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
-	return r.db.ReviewAppsFor(obj)
-}
-
 func (r *tuberAppResolver) CloudBuildStatuses(ctx context.Context, obj *model.TuberApp) ([]*model.Build, error) {
 	err := canGetDeployments(ctx, obj.Name)
 	if err != nil {
