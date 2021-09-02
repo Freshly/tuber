@@ -146,8 +146,8 @@ func (s server) start() error {
 	proxy := httputil.NewSingleHostReverseProxy(remote)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/tuber/", func(w http.ResponseWriter, r *http.Request) { s.requireAuth(proxy).ServeHTTP(w, r) })
-	mux.HandleFunc("/tuber/_next/", func(w http.ResponseWriter, r *http.Request) { proxy.ServeHTTP(w, r) })
+	mux.HandleFunc(s.prefixed("/"), func(w http.ResponseWriter, r *http.Request) { s.requireAuth(proxy).ServeHTTP(w, r) })
+	mux.HandleFunc(s.prefixed("/_next/"), func(w http.ResponseWriter, r *http.Request) { proxy.ServeHTTP(w, r) })
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
 	mux.Handle(s.prefixed("/graphql"), s.requireAuth(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
 	mux.HandleFunc(s.prefixed("/unauthorized/"), unauthorized)
