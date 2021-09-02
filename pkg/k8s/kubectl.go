@@ -214,6 +214,16 @@ func CanI(namespace string, verb string, objectType string, args ...string) (boo
 	return strings.Trim(string(out), "\r\n") == "yes", nil
 }
 
+func CanIAllNamespaces(verb string, objectType string, args ...string) (bool, error) {
+	canDeploy := []string{"auth", "can-i", verb, objectType, "--all-namespaces"}
+	out, err := kubectl(append(canDeploy, args...)...)
+	if err != nil {
+		return false, err
+	}
+
+	return strings.Trim(string(out), "\r\n") == "yes", nil
+}
+
 // CurrentCluster the current configured kubectl cluster
 func CurrentCluster() (string, error) {
 	out, err := kubectl([]string{"config", "current-context"}...)
