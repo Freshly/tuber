@@ -94,7 +94,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r, s.secureCookie)
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("cookie auth error: %v", err.Error()))
-			http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusUnauthorized)
+			http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusFound)
 			return
 		}
 
@@ -103,7 +103,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusUnauthorized)
+		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusFound)
 	})
 }
 
