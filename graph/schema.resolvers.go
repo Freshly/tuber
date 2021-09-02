@@ -639,16 +639,40 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 	return app, nil
 }
 
+func (r *queryResolver) GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error) {
+	token, err := oauth.GetAccessToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mapName := fmt.Sprintf("%s-env", name)
+	var config *k8s.ConfigResource
+	config, err = k8s.GetConfigResourceWithToken(mapName, name, "Secret", token)
+
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]*model.Tuple, 0)
+
+	for k, ev := range config.Data {
+		var v []byte
+		v, err = base64.StdEncoding.DecodeString(ev)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not decode value for %s: %v", k, err)
+		}
+
+		list = append(list, &model.Tuple{Key: k, Value: string(v)})
+	}
+
+	return list, nil
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
 	return r.Resolver.db.App(name)
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
-	token, err := oauth.GetAccessToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-	k8s.CanDeploy("tuber", "--token", token)
 	return r.Resolver.db.SourceApps()
 }
 
@@ -662,29 +686,6 @@ func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo,
 
 func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
 	return r.db.ReviewAppsFor(obj)
-}
-
-func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error) {
-	mapName := fmt.Sprintf("%s-env", obj.Name)
-	config, err := k8s.GetConfigResource(mapName, obj.Name, "Secret")
-
-	if err != nil {
-		return nil, err
-	}
-
-	list := make([]*model.Tuple, 0)
-
-	for k, ev := range config.Data {
-		v, err := base64.StdEncoding.DecodeString(ev)
-
-		if err != nil {
-			return nil, fmt.Errorf("could not decode value for %s: %v", k, err)
-		}
-
-		list = append(list, &model.Tuple{Key: k, Value: string(v)})
-	}
-
-	return list, nil
 }
 
 func (r *tuberAppResolver) CloudBuildStatuses(ctx context.Context, obj *model.TuberApp) ([]*model.Build, error) {

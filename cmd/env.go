@@ -256,9 +256,7 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 		}
 	`
 
-	var respData struct {
-		GetApp *model.TuberApp
-	}
+	var respData []*model.Tuple
 
 	err = graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName))
 
@@ -268,7 +266,7 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 
 	m := make(map[string]string)
 
-	for _, tuple := range respData.GetApp.Env {
+	for _, tuple := range respData {
 		m[tuple.Key] = tuple.Value
 	}
 

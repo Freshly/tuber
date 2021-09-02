@@ -3,15 +3,19 @@ package adminserver
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/freshly/tuber/graph"
+	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/iap"
 	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/go-http-utils/logger"
 	"github.com/gorilla/securecookie"
@@ -94,6 +98,10 @@ func (s server) prefixed(route string) string {
 
 func (s server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		if s.useDevServer {
+			w, r = s.devServerAuth(w, r)
+		}
 		var authed bool
 		r, authed = s.authenticator.TrySetHeaderAuthContext(r)
 		if authed {
@@ -101,7 +109,6 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		var err error
 		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r, s.secureCookie)
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), http.StatusInternalServerError)
@@ -168,4 +175,60 @@ func (s server) start() error {
 	}
 
 	return http.ListenAndServe(port, handler)
+}
+
+// cmon it's kinda cool
+func (s server) devServerAuth(w http.ResponseWriter, r *http.Request) (http.ResponseWriter, *http.Request) {
+	var refreshFound bool
+	var accessFound bool
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == oauth.RefreshTokenCookieKey() && cookie.Value != "" {
+			refreshFound = true
+		}
+		if cookie.Name == oauth.AccessTokenCookieKey() && cookie.Value != "" {
+			accessFound = true
+		}
+	}
+	if !refreshFound || !accessFound {
+		c, err := config.Load()
+		if err != nil {
+			fmt.Println(err)
+			return w, r
+		}
+
+		cluster, err := c.CurrentClusterConfig()
+		if err != nil {
+			fmt.Println(err)
+			return w, r
+		}
+		tokens, err := iap.CreateIDToken(cluster.Auth.Audience)
+		if err != nil {
+			fmt.Println(err)
+			return w, r
+		}
+
+		encodedRefresh, err := s.secureCookie.Encode(oauth.RefreshTokenCookieKey(), tokens.RefreshToken)
+		if err != nil {
+			fmt.Println(err)
+			return w, r
+		}
+
+		encodedAccess, err := s.secureCookie.Encode(oauth.RefreshTokenCookieKey(), tokens.AccessToken)
+		if err != nil {
+			fmt.Println(err)
+			return w, r
+		}
+		expires := int64(math.Round(tokens.Raw.Raw.(map[string]interface{})["expires_in"].(float64)))
+
+		cookies := []*http.Cookie{
+			{Name: oauth.RefreshTokenCookieKey(), Value: encodedRefresh, HttpOnly: true, Secure: true, Path: "/"},
+			{Name: oauth.AccessTokenCookieKey(), Value: encodedAccess, HttpOnly: true, Secure: true, Path: "/", Expires: time.Now().Add(time.Minute * time.Duration(expires))},
+			{Name: oauth.AccessTokenExpirationCookieKey(), Value: time.Now().Add(time.Minute * time.Duration(expires)).Format(time.RFC3339), HttpOnly: true, Secure: true, Path: "/", Expires: time.Now().Add(time.Minute * time.Duration(expires))},
+		}
+		for _, cookie := range cookies {
+			http.SetCookie(w, cookie)
+			r.AddCookie(cookie)
+		}
+	}
+	return w, r
 }

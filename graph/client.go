@@ -63,14 +63,14 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 		}
 	}
 
-	idToken, accessToken, err := iap.CreateIDToken(g.IAPAudience)
+	tokens, err := iap.CreateIDToken(g.IAPAudience)
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Authorization", "Bearer "+idToken)
-	req.Header.Set("Tuber-Token", accessToken)
+	req.Header.Set("Authorization", "Bearer "+tokens.IDToken)
+	req.Header.Set("Tuber-Token", tokens.AccessToken)
 
 	err = g.client.Run(ctx, req, &target)
 	if err != nil {
@@ -91,14 +91,14 @@ func (g *GraphqlClient) Mutation(ctx context.Context, gql string, key *int, inpu
 		req.Var("input", input)
 	}
 
-	idToken, accessToken, err := iap.CreateIDToken(g.IAPAudience)
+	tokens, err := iap.CreateIDToken(g.IAPAudience)
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Authorization", "Bearer "+idToken)
-	req.Header.Set("Tuber-Token", accessToken)
+	req.Header.Set("Authorization", "Bearer "+tokens.IDToken)
+	req.Header.Set("Tuber-Token", tokens.AccessToken)
 
 	if err := g.client.Run(ctx, req, &target); err != nil {
 		return err
