@@ -103,7 +103,7 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusMovedPermanently)
+		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusFound)
 	})
 }
 
