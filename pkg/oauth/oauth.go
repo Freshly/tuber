@@ -175,8 +175,8 @@ func (a *Authenticator) RefreshTokenConsentUrl() string {
 
 func (a *Authenticator) toCookies(refresh string, access string, exp string) []*http.Cookie {
 	return []*http.Cookie{
-		{Name: RefreshTokenCookieKey(), Value: refresh, HttpOnly: true, Secure: true, Path: a.cookiePath, SameSite: http.SameSiteStrictMode},
-		{Name: AccessTokenCookieKey(), Value: access, HttpOnly: true, Secure: true, Path: a.cookiePath, SameSite: http.SameSiteStrictMode},
-		{Name: AccessTokenExpirationCookieKey(), Value: exp, HttpOnly: true, Secure: true, Path: a.cookiePath, SameSite: http.SameSiteStrictMode},
+		{Name: RefreshTokenCookieKey(), Value: refresh, HttpOnly: true, Secure: true, Path: a.cookiePath, SameSite: http.SameSiteNoneMode},
+		{Name: AccessTokenCookieKey(), Value: access, HttpOnly: true, Secure: true, Path: a.cookiePath, SameSite: http.SameSiteNoneMode},
+		{Name: AccessTokenExpirationCookieKey(), Value: exp, HttpOnly: true, Secure: true, Path: a.cookiePath, SameSite: http.SameSiteNoneMode},
 	}
 }
