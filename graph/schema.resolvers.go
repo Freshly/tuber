@@ -803,6 +803,11 @@ func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) 
 }
 
 func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
+	err := canViewAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &model.ClusterInfo{
 		Name:              r.Resolver.clusterName,
 		Region:            r.Resolver.clusterRegion,
@@ -812,6 +817,7 @@ func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo,
 
 func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
 	err := canGetDeployments(ctx, obj.Name)
+
 	if err != nil {
 		return nil, err
 	}

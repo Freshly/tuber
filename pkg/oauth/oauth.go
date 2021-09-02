@@ -93,6 +93,7 @@ func (a *Authenticator) TrySetCookieAuthContext(w http.ResponseWriter, r *http.R
 		}
 		if cookie.Name == AccessTokenCookieKey() && cookie.Value != "" {
 			err := sc.Decode(AccessTokenCookieKey(), cookie.Value, &accessToken)
+      
 			if err != nil {
 				return w, r, false, err
 			}
