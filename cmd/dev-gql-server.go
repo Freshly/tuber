@@ -64,7 +64,7 @@ func runDevGqlServer(cmd *cobra.Command, args []string) error {
 	slackClient := slack.New("", false, "")
 
 	viper.SetDefault("TUBER_USE_DEVSERVER", true)
-	viper.SetDefault("TUBER_ADMINSERVER_PORT", "3001")
+	viper.SetDefault("TUBER_ADMINSERVER_PORT", "3000")
 	b := make([]rune, 32)
 	for i := range b {
 		b[i] = []rune("a")[0]

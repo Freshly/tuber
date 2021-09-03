@@ -74,24 +74,6 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 	}.start()
 }
 
-func localDevServer(res http.ResponseWriter, req *http.Request) {
-	remote, err := url.Parse("http://localhost:3002")
-	if err != nil {
-		panic(err)
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.Director = func(proxyReq *http.Request) {
-		proxyReq.Header = req.Header
-		proxyReq.Host = remote.Host
-		proxyReq.URL.Scheme = remote.Scheme
-		proxyReq.URL.Host = remote.Host
-		proxyReq.URL.Path = req.URL.Path
-	}
-
-	proxy.ServeHTTP(res, req)
-}
-
 func (s server) prefixed(route string) string {
 	return fmt.Sprintf("%s%s", s.prefix, route)
 }
@@ -111,7 +93,8 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 
 		w, r, authed, err = s.authenticator.TrySetCookieAuthContext(w, r, s.secureCookie)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", err.Error()), http.StatusInternalServerError)
+			s.logger.Error(fmt.Sprintf("cookie auth error: %v", err.Error()))
+			http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusFound)
 			return
 		}
 
@@ -120,11 +103,12 @@ func (s server) requireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusUnauthorized)
+		http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusFound)
 	})
 }
 
 func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("received auth redirect")
 	queryVals := r.URL.Query()
 	if queryVals.Get("error") != "" {
 		http.Redirect(w, r, fmt.Sprintf("/tuber/unauthorized/&error=%s", queryVals.Get("error")), http.StatusUnauthorized)
@@ -142,36 +126,42 @@ func (s server) receiveAuthRedirect(w http.ResponseWriter, r *http.Request) {
 	for _, cookie := range cookies {
 		http.SetCookie(w, cookie)
 	}
-	http.Redirect(w, r, "/tuber/", http.StatusMovedPermanently)
+	http.Redirect(w, r, "/tuber/", http.StatusFound)
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h2>unauthorized: "+r.URL.Query().Get("error")+"</h2>")
 }
 
-// can't / won't figure out how to tell nextjs to follow a server redirect. easy to reimplement once that's supported.
-// for now first step will be to manually go here first to get yourself a cookie
-func (s server) login(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, s.authenticator.RefreshTokenConsentUrl(), http.StatusMovedPermanently)
-}
-
 func (s server) start() error {
+	var proxyUrl = "http://tuber-frontend.tuber-frontend.svc.cluster.local:3000"
+	if s.useDevServer {
+		proxyUrl = "http://localhost:3002"
+	}
+	remote, err := url.Parse(proxyUrl)
+	if err != nil {
+		return err
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+
 	mux := http.NewServeMux()
+	mux.HandleFunc(s.prefixed("/"), func(w http.ResponseWriter, r *http.Request) { s.requireAuth(proxy).ServeHTTP(w, r) })
+	mux.HandleFunc(s.prefixed("/_next/"), func(w http.ResponseWriter, r *http.Request) { proxy.ServeHTTP(w, r) })
 	mux.HandleFunc(s.prefixed("/graphql/playground"), playground.Handler("GraphQL playground", s.prefixed("/graphql")))
 	mux.Handle(s.prefixed("/graphql"), s.requireAuth(graph.Handler(s.db, s.processor, s.logger, s.creds, s.triggersProjectName, s.clusterName, s.clusterRegion, s.reviewAppsEnabled)))
 	mux.HandleFunc(s.prefixed("/unauthorized/"), unauthorized)
 	mux.HandleFunc(s.prefixed("/auth/"), s.receiveAuthRedirect)
-	mux.HandleFunc(s.prefixed("/login/"), s.login)
-
-	if s.useDevServer {
-		mux.HandleFunc(s.prefixed("/"), localDevServer)
-	}
 
 	handler := logger.Handler(mux, os.Stdout, logger.DevLoggerType)
 
 	port := ":3000"
 	if s.port != "" {
 		port = fmt.Sprintf(":%s", s.port)
+	}
+
+	if s.useDevServer {
+		fmt.Println("listening on: http://localhost:" + s.port + s.prefix)
 	}
 
 	return http.ListenAndServe(port, handler)
