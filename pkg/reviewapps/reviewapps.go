@@ -194,6 +194,15 @@ var (
 	symbolsRe      = regexp.MustCompile(symbolsExclHyphen)
 )
 
+// makeDNS1123Compatible utilizes the various constraints and regex above to selectively modify
+// incoming text, only modifying as needed where invalid.
+// Order of operations:
+// 1. Trim to a suitable length
+// 2. Lowercase all alpha characters
+// 3. Replace underscores with dashes
+// 4. Remove all disallowed symbols
+// 5. Trim leading & trailing hyphens
+// 6. Return a default based on the current time.
 func makeDNS1123Compatible(name string) string {
 	n := []byte(name)
 
@@ -211,7 +220,8 @@ func makeDNS1123Compatible(name string) string {
 		case bytes.Compare(n, []byte("-")) == 1:
 			n = bytes.Trim(n, "-")
 		default:
-			return fmt.Sprintf("review-app-%d", time.Now().Unix())
+			// Default case will return name similar to 1631143096-review-app which is 21 characters.
+			return fmt.Sprintf("%d-review-app", time.Now().Unix())
 		}
 	}
 
