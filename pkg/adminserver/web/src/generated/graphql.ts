@@ -25,6 +25,13 @@ export type AppInput = {
   cloudSourceRepo?: Maybe<Scalars['String']>;
 };
 
+export type Build = {
+  __typename?: 'Build';
+  status: Scalars['String'];
+  link: Scalars['String'];
+  startTime: Scalars['String'];
+};
+
 export type ClusterInfo = {
   __typename?: 'ClusterInfo';
   name: Scalars['String'];
@@ -245,6 +252,7 @@ export type TuberApp = {
   reviewApps?: Maybe<Array<TuberApp>>;
   env?: Maybe<Array<Tuple>>;
   excludedResources: Array<Resource>;
+  cloudBuildStatuses: Array<Build>;
 };
 
 export type Tuple = {
@@ -337,7 +345,10 @@ export type GetFullAppQuery = (
   & { getApp?: Maybe<(
     { __typename?: 'TuberApp' }
     & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubRepo' | 'slackChannel' | 'paused' | 'imageTag'>
-    & { reviewAppsConfig?: Maybe<(
+    & { cloudBuildStatuses: Array<(
+      { __typename?: 'Build' }
+      & Pick<Build, 'status' | 'startTime' | 'link'>
+    )>, reviewAppsConfig?: Maybe<(
       { __typename?: 'ReviewAppsConfig' }
       & Pick<ReviewAppsConfig, 'enabled'>
       & { excludedResources: Array<(
@@ -623,6 +634,46 @@ export default {
     },
     "subscriptionType": null,
     "types": [
+      {
+        "kind": "OBJECT",
+        "name": "Build",
+        "fields": [
+          {
+            "name": "status",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "link",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "startTime",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          }
+        ],
+        "interfaces": []
+      },
       {
         "kind": "OBJECT",
         "name": "ClusterInfo",
@@ -1507,6 +1558,24 @@ export default {
               }
             },
             "args": []
+          },
+          {
+            "name": "cloudBuildStatuses",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "LIST",
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "Build",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "args": []
           }
         ],
         "interfaces": []
@@ -1629,6 +1698,11 @@ export const GetFullAppDocument = gql`
     slackChannel
     paused
     imageTag
+    cloudBuildStatuses {
+      status
+      startTime
+      link
+    }
     reviewAppsConfig {
       enabled
       excludedResources {

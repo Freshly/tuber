@@ -19,7 +19,6 @@ import (
 )
 
 type server struct {
-	projectName         string
 	reviewAppsEnabled   bool
 	cloudbuildClient    *cloudbuild.Service
 	clusterDefaultHost  string
@@ -47,7 +46,6 @@ func Start(ctx context.Context, logger *zap.Logger, db *core.DB, processor *even
 	}
 
 	return server{
-		projectName:         triggersProjectName,
 		reviewAppsEnabled:   reviewAppsEnabled,
 		cloudbuildClient:    cloudbuildClient,
 		clusterDefaultHost:  clusterDefaultHost,
