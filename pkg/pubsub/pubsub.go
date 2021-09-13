@@ -60,19 +60,9 @@ type Message struct {
 	Tag    string `json:"tag"`
 
 	// These are for Cloud Build Notifications.
-	Name      string   `json:"name"`
-	Status    string   `json:"status"`
-	Images    []string `json:"images"`
-	LogURL    string   `json:"logUrl"`
-	Artifacts struct {
-		Images []string `json:"images"`
-	} `json:"artifacts"`
-	Result struct {
-		Images []struct {
-			Name   string `json:"name"`
-			Digest string `json:"digest"`
-		} `json:"images"`
-	} `json:"results"`
+	Status string   `json:"status"`
+	Images []string `json:"images"`
+	LogURL string   `json:"logUrl"`
 }
 
 // Start starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
