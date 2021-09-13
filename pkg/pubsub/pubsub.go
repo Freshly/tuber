@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/freshly/tuber/pkg/core"
-	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/report"
 
 	"cloud.google.com/go/pubsub"
@@ -28,7 +26,7 @@ type Listener struct {
 }
 
 type Processor interface {
-	ProcessMessage(*events.Event)
+	ProcessMessage(Message)
 }
 
 // NewListener is a constructor for Listener with field validation
@@ -62,9 +60,13 @@ type Message struct {
 	Tag    string `json:"tag"`
 
 	// These are for Cloud Build Notifications.
-	Name   string   `json:"name"`
-	Status string   `json:"status"`
-	Images []string `json:"images"`
+	Name      string   `json:"name"`
+	Status    string   `json:"status"`
+	Images    []string `json:"images"`
+	LogURL    string   `json:"logUrl"`
+	Artifacts struct {
+		Images []string `json:"images"`
+	} `json:"artifacts"`
 	Result struct {
 		Images []struct {
 			Name   string `json:"name"`
@@ -89,16 +91,6 @@ func (l *Listener) Start() error {
 
 	subscription := client.Subscription(l.subscriptionName)
 
-	perms, err := subscription.IAM().TestPermissions(l.ctx, []string{
-		"pubsub.subscriptions.consume",
-		"pubsub.subscriptions.update",
-	})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	fmt.Println(perms)
-
 	listenLogger.Debug("pubsub server starting")
 	listenLogger.Debug("subscription options", zap.Reflect("options", subscription.ReceiveSettings))
 
@@ -107,22 +99,15 @@ func (l *Listener) Start() error {
 		// {"action":"INSERT","digest":"gcr.io/freshly-docker/freshly@sha256:17f4431497a07da98bc16e599ef9d38afb9817049b6e98b71b7e321b946a24d4",
 		// "tag":"gcr.io/freshly-docker/freshly:PIG-267-refactor-email-service"}
 
-		// TODO: The cloud-build messages store the full result of the build in the message.Data
-		// property, but it's base64 encoded. We may need slightly different treatment for cloud build messages.
-		// decoded, decodeErr := base64.StdEncoding.DecodeString(string(pubsubMessage.Data))
-		// if decodeErr != nil {
-		// 	return
-		// }
-		// fmt.Println(decoded)
-
 		var message Message
-		err := json.Unmarshal(pubsubMessage.Data, &message)
+		err = json.Unmarshal(pubsubMessage.Data, &message)
 		if err != nil {
 			listenLogger.Warn("failed to unmarshal pubsub message", zap.Error(err))
 			report.Error(err, report.Scope{"context": "messageProcessing"})
 			return
 		}
-		l.processor.ProcessMessage(events.NewEvent(l.logger, message.Digest, message.Tag))
+
+		l.processor.ProcessMessage(message)
 	})
 
 	if err != nil {
