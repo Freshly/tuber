@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/builds"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
@@ -48,6 +49,19 @@ func startBuilds(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer db.Close()
+
+	for _, appName := range []string{"payment-service", "catalog-service"} {
+		var app *model.TuberApp
+		app, err = getApp(appName)
+		if err != nil {
+			return err
+		}
+
+		err = db.SaveApp(app)
+		if err != nil {
+			return err
+		}
+	}
 
 	data, err := clusterData()
 	if err != nil {
