@@ -6,10 +6,6 @@ import (
 	"time"
 
 	"github.com/freshly/tuber/graph/model"
-	"github.com/freshly/tuber/pkg/core"
-	"github.com/freshly/tuber/pkg/events"
-	"github.com/freshly/tuber/pkg/slack"
-	"go.uber.org/zap"
 	"google.golang.org/api/cloudbuild/v1"
 )
 
@@ -17,39 +13,6 @@ type Build struct {
 	Status    string
 	Link      string
 	StartTime string
-}
-
-func NewProcessor(ctx context.Context, logger *zap.Logger, db *core.DB, slackClient *slack.Client) *Processor {
-	return &Processor{
-		ctx:         ctx,
-		logger:      logger,
-		db:          db,
-		slackClient: slackClient,
-	}
-}
-
-type Processor struct {
-	ctx         context.Context
-	logger      *zap.Logger
-	db          *core.DB
-	slackClient *slack.Client
-}
-
-func (p *Processor) ProcessMessage(event *events.Event) {
-	// if event.Build.Status != "FAILED" {
-	// 		return
-	// }
-
-	// If we have a tag on the event, that would be SO cool
-	apps, err := p.db.AppsForTag(event.Tag)
-	if err != nil {
-		event.Logger.Error("failed to look up tuber apps", zap.Error(err))
-		return
-	}
-
-	for _, app := range apps {
-		p.slackClient.Message(p.logger, fmt.Sprintf("A build happened for %s", app.Name), app.SlackChannel)
-	}
 }
 
 func FindByApp(app *model.TuberApp, triggersProjectName string) ([]*model.Build, error) {
