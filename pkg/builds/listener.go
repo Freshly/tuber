@@ -52,13 +52,8 @@ type Processor struct {
 func (p *Processor) ProcessMessage(message pubsub.Message) {
 	event := newEvent(p.logger, message)
 
-	if event.Status != "SUCCESS" && event.Status != "FAILED" {
+	if event.Status != "WORKING" && event.Status != "SUCCESS" && event.Status != "FAILED" {
 		event.Logger.Debug("build status received; not worth notifying", zap.String("build-status", event.Status))
-		return
-	}
-
-	if len(event.Images) < 1 {
-		event.Logger.Debug("build contains no images; skipping")
 		return
 	}
 
@@ -67,6 +62,7 @@ func (p *Processor) ProcessMessage(message pubsub.Message) {
 		matches, err := p.db.AppsForTag(img)
 		if err != nil {
 			event.Logger.Error("failed to look up tuber apps", zap.Error(err), zap.String("tag", img))
+			continue
 		}
 
 		apps = append(apps, matches...)
@@ -81,10 +77,12 @@ func (p *Processor) ProcessMessage(message pubsub.Message) {
 func buildMessage(event *Event, app *model.TuberApp) string {
 	var msg string
 	switch event.Status {
+	case "WORKING":
+		msg = fmt.Sprintf(":building_construction: Build started for *%s*", app.Name)
 	case "SUCCESS":
-		msg = fmt.Sprintf("Build succeeded for %s", app.Name)
+		msg = fmt.Sprintf(":: Build succeeded for *%s*", app.Name)
 	case "FAILED":
-		msg = fmt.Sprintf("Build failed for %s. See logs: %s", app.Name, event.LogURL)
+		msg = fmt.Sprintf(":: Build failed for *%s*. See logs <%s|here>", app.Name, event.LogURL)
 	}
 
 	return msg
