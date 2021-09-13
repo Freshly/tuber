@@ -117,10 +117,7 @@ func start(cmd *cobra.Command, args []string) error {
 		panic(err)
 	}
 
-	// TODO: handle error
-	go func() {
-		err = buildListener.Start()
-	}()
+	go buildListener.Start()
 
 	err = listener.Start()
 	if err != nil {
