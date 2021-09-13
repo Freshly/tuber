@@ -13,7 +13,6 @@ import (
 )
 
 type Event struct {
-	Name       string
 	Status     string
 	LogURL     string
 	Images     []string
@@ -28,7 +27,6 @@ func newEvent(logger *zap.Logger, message pubsub.Message) *Event {
 	return &Event{
 		Logger:     logger,
 		errorScope: scope,
-		Name:       message.Name,
 		Status:     message.Status,
 		Images:     message.Images,
 		LogURL:     message.LogURL,
