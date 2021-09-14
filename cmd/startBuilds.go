@@ -50,12 +50,14 @@ func startBuilds(cmd *cobra.Command, args []string) error {
 	}
 	defer db.Close()
 
-	for _, appName := range []string{"payment-service", "catalog-service"} {
+	for _, appName := range []string{"payment-service", "catalog-service", "potatoes"} {
 		var app *model.TuberApp
 		app, err = getApp(appName)
 		if err != nil {
 			return err
 		}
+
+		app.SlackChannel = "lauren-sneaky-channel"
 
 		err = db.SaveApp(app)
 		if err != nil {
