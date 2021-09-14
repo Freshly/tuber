@@ -53,17 +53,15 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 	}, nil
 }
 
-// Message json deserialization target for pubsub messages
+// Message is the JSON deserialization target for pubsub messages
 type Message struct {
-	// These attributes are for GCR Messages
+	// GCR Pubsub message attributes
 	Digest string `json:"digest"`
 	Tag    string `json:"tag"`
 
-	// These are for Cloud Build Notifications.
-	Status string   `json:"status"`
-	Images []string `json:"images"`
-	LogURL string   `json:"logUrl"`
-
+	// Cloud Build Pubsub message attributes
+	Status        string `json:"status"`
+	LogURL        string `json:"logUrl"`
 	Substitutions struct {
 		BranchName string `json:"BRANCH_NAME"`
 		RepoName   string `json:"REPO_NAME"`
@@ -91,6 +89,7 @@ func (l *Listener) Start() error {
 
 	err = subscription.Receive(l.ctx, func(ctx context.Context, pubsubMessage *pubsub.Message) {
 		pubsubMessage.Ack()
+		// GCR pubsubMessage.Data
 		// {"action":"INSERT","digest":"gcr.io/freshly-docker/freshly@sha256:17f4431497a07da98bc16e599ef9d38afb9817049b6e98b71b7e321b946a24d4",
 		// "tag":"gcr.io/freshly-docker/freshly:PIG-267-refactor-email-service"}
 
