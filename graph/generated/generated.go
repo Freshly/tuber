@@ -61,6 +61,7 @@ type ComplexityRoot struct {
 		CreateReviewApp       func(childComplexity int, input model.CreateReviewAppInput) int
 		Deploy                func(childComplexity int, input model.AppInput) int
 		DestroyApp            func(childComplexity int, input model.AppInput) int
+		ImportApp             func(childComplexity int, input model.ImportAppInput) int
 		ManualApply           func(childComplexity int, input model.ManualApplyInput) int
 		RemoveApp             func(childComplexity int, input model.AppInput) int
 		Rollback              func(childComplexity int, input model.AppInput) int
@@ -153,6 +154,7 @@ type MutationResolver interface {
 	UnsetRacVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	SetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 	UnsetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
+	ImportApp(ctx context.Context, input model.ImportAppInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
 	GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error)
@@ -270,6 +272,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DestroyApp(childComplexity, args["input"].(model.AppInput)), true
+
+	case "Mutation.importApp":
+		if e.complexity.Mutation.ImportApp == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_importApp_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ImportApp(childComplexity, args["input"].(model.ImportAppInput)), true
 
 	case "Mutation.manualApply":
 		if e.complexity.Mutation.ManualApply == nil {
@@ -855,6 +869,10 @@ input ManualApplyInput {
   resources: [String]!
 }
 
+input ImportAppInput {
+  app: String!
+}
+
 type ClusterInfo {
   name: String!
   region: String!
@@ -897,6 +915,7 @@ type Mutation {
   unsetRacVar(input: SetTupleInput!): TuberApp
   setRacExclusion(input: SetResourceInput!): TuberApp
   unsetRacExclusion(input: SetResourceInput!): TuberApp
+  importApp(input: ImportAppInput!): TuberApp
 }
 
 schema {
@@ -963,6 +982,21 @@ func (ec *executionContext) field_Mutation_destroyApp_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐAppInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_importApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.ImportAppInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNImportAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐImportAppInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2379,6 +2413,45 @@ func (ec *executionContext) _Mutation_unsetRacExclusion(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().UnsetRacExclusion(rctx, args["input"].(model.SetResourceInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TuberApp)
+	fc.Result = res
+	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_importApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_importApp_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ImportApp(rctx, args["input"].(model.ImportAppInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4698,6 +4771,26 @@ func (ec *executionContext) unmarshalInputCreateReviewAppInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputImportAppInput(ctx context.Context, obj interface{}) (model.ImportAppInput, error) {
+	var it model.ImportAppInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "app":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("app"))
+			it.App, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputManualApplyInput(ctx context.Context, obj interface{}) (model.ManualApplyInput, error) {
 	var it model.ManualApplyInput
 	var asMap = obj.(map[string]interface{})
@@ -4967,6 +5060,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_setRacExclusion(ctx, field)
 		case "unsetRacExclusion":
 			out.Values[i] = ec._Mutation_unsetRacExclusion(ctx, field)
+		case "importApp":
+			out.Values[i] = ec._Mutation_importApp(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5654,6 +5749,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNImportAppInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐImportAppInput(ctx context.Context, v interface{}) (model.ImportAppInput, error) {
+	res, err := ec.unmarshalInputImportAppInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNManualApplyInput2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐManualApplyInput(ctx context.Context, v interface{}) (model.ManualApplyInput, error) {

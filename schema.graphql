@@ -82,6 +82,10 @@ input ManualApplyInput {
   resources: [String]!
 }
 
+input ImportAppInput {
+  app: String!
+}
+
 type ClusterInfo {
   name: String!
   region: String!
@@ -124,6 +128,7 @@ type Mutation {
   unsetRacVar(input: SetTupleInput!): TuberApp
   setRacExclusion(input: SetResourceInput!): TuberApp
   unsetRacExclusion(input: SetResourceInput!): TuberApp
+  importApp(input: ImportAppInput!): TuberApp
 }
 
 schema {

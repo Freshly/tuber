@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -752,6 +753,28 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 		return nil, fmt.Errorf("could not save changes: %v", err)
 	}
 
+	return app, nil
+}
+
+func (r *mutationResolver) ImportApp(ctx context.Context, input model.ImportAppInput) (*model.TuberApp, error) {
+	var app *model.TuberApp
+	err := json.Unmarshal([]byte(input.App), app)
+	if err != nil {
+		return nil, err
+	}
+
+	if app.Name == "" {
+		return nil, fmt.Errorf("app name missing from json")
+	}
+
+	if r.db.AppExists(app.Name) {
+		return nil, fmt.Errorf("app " + app.Name + " already exists. delete and recreate if your intention is to edit.")
+	}
+
+	err = r.db.SaveApp(app)
+	if err != nil {
+		return nil, err
+	}
 	return app, nil
 }
 
