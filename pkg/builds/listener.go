@@ -3,9 +3,11 @@ package builds
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
@@ -13,23 +15,22 @@ import (
 )
 
 type Event struct {
-	Status     string
-	LogURL     string
-	Images     []string
-	Logger     *zap.Logger
+	pubsub.Message
+	logger     *zap.Logger
 	errorScope report.Scope
 }
 
 func newEvent(logger *zap.Logger, message pubsub.Message) *Event {
-	logger = logger.With()
+	logger = logger.With(
+		zap.String("repoName", message.Substitutions.RepoName),
+		zap.String("branchName", message.Substitutions.BranchName),
+	)
+
 	scope := report.Scope{}
 
 	return &Event{
-		Logger:     logger,
+		logger:     logger,
 		errorScope: scope,
-		Status:     message.Status,
-		Images:     message.Images,
-		LogURL:     message.LogURL,
 	}
 }
 
@@ -53,36 +54,65 @@ func (p *Processor) ProcessMessage(message pubsub.Message) {
 	event := newEvent(p.logger, message)
 
 	if event.Status != "WORKING" && event.Status != "SUCCESS" && event.Status != "FAILED" {
-		event.Logger.Debug("build status received; not worth notifying", zap.String("build-status", event.Status))
+		event.logger.Debug("build status received; not worth notifying", zap.String("build-status", event.Status))
 		return
 	}
 
-	var apps []*model.TuberApp
-	for _, img := range event.Images {
-		matches, err := p.db.AppsForTag(img)
-		if err != nil {
-			event.Logger.Error("failed to look up tuber apps", zap.Error(err), zap.String("tag", img))
-			continue
-		}
-
-		apps = append(apps, matches...)
+	if event.Substitutions.BranchName == "" {
+		event.logger.Debug("build notification payload missing substitutions.BRANCH_NAME")
+		return
 	}
 
-	for _, app := range apps {
+	// This code is to handle Github App triggers. In those cases, event.Substitutions.RepoName is just the app name i.e. "distribution"
+	// In Tuber's DB we store all cloudSoureRepos as "github_freshly_{appName}"
+	repoName := event.Substitutions.RepoName
+	if !strings.Contains(event.Substitutions.RepoName, "github_freshly") {
+		repoName = "github_freshly_" + event.Substitutions.BranchName
+	}
+
+	matches, err := p.appsToNotify(event, repoName)
+	if err != nil {
+		event.logger.Error("failed to find apps matching repo name", zap.Error(err))
+		return
+	}
+
+	for _, app := range matches {
 		message := buildMessage(event, app)
 		p.slackClient.Message(p.logger, message, app.SlackChannel)
 	}
+}
+
+func (p *Processor) appsToNotify(event *Event, repoName string) ([]*model.TuberApp, error) {
+	var matches []*model.TuberApp
+	apps, err := p.db.AppsByCloudSourceRepo(repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	// ImageTag = Docker Ref = gcr.io/freshly-docker/appName:branchName
+	for _, app := range apps {
+		branchName, err := gcr.TagFromRef(app.ImageTag)
+		if err != nil {
+			return nil, err
+		}
+
+		if branchName == event.Substitutions.BranchName {
+			matches = append(matches, app)
+		}
+	}
+
+	return matches, nil
 }
 
 func buildMessage(event *Event, app *model.TuberApp) string {
 	var msg string
 	switch event.Status {
 	case "WORKING":
-		msg = fmt.Sprintf(":building_construction: Build started for *%s*", app.Name)
+		msg = fmt.Sprintf(":building_construction: Build started for *%s* - <%s|Build Logs>", app.Name, event.LogURL)
 	case "SUCCESS":
-		msg = fmt.Sprintf(":: Build succeeded for *%s*", app.Name)
+		msg = fmt.Sprintf(":white_check_mark: Build succeeded for *%s* - <%s|Build Logs>", app.Name, event.LogURL)
 	case "FAILED":
-		msg = fmt.Sprintf(":: Build failed for *%s*. See logs <%s|here>", app.Name, event.LogURL)
+		msg = fmt.Sprintf(":x: Build failed for *%s* - <%s|Build Logs>", app.Name, event.LogURL)
 	}
 
 	return msg
