@@ -768,7 +768,7 @@ func (r *mutationResolver) ImportApp(ctx context.Context, input model.ImportAppI
 	}
 
 	if r.db.AppExists(app.Name) {
-		return nil, fmt.Errorf("app " + app.Name + " already exists. delete and recreate if your intention is to edit.")
+		return nil, fmt.Errorf("app " + app.Name + " already exists. `apps remove` and recreate with this if your intention is to edit.")
 	}
 
 	err = r.db.SaveApp(app)
