@@ -29,6 +29,7 @@ func newEvent(logger *zap.Logger, message pubsub.Message) *Event {
 	scope := report.Scope{}
 
 	return &Event{
+		Message:    message,
 		logger:     logger,
 		errorScope: scope,
 	}
