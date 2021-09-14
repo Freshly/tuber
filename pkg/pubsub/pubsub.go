@@ -63,6 +63,11 @@ type Message struct {
 	Status string   `json:"status"`
 	Images []string `json:"images"`
 	LogURL string   `json:"logUrl"`
+
+	Substitutions struct {
+		BranchName string `json:"BRANCH_NAME"`
+		RepoName   string `json:"REPO_NAME"`
+	} `json:"substitutions"`
 }
 
 // Start starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
