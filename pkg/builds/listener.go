@@ -117,11 +117,11 @@ func buildMessage(event *Event, app *model.TuberApp) string {
 	var msg string
 	switch event.Status {
 	case "WORKING":
-		msg = fmt.Sprintf(":package: Build started for *%s*:%s - <%s|Build Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
+		msg = fmt.Sprintf(":package: Build started for *%s*:%s - <%s|Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
 	case "SUCCESS":
-		msg = fmt.Sprintf(":white_check_mark: Build succeeded for *%s*:%s - <%s|Build Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
+		msg = fmt.Sprintf(":white_check_mark: Build succeeded for *%s*:%s - <%s|Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
 	case "FAILED":
-		msg = fmt.Sprintf(":bomb: Build failed for *%s*:%s - <%s|Build Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
+		msg = fmt.Sprintf(":bomb: Build failed for *%s*:%s - <%s|Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
 	}
 
 	return msg
