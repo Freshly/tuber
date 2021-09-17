@@ -44,6 +44,12 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Build struct {
+		Link      func(childComplexity int) int
+		StartTime func(childComplexity int) int
+		Status    func(childComplexity int) int
+	}
+
 	ClusterInfo struct {
 		Name              func(childComplexity int) int
 		Region            func(childComplexity int) int
@@ -77,6 +83,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		GetApp         func(childComplexity int, name string) int
+		GetAppEnv      func(childComplexity int, name string) int
 		GetApps        func(childComplexity int) int
 		GetClusterInfo func(childComplexity int) int
 	}
@@ -99,22 +106,22 @@ type ComplexityRoot struct {
 	}
 
 	TuberApp struct {
-		CloudSourceRepo   func(childComplexity int) int
-		CurrentTags       func(childComplexity int) int
-		Env               func(childComplexity int) int
-		ExcludedResources func(childComplexity int) int
-		GithubRepo        func(childComplexity int) int
-		ImageTag          func(childComplexity int) int
-		Name              func(childComplexity int) int
-		Paused            func(childComplexity int) int
-		ReviewApp         func(childComplexity int) int
-		ReviewApps        func(childComplexity int) int
-		ReviewAppsConfig  func(childComplexity int) int
-		SlackChannel      func(childComplexity int) int
-		SourceAppName     func(childComplexity int) int
-		State             func(childComplexity int) int
-		TriggerID         func(childComplexity int) int
-		Vars              func(childComplexity int) int
+		CloudBuildStatuses func(childComplexity int) int
+		CloudSourceRepo    func(childComplexity int) int
+		CurrentTags        func(childComplexity int) int
+		ExcludedResources  func(childComplexity int) int
+		GithubRepo         func(childComplexity int) int
+		ImageTag           func(childComplexity int) int
+		Name               func(childComplexity int) int
+		Paused             func(childComplexity int) int
+		ReviewApp          func(childComplexity int) int
+		ReviewApps         func(childComplexity int) int
+		ReviewAppsConfig   func(childComplexity int) int
+		SlackChannel       func(childComplexity int) int
+		SourceAppName      func(childComplexity int) int
+		State              func(childComplexity int) int
+		TriggerID          func(childComplexity int) int
+		Vars               func(childComplexity int) int
 	}
 
 	Tuple struct {
@@ -148,13 +155,15 @@ type MutationResolver interface {
 	UnsetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 }
 type QueryResolver interface {
+	GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error)
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
 	GetApps(ctx context.Context) ([]*model.TuberApp, error)
 	GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error)
 }
 type TuberAppResolver interface {
 	ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error)
-	Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error)
+
+	CloudBuildStatuses(ctx context.Context, obj *model.TuberApp) ([]*model.Build, error)
 }
 
 type executableSchema struct {
@@ -171,6 +180,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Build.link":
+		if e.complexity.Build.Link == nil {
+			break
+		}
+
+		return e.complexity.Build.Link(childComplexity), true
+
+	case "Build.startTime":
+		if e.complexity.Build.StartTime == nil {
+			break
+		}
+
+		return e.complexity.Build.StartTime(childComplexity), true
+
+	case "Build.status":
+		if e.complexity.Build.Status == nil {
+			break
+		}
+
+		return e.complexity.Build.Status(childComplexity), true
 
 	case "ClusterInfo.name":
 		if e.complexity.ClusterInfo.Name == nil {
@@ -469,6 +499,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetApp(childComplexity, args["name"].(string)), true
 
+	case "Query.getAppEnv":
+		if e.complexity.Query.GetAppEnv == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getAppEnv_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetAppEnv(childComplexity, args["name"].(string)), true
+
 	case "Query.getApps":
 		if e.complexity.Query.GetApps == nil {
 			break
@@ -539,6 +581,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.State.Previous(childComplexity), true
 
+	case "TuberApp.cloudBuildStatuses":
+		if e.complexity.TuberApp.CloudBuildStatuses == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.CloudBuildStatuses(childComplexity), true
+
 	case "TuberApp.cloudSourceRepo":
 		if e.complexity.TuberApp.CloudSourceRepo == nil {
 			break
@@ -552,13 +601,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TuberApp.CurrentTags(childComplexity), true
-
-	case "TuberApp.env":
-		if e.complexity.TuberApp.Env == nil {
-			break
-		}
-
-		return e.complexity.TuberApp.Env(childComplexity), true
 
 	case "TuberApp.excludedResources":
 		if e.complexity.TuberApp.ExcludedResources == nil {
@@ -739,6 +781,12 @@ type Tuple {
   value: String!
 }
 
+type Build {
+  status: String!
+  link: String!
+  startTime: String!
+}
+
 type TuberApp {
   cloudSourceRepo: String!
   currentTags: [String!]
@@ -754,8 +802,8 @@ type TuberApp {
   triggerID: String!
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
-  env: [Tuple!] @goField(forceResolver: true)
   excludedResources: [Resource!]!
+  cloudBuildStatuses: [Build!]! @goField(forceResolver: true)
 }
 
 input AppInput {
@@ -783,12 +831,6 @@ type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
   excludedResources: [Resource!]!
-}
-
-type Query {
-  getApp(name: String!): TuberApp
-  getApps: [TuberApp!]!
-  getClusterInfo: ClusterInfo!
 }
 
 input CreateReviewAppInput {
@@ -823,6 +865,14 @@ input SetRacEnabledInput {
   name: ID!
   enabled: Boolean!
 }
+
+type Query {
+  getAppEnv(name: String!): [Tuple!]!
+  getApp(name: String!): TuberApp
+  getApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
+}
+
 
 type Mutation {
   createApp(input: AppInput!): TuberApp
@@ -1206,6 +1256,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_getAppEnv_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getApp_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1258,6 +1323,111 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Build_status(ctx context.Context, field graphql.CollectedField, obj *model.Build) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Build",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Build_link(ctx context.Context, field graphql.CollectedField, obj *model.Build) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Build",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Link, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Build_startTime(ctx context.Context, field graphql.CollectedField, obj *model.Build) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Build",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StartTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _ClusterInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.ClusterInfo) (ret graphql.Marshaler) {
 	defer func() {
@@ -2222,6 +2392,48 @@ func (ec *executionContext) _Mutation_unsetRacExclusion(ctx context.Context, fie
 	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_getAppEnv(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_getAppEnv_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAppEnv(rctx, args["name"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Tuple)
+	fc.Result = res
+	return ec.marshalNTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_getApp(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3163,38 +3375,6 @@ func (ec *executionContext) _TuberApp_reviewApps(ctx context.Context, field grap
 	return ec.marshalOTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TuberApp_env(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "TuberApp",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TuberApp().Env(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Tuple)
-	fc.Result = res
-	return ec.marshalOTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _TuberApp_excludedResources(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3228,6 +3408,41 @@ func (ec *executionContext) _TuberApp_excludedResources(ctx context.Context, fie
 	res := resTmp.([]*model.Resource)
 	fc.Result = res
 	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_cloudBuildStatuses(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.TuberApp().CloudBuildStatuses(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Build)
+	fc.Result = res
+	return ec.marshalNBuild2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐBuildᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tuple_key(ctx context.Context, field graphql.CollectedField, obj *model.Tuple) (ret graphql.Marshaler) {
@@ -4619,6 +4834,43 @@ func (ec *executionContext) unmarshalInputSetTupleInput(ctx context.Context, obj
 
 // region    **************************** object.gotpl ****************************
 
+var buildImplementors = []string{"Build"}
+
+func (ec *executionContext) _Build(ctx context.Context, sel ast.SelectionSet, obj *model.Build) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, buildImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Build")
+		case "status":
+			out.Values[i] = ec._Build_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "link":
+			out.Values[i] = ec._Build_link(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "startTime":
+			out.Values[i] = ec._Build_startTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var clusterInfoImplementors = []string{"ClusterInfo"}
 
 func (ec *executionContext) _ClusterInfo(ctx context.Context, sel ast.SelectionSet, obj *model.ClusterInfo) graphql.Marshaler {
@@ -4741,6 +4993,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "getAppEnv":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAppEnv(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "getApp":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -4982,7 +5248,12 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 				res = ec._TuberApp_reviewApps(ctx, field, obj)
 				return res
 			})
-		case "env":
+		case "excludedResources":
+			out.Values[i] = ec._TuberApp_excludedResources(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "cloudBuildStatuses":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -4990,14 +5261,12 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._TuberApp_env(ctx, field, obj)
+				res = ec._TuberApp_cloudBuildStatuses(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
-		case "excludedResources":
-			out.Values[i] = ec._TuberApp_excludedResources(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5304,6 +5573,53 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNBuild2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐBuildᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Build) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBuild2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐBuild(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNBuild2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐBuild(ctx context.Context, sel ast.SelectionSet, v *model.Build) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Build(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNClusterInfo2githubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐClusterInfo(ctx context.Context, sel ast.SelectionSet, v model.ClusterInfo) graphql.Marshaler {
@@ -5921,46 +6237,6 @@ func (ec *executionContext) marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuber�
 		return graphql.Null
 	}
 	return ec._TuberApp(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOTuple2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTupleᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tuple) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNTuple2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuple(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

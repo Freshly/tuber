@@ -1,11 +1,13 @@
 package reviewapps
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
@@ -174,28 +176,56 @@ func DeleteReviewApp(ctx context.Context, db *core.DB, reviewAppName string, cre
 	return core.DestroyTuberApp(db, app)
 }
 
-// yoinked from https://gitlab.com/gitlab-org/gitlab-runner/-/blob/0e2ae0001684f681ff901baa85e0d63ec7838568/executors/kubernetes/util.go#L23
+// Kubernetes & DNS1123 Rules
+// contain at most 63 characters
+// contain only lowercase alphanumeric characters or '-'
+// start with an alphanumeric character
+// end with an alphanumeric character
 const (
-	DNS1123NameMaximumLength         = 63
-	DNS1123NotAllowedCharacters      = "[^-a-z0-9]"
-	DNS1123NotAllowedStartCharacters = "^[^a-z0-9]+"
+	dns1123LabelFmt          = "([a-z0-9](?:[-a-z0-9]*[a-z0-9])?)"
+	dns1123NameMaximumLength = 30 // quick loophole to handle resource names. Originally 63
+	capitalLetters           = `[A-Z]`
+	symbolsExclHyphen        = `[^-a-z0-9]`
 )
 
-// yoinked from https://gitlab.com/gitlab-org/gitlab-runner/-/blob/0e2ae0001684f681ff901baa85e0d63ec7838568/executors/kubernetes/util.go#L268
+var (
+	dns1123LabelRe = regexp.MustCompile("^" + dns1123LabelFmt + "$")
+	capitalsRe     = regexp.MustCompile(capitalLetters)
+	symbolsRe      = regexp.MustCompile(symbolsExclHyphen)
+)
+
+// makeDNS1123Compatible utilizes the various constraints and regex above to selectively modify
+// incoming text, only modifying as needed where invalid.
+// Order of operations:
+// 1. Trim to a suitable length
+// 2. Lowercase all alpha characters
+// 3. Replace underscores with dashes
+// 4. Remove all disallowed symbols
+// 5. Trim leading & trailing hyphens
+// 6. Return a default based on the current time.
 func makeDNS1123Compatible(name string) string {
-	name = strings.ToLower(name)
+	n := []byte(name)
 
-	nameNotAllowedChars := regexp.MustCompile(DNS1123NotAllowedCharacters)
-	name = nameNotAllowedChars.ReplaceAllString(name, "")
-
-	nameNotAllowedStartChars := regexp.MustCompile(DNS1123NotAllowedStartCharacters)
-	name = nameNotAllowedStartChars.ReplaceAllString(name, "")
-
-	if len(name) > DNS1123NameMaximumLength {
-		name = name[0:DNS1123NameMaximumLength]
+	if len(n) > dns1123NameMaximumLength {
+		n = n[0:dns1123NameMaximumLength]
+	}
+	for !dns1123LabelRe.Match(n) {
+		switch {
+		case capitalsRe.Match(n):
+			n = bytes.ToLower(n)
+		case bytes.Contains(n, []byte("_")):
+			n = bytes.ReplaceAll(n, []byte("_"), []byte("-"))
+		case symbolsRe.Match(n):
+			n = symbolsRe.ReplaceAll(n, []byte(""))
+		case bytes.Compare(n, []byte("-")) == 1:
+			n = bytes.Trim(n, "-")
+		default:
+			// Default case will return name similar to 1631143096-review-app which is 21 characters.
+			return fmt.Sprintf("%d-review-app", time.Now().Unix())
+		}
 	}
 
-	return name
+	return string(n)
 }
 
 func ReviewAppName(appName string, branch string) string {

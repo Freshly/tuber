@@ -23,7 +23,7 @@ func RunPrerelease(logger *zap.Logger, resources []appResource, app *model.Tuber
 			return err
 		}
 
-		err = waitForPhase(resource.name, "pod", app, resource.timeout)
+		err = WaitForPhase(resource.name, "pod", app, resource.timeout)
 		if err != nil {
 			logger.Error("prerelease faled", zap.Error(err))
 			contextErr := fmt.Errorf("prerelease phase failed for pod: %s", resource.name)
@@ -43,7 +43,7 @@ func RunPrerelease(logger *zap.Logger, resources []appResource, app *model.Tuber
 	return nil
 }
 
-func waitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout time.Duration) error {
+func WaitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout time.Duration) error {
 	containerStatusesTemplate := fmt.Sprintf(
 		`go-template="%s"`,
 		"{{range .status.containerStatuses}}{{if .state.terminated.reason}}{{.state.terminated.reason}}{{end}}{{end}}",

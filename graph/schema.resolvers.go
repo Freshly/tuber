@@ -12,17 +12,23 @@ import (
 
 	"github.com/freshly/tuber/graph/generated"
 	"github.com/freshly/tuber/graph/model"
+	"github.com/freshly/tuber/pkg/builds"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/db"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
+	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/freshly/tuber/pkg/reviewapps"
 	"go.uber.org/zap"
 )
 
 func (r *mutationResolver) CreateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
-	err := core.NewAppSetup(input.Name, *input.IsIstio)
+	err := canCreateApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = core.NewAppSetup(input.Name, *input.IsIstio)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +46,10 @@ func (r *mutationResolver) CreateApp(ctx context.Context, input model.AppInput) 
 }
 
 func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -65,8 +75,13 @@ func (r *mutationResolver) UpdateApp(ctx context.Context, input model.AppInput) 
 }
 
 func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canDeleteDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app := &model.TuberApp{Name: input.Name}
-	err := r.Resolver.db.DeleteApp(app)
+	err = r.Resolver.db.DeleteApp(app)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +90,11 @@ func (r *mutationResolver) RemoveApp(ctx context.Context, input model.AppInput) 
 }
 
 func (r *mutationResolver) Deploy(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -105,7 +125,12 @@ func (r *mutationResolver) Deploy(ctx context.Context, input model.AppInput) (*m
 }
 
 func (r *mutationResolver) DestroyApp(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
-	err := reviewapps.DeleteReviewApp(ctx, r.Resolver.db, input.Name, r.Resolver.credentials, r.Resolver.projectName)
+	err := canDeleteDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+	// what
+	err = reviewapps.DeleteReviewApp(ctx, r.Resolver.db, input.Name, r.Resolver.credentials, r.Resolver.projectName)
 
 	if err != nil {
 		return nil, err
@@ -115,6 +140,11 @@ func (r *mutationResolver) DestroyApp(ctx context.Context, input model.AppInput)
 }
 
 func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.CreateReviewAppInput) (*model.TuberApp, error) {
+	err := canCreateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	name, err := reviewapps.CreateReviewApp(ctx, r.Resolver.db, r.Resolver.logger, input.BranchName, input.Name, r.Resolver.credentials, r.Resolver.projectName)
 	if err != nil {
 		return nil, err
@@ -126,6 +156,11 @@ func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.Crea
 }
 
 func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -160,6 +195,11 @@ func (r *mutationResolver) SetAppVar(ctx context.Context, input model.SetTupleIn
 }
 
 func (r *mutationResolver) UnsetAppVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -189,6 +229,11 @@ func (r *mutationResolver) UnsetAppVar(ctx context.Context, input model.SetTuple
 }
 
 func (r *mutationResolver) SetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	err := canUpdateSecret(ctx, input.Name, input.Name+"-env")
+	if err != nil {
+		return nil, err
+	}
+
 	mapName := fmt.Sprintf("%s-env", input.Name)
 
 	if err := k8s.PatchSecret(mapName, input.Name, input.Key, input.Value); err != nil {
@@ -203,6 +248,11 @@ func (r *mutationResolver) SetAppEnv(ctx context.Context, input model.SetTupleIn
 }
 
 func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	err := canUpdateSecret(ctx, input.Name, input.Name+"-env")
+	if err != nil {
+		return nil, err
+	}
+
 	mapName := fmt.Sprintf("%s-env", input.Name)
 
 	if err := k8s.RemoveSecretEntry(mapName, input.Name, input.Key); err != nil {
@@ -217,6 +267,11 @@ func (r *mutationResolver) UnsetAppEnv(ctx context.Context, input model.SetTuple
 }
 
 func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	err := canDeleteDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.AppName)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -237,6 +292,11 @@ func (r *mutationResolver) SetExcludedResource(ctx context.Context, input model.
 }
 
 func (r *mutationResolver) UnsetExcludedResource(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	err := canCreateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.AppName)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -266,6 +326,11 @@ func (r *mutationResolver) UnsetExcludedResource(ctx context.Context, input mode
 }
 
 func (r *mutationResolver) Rollback(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -329,6 +394,11 @@ func (r *mutationResolver) Rollback(ctx context.Context, input model.AppInput) (
 }
 
 func (r *mutationResolver) SetGithubRepo(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -353,6 +423,11 @@ func (r *mutationResolver) SetGithubRepo(ctx context.Context, input model.AppInp
 }
 
 func (r *mutationResolver) SetCloudSourceRepo(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -377,6 +452,11 @@ func (r *mutationResolver) SetCloudSourceRepo(ctx context.Context, input model.A
 }
 
 func (r *mutationResolver) SetSlackChannel(ctx context.Context, input model.AppInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -401,6 +481,19 @@ func (r *mutationResolver) SetSlackChannel(ctx context.Context, input model.AppI
 }
 
 func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualApplyInput) (*model.TuberApp, error) {
+	token, err := oauth.GetAccessToken(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving authorization params")
+	}
+
+	authed, err := k8s.CanI(input.Name, "'*'", "'*'", "--token="+token)
+	if err != nil {
+		return nil, err
+	}
+	if !authed {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -464,6 +557,11 @@ func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualAp
 }
 
 func (r *mutationResolver) SetRacEnabled(ctx context.Context, input model.SetRacEnabledInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -484,6 +582,11 @@ func (r *mutationResolver) SetRacEnabled(ctx context.Context, input model.SetRac
 }
 
 func (r *mutationResolver) SetRacVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -526,6 +629,11 @@ func (r *mutationResolver) SetRacVar(ctx context.Context, input model.SetTupleIn
 }
 
 func (r *mutationResolver) UnsetRacVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.Name)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -560,6 +668,11 @@ func (r *mutationResolver) UnsetRacVar(ctx context.Context, input model.SetTuple
 }
 
 func (r *mutationResolver) SetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.AppName)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -599,6 +712,11 @@ func (r *mutationResolver) SetRacExclusion(ctx context.Context, input model.SetR
 }
 
 func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error) {
+	err := canUpdateDeployments(ctx, input.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	app, err := r.Resolver.db.App(input.AppName)
 	if err != nil {
 		if errors.As(err, &db.NotFoundError{}) {
@@ -637,11 +755,50 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 	return app, nil
 }
 
+func (r *queryResolver) GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error) {
+	err := canGetSecret(ctx, name, name+"-env")
+	if err != nil {
+		return nil, err
+	}
+
+	mapName := fmt.Sprintf("%s-env", name)
+	var config *k8s.ConfigResource
+	config, err = k8s.GetConfigResource(mapName, name, "Secret")
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]*model.Tuple, 0)
+
+	for k, ev := range config.Data {
+		var v []byte
+		v, err = base64.StdEncoding.DecodeString(ev)
+
+		if err != nil {
+			return nil, fmt.Errorf("could not decode value for %s: %v", k, err)
+		}
+
+		list = append(list, &model.Tuple{Key: k, Value: string(v)})
+	}
+
+	return list, nil
+}
+
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
+	err := canGetDeployments(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
 	return r.Resolver.db.App(name)
 }
 
 func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
+	err := canViewAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return r.Resolver.db.SourceApps()
 }
 
@@ -654,30 +811,27 @@ func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo,
 }
 
 func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
-	return r.db.ReviewAppsFor(obj)
-}
-
-func (r *tuberAppResolver) Env(ctx context.Context, obj *model.TuberApp) ([]*model.Tuple, error) {
-	mapName := fmt.Sprintf("%s-env", obj.Name)
-	config, err := k8s.GetConfigResource(mapName, obj.Name, "Secret")
+	err := canGetDeployments(ctx, obj.Name)
 
 	if err != nil {
 		return nil, err
 	}
 
-	list := make([]*model.Tuple, 0)
+	return r.db.ReviewAppsFor(obj)
+}
 
-	for k, ev := range config.Data {
-		v, err := base64.StdEncoding.DecodeString(ev)
-
-		if err != nil {
-			return nil, fmt.Errorf("could not decode value for %s: %v", k, err)
-		}
-
-		list = append(list, &model.Tuple{Key: k, Value: string(v)})
+func (r *tuberAppResolver) CloudBuildStatuses(ctx context.Context, obj *model.TuberApp) ([]*model.Build, error) {
+	err := canGetDeployments(ctx, obj.Name)
+	if err != nil {
+		return nil, err
 	}
 
-	return list, nil
+	builds, err := builds.FindByApp(obj, r.projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	return builds, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -692,13 +846,3 @@ func (r *Resolver) TuberApp() generated.TuberAppResolver { return &tuberAppResol
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type tuberAppResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) ExcludedResources(ctx context.Context) ([]*model.Resource, error) {
-	panic(fmt.Errorf("not implemented"))
-}

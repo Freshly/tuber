@@ -8,19 +8,11 @@ spec:
   gateways:
     - "{{.clusterAdminGateway}}"
   http:
-    - route:
+    - match:
+        - uri:
+            prefix: /tuber
+      route:
         - destination:
             host: tuber
             port:
               number: 3000
-      match:
-        - uri:
-            prefix: /tuber/graphql
-    - route:
-        - destination:
-            host: tuber-frontend.tuber-frontend.svc.cluster.local
-            port:
-              number: 3000
-      match:
-        - uri:
-            prefix: /tuber

@@ -2,7 +2,8 @@
 import { useRouter } from 'next/dist/client/router'
 import React, { useRef } from 'react'
 import Switch from 'react-switch'
-import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, Collapsible, TextInputForm, ConfirmButton, Button } from '../../src/components'
+import dateformat from 'dateformat'
+import { Card, Heading, TextInput, TextInputGroup, ExcludedResources, CollapsedAsyncTextInputGroup, TextInputForm, ConfirmButton, Button } from '../../src/components'
 import { throwError } from '../../src/throwError'
 import { TrashIcon } from '@heroicons/react/outline'
 import {
@@ -16,7 +17,8 @@ import {
 	useSetRacVarMutation, useUnsetRacVarMutation,
 	useSetExcludedResourceMutation, useUnsetExcludedResourceMutation,
 	useSetAppVarMutation, useUnsetAppVarMutation,
-	useSetAppEnvMutation, useUnsetAppEnvMutation, useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubRepoMutation, useGetClusterInfoQuery,
+	useSetCloudSourceRepoMutation, useSetSlackChannelMutation, useSetGithubRepoMutation, 
+	useGetClusterInfoQuery, GetAppEnvDocument, useSetAppEnvMutation, useUnsetAppEnvMutation
 } from '../../src/generated/graphql'
 import Head from 'next/head'
 import { useClusterInfo } from '../../src/useClusterInfo'
@@ -137,6 +139,18 @@ const ShowApp = () => {
 				</div>
 			</Card>
 		</section>
+		<section>
+			{app.reviewApp && <Card>
+				<h2 className="text-xl mb-2">Recent Builds</h2>
+				{app.cloudBuildStatuses.map(bs =>
+					<div key={bs.startTime} className="grid grid-cols-3">
+						<span>{dateformat(bs.startTime, 'ddd mmm dS, h:MM TT')}</span>
+						<span>{bs.status}</span>
+						<a href={bs.link} className="underline" target="_blank" rel="noreferrer">Build Logs</a>
+					</div>,
+				)}
+			</Card>}
+		</section>
 
 		<section>
 			<Card>
@@ -214,13 +228,15 @@ const ShowApp = () => {
 		</Card>
 
 		<Card className="shadow-dark-50 shadow">
-			<Collapsible heading={'Environment Variables'} collapsed={true}>
-				<TextInputGroup
-					vars={app.env} appName={app.name}
-					useSet={useSetAppEnvMutation}
-					useUnset={useUnsetAppEnvMutation}
-				/>
-			</Collapsible>
+			<CollapsedAsyncTextInputGroup 
+				tableHeading={'Environment Variables'} 
+				appName={app.name}
+				queryDocument={GetAppEnvDocument}
+				queryVars={{ name: app.name }}
+				queryData={function(data) { return data.getAppEnv}}
+				setMutation={useSetAppEnvMutation}
+				unsetMutation={useUnsetAppEnvMutation}
+			></CollapsedAsyncTextInputGroup>
 		</Card>
 	</div>
 }

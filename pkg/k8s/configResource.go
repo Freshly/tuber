@@ -75,3 +75,36 @@ func GetConfigResource(name string, namespace string, kind string) (config *Conf
 
 	return
 }
+
+// GetConfigResourceWithToken is a step toward a larger refactor
+func GetConfigResourceWithToken(name string, namespace string, kind string, token string) (config *ConfigResource, err error) {
+	result, err := Get(strings.ToLower(kind), name, namespace, "-o", "json", "--token="+token)
+	if err != nil {
+		return nil, fmt.Errorf("could not kubectl get %s %s: %v", kind, name, err)
+	}
+
+	var k8sc k8sConfigResource
+
+	if result == nil {
+		k8sc = k8sConfigResource{
+			APIVersion: "v1",
+			Kind:       kind,
+			Data:       map[string]string{},
+			Metadata:   k8sMetadata{Name: name, Namespace: namespace},
+		}
+	} else {
+		json.Unmarshal(result, &k8sc)
+	}
+
+	data := k8sc.Data
+	if data == nil {
+		data = map[string]string{}
+	}
+
+	config = &ConfigResource{
+		config: &k8sc,
+		Data:   data,
+	}
+
+	return
+}

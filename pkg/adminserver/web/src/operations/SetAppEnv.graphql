@@ -1,10 +1,5 @@
 mutation SetAppEnv($input: SetTupleInput!) {
   setAppEnv(input: $input) {
     name
-
-    env {
-      key
-      value
-    }
   }
 }

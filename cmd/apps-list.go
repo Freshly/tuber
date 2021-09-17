@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var jsonOutput bool
+var appsListJsonFlag bool
 
 var appsListCmd = &cobra.Command{
 	SilenceErrors: true,
@@ -49,7 +49,7 @@ func runAppsListCmd(*cobra.Command, []string) (err error) {
 
 	sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
 
-	if jsonOutput {
+	if appsListJsonFlag {
 		out, err := json.Marshal(apps)
 
 		if err != nil {
@@ -74,6 +74,6 @@ func runAppsListCmd(*cobra.Command, []string) (err error) {
 }
 
 func init() {
-	appsListCmd.Flags().BoolVar(&jsonOutput, "json", false, "output as json")
+	appsListCmd.Flags().BoolVar(&appsListJsonFlag, "json", false, "output as json")
 	appsCmd.AddCommand(appsListCmd)
 }

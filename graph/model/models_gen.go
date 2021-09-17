@@ -12,6 +12,12 @@ type AppInput struct {
 	CloudSourceRepo *string `json:"cloudSourceRepo"`
 }
 
+type Build struct {
+	Status    string `json:"status"`
+	Link      string `json:"link"`
+	StartTime string `json:"startTime"`
+}
+
 type ClusterInfo struct {
 	Name              string `json:"name"`
 	Region            string `json:"region"`
@@ -63,22 +69,22 @@ type State struct {
 }
 
 type TuberApp struct {
-	CloudSourceRepo   string            `json:"cloudSourceRepo"`
-	CurrentTags       []string          `json:"currentTags"`
-	GithubRepo        string            `json:"githubRepo"`
-	ImageTag          string            `json:"imageTag"`
-	Name              string            `json:"name"`
-	Paused            bool              `json:"paused"`
-	ReviewApp         bool              `json:"reviewApp"`
-	ReviewAppsConfig  *ReviewAppsConfig `json:"reviewAppsConfig"`
-	SlackChannel      string            `json:"slackChannel"`
-	SourceAppName     string            `json:"sourceAppName"`
-	State             *State            `json:"state"`
-	TriggerID         string            `json:"triggerID"`
-	Vars              []*Tuple          `json:"vars"`
-	ReviewApps        []*TuberApp       `json:"reviewApps"`
-	Env               []*Tuple          `json:"env"`
-	ExcludedResources []*Resource       `json:"excludedResources"`
+	CloudSourceRepo    string            `json:"cloudSourceRepo"`
+	CurrentTags        []string          `json:"currentTags"`
+	GithubRepo         string            `json:"githubRepo"`
+	ImageTag           string            `json:"imageTag"`
+	Name               string            `json:"name"`
+	Paused             bool              `json:"paused"`
+	ReviewApp          bool              `json:"reviewApp"`
+	ReviewAppsConfig   *ReviewAppsConfig `json:"reviewAppsConfig"`
+	SlackChannel       string            `json:"slackChannel"`
+	SourceAppName      string            `json:"sourceAppName"`
+	State              *State            `json:"state"`
+	TriggerID          string            `json:"triggerID"`
+	Vars               []*Tuple          `json:"vars"`
+	ReviewApps         []*TuberApp       `json:"reviewApps"`
+	ExcludedResources  []*Resource       `json:"excludedResources"`
+	CloudBuildStatuses []*Build          `json:"cloudBuildStatuses"`
 }
 
 type Tuple struct {

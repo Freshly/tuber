@@ -7,6 +7,11 @@ query GetFullApp($name: String!) {
     slackChannel
     paused
     imageTag
+    cloudBuildStatuses {
+      status
+      startTime
+      link
+    }
     reviewAppsConfig {
       enabled
       excludedResources {
@@ -20,11 +25,6 @@ query GetFullApp($name: String!) {
     }
 
     vars {
-      key
-      value
-    }
-
-    env {
       key
       value
     }

@@ -8,6 +8,12 @@ type Tuple {
   value: String!
 }
 
+type Build {
+  status: String!
+  link: String!
+  startTime: String!
+}
+
 type TuberApp {
   cloudSourceRepo: String!
   currentTags: [String!]
@@ -23,8 +29,8 @@ type TuberApp {
   triggerID: String!
   vars: [Tuple!]!
   reviewApps: [TuberApp!] @goField(forceResolver: true)
-  env: [Tuple!] @goField(forceResolver: true)
   excludedResources: [Resource!]!
+  cloudBuildStatuses: [Build!]! @goField(forceResolver: true)
 }
 
 input AppInput {
@@ -52,12 +58,6 @@ type ReviewAppsConfig {
   enabled: Boolean!
   vars: [Tuple!]!
   excludedResources: [Resource!]!
-}
-
-type Query {
-  getApp(name: String!): TuberApp
-  getApps: [TuberApp!]!
-  getClusterInfo: ClusterInfo!
 }
 
 input CreateReviewAppInput {
@@ -92,6 +92,14 @@ input SetRacEnabledInput {
   name: ID!
   enabled: Boolean!
 }
+
+type Query {
+  getAppEnv(name: String!): [Tuple!]!
+  getApp(name: String!): TuberApp
+  getApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
+}
+
 
 type Mutation {
   createApp(input: AppInput!): TuberApp

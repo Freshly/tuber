@@ -25,6 +25,13 @@ export type AppInput = {
   cloudSourceRepo?: Maybe<Scalars['String']>;
 };
 
+export type Build = {
+  __typename?: 'Build';
+  status: Scalars['String'];
+  link: Scalars['String'];
+  startTime: Scalars['String'];
+};
+
 export type ClusterInfo = {
   __typename?: 'ClusterInfo';
   name: Scalars['String'];
@@ -180,9 +187,15 @@ export type MutationUnsetRacExclusionArgs = {
 
 export type Query = {
   __typename?: 'Query';
+  getAppEnv: Array<Tuple>;
   getApp?: Maybe<TuberApp>;
   getApps: Array<TuberApp>;
   getClusterInfo: ClusterInfo;
+};
+
+
+export type QueryGetAppEnvArgs = {
+  name: Scalars['String'];
 };
 
 
@@ -243,8 +256,8 @@ export type TuberApp = {
   triggerID: Scalars['String'];
   vars: Array<Tuple>;
   reviewApps?: Maybe<Array<TuberApp>>;
-  env?: Maybe<Array<Tuple>>;
   excludedResources: Array<Resource>;
+  cloudBuildStatuses: Array<Build>;
 };
 
 export type Tuple = {
@@ -305,6 +318,19 @@ export type GetAppQuery = (
   )> }
 );
 
+export type GetAppEnvQueryVariables = Exact<{
+  name: Scalars['String'];
+}>;
+
+
+export type GetAppEnvQuery = (
+  { __typename?: 'Query' }
+  & { getAppEnv: Array<(
+    { __typename?: 'Tuple' }
+    & Pick<Tuple, 'key' | 'value'>
+  )> }
+);
+
 export type GetAppsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -337,7 +363,10 @@ export type GetFullAppQuery = (
   & { getApp?: Maybe<(
     { __typename?: 'TuberApp' }
     & Pick<TuberApp, 'name' | 'reviewApp' | 'cloudSourceRepo' | 'githubRepo' | 'slackChannel' | 'paused' | 'imageTag'>
-    & { reviewAppsConfig?: Maybe<(
+    & { cloudBuildStatuses: Array<(
+      { __typename?: 'Build' }
+      & Pick<Build, 'status' | 'startTime' | 'link'>
+    )>, reviewAppsConfig?: Maybe<(
       { __typename?: 'ReviewAppsConfig' }
       & Pick<ReviewAppsConfig, 'enabled'>
       & { excludedResources: Array<(
@@ -350,10 +379,7 @@ export type GetFullAppQuery = (
     )>, vars: Array<(
       { __typename?: 'Tuple' }
       & Pick<Tuple, 'key' | 'value'>
-    )>, env?: Maybe<Array<(
-      { __typename?: 'Tuple' }
-      & Pick<Tuple, 'key' | 'value'>
-    )>>, reviewApps?: Maybe<Array<(
+    )>, reviewApps?: Maybe<Array<(
       { __typename?: 'TuberApp' }
       & Pick<TuberApp, 'name'>
     )>>, excludedResources: Array<(
@@ -373,10 +399,6 @@ export type SetAppEnvMutation = (
   & { setAppEnv?: Maybe<(
     { __typename?: 'TuberApp' }
     & Pick<TuberApp, 'name'>
-    & { env?: Maybe<Array<(
-      { __typename?: 'Tuple' }
-      & Pick<Tuple, 'key' | 'value'>
-    )>> }
   )> }
 );
 
@@ -519,10 +541,6 @@ export type UnsetAppEnvMutation = (
   & { unsetAppEnv?: Maybe<(
     { __typename?: 'TuberApp' }
     & Pick<TuberApp, 'name'>
-    & { env?: Maybe<Array<(
-      { __typename?: 'Tuple' }
-      & Pick<Tuple, 'key' | 'value'>
-    )>> }
   )> }
 );
 
@@ -536,10 +554,6 @@ export type UnsetAppVarMutation = (
   & { unsetAppVar?: Maybe<(
     { __typename?: 'TuberApp' }
     & Pick<TuberApp, 'name'>
-    & { env?: Maybe<Array<(
-      { __typename?: 'Tuple' }
-      & Pick<Tuple, 'key' | 'value'>
-    )>> }
   )> }
 );
 
@@ -623,6 +637,46 @@ export default {
     },
     "subscriptionType": null,
     "types": [
+      {
+        "kind": "OBJECT",
+        "name": "Build",
+        "fields": [
+          {
+            "name": "status",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "link",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "startTime",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "Any"
+              }
+            },
+            "args": []
+          }
+        ],
+        "interfaces": []
+      },
       {
         "kind": "OBJECT",
         "name": "ClusterInfo",
@@ -1115,6 +1169,35 @@ export default {
         "name": "Query",
         "fields": [
           {
+            "name": "getAppEnv",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "LIST",
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "Tuple",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "args": [
+              {
+                "name": "name",
+                "type": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "SCALAR",
+                    "name": "Any"
+                  }
+                }
+              }
+            ]
+          },
+          {
             "name": "getApp",
             "type": {
               "kind": "OBJECT",
@@ -1476,21 +1559,6 @@ export default {
             "args": []
           },
           {
-            "name": "env",
-            "type": {
-              "kind": "LIST",
-              "ofType": {
-                "kind": "NON_NULL",
-                "ofType": {
-                  "kind": "OBJECT",
-                  "name": "Tuple",
-                  "ofType": null
-                }
-              }
-            },
-            "args": []
-          },
-          {
             "name": "excludedResources",
             "type": {
               "kind": "NON_NULL",
@@ -1501,6 +1569,24 @@ export default {
                   "ofType": {
                     "kind": "OBJECT",
                     "name": "Resource",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "cloudBuildStatuses",
+            "type": {
+              "kind": "NON_NULL",
+              "ofType": {
+                "kind": "LIST",
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "kind": "OBJECT",
+                    "name": "Build",
                     "ofType": null
                   }
                 }
@@ -1593,6 +1679,18 @@ export const GetAppDocument = gql`
 export function useGetAppQuery(options: Omit<Urql.UseQueryArgs<GetAppQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<GetAppQuery>({ query: GetAppDocument, ...options });
 };
+export const GetAppEnvDocument = gql`
+    query GetAppEnv($name: String!) {
+  getAppEnv(name: $name) {
+    key
+    value
+  }
+}
+    `;
+
+export function useGetAppEnvQuery(options: Omit<Urql.UseQueryArgs<GetAppEnvQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<GetAppEnvQuery>({ query: GetAppEnvDocument, ...options });
+};
 export const GetAppsDocument = gql`
     query GetApps {
   getApps {
@@ -1629,6 +1727,11 @@ export const GetFullAppDocument = gql`
     slackChannel
     paused
     imageTag
+    cloudBuildStatuses {
+      status
+      startTime
+      link
+    }
     reviewAppsConfig {
       enabled
       excludedResources {
@@ -1641,10 +1744,6 @@ export const GetFullAppDocument = gql`
       }
     }
     vars {
-      key
-      value
-    }
-    env {
       key
       value
     }
@@ -1666,10 +1765,6 @@ export const SetAppEnvDocument = gql`
     mutation SetAppEnv($input: SetTupleInput!) {
   setAppEnv(input: $input) {
     name
-    env {
-      key
-      value
-    }
   }
 }
     `;
@@ -1794,10 +1889,6 @@ export const UnsetAppEnvDocument = gql`
     mutation UnsetAppEnv($input: SetTupleInput!) {
   unsetAppEnv(input: $input) {
     name
-    env {
-      key
-      value
-    }
   }
 }
     `;
@@ -1809,10 +1900,6 @@ export const UnsetAppVarDocument = gql`
     mutation UnsetAppVar($input: SetTupleInput!) {
   unsetAppVar(input: $input) {
     name
-    env {
-      key
-      value
-    }
   }
 }
     `;

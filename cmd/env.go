@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/freshly/tuber/graph"
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/goccy/go-yaml"
@@ -75,6 +75,7 @@ var fileCmd = &cobra.Command{
 	},
 }
 
+var listFmtFlag string
 var envListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list [appName (deprecated, use --app or -a)]",
@@ -198,7 +199,6 @@ func envGet(cmd *cobra.Command, args []string) error {
 func envList(cmd *cobra.Command, args []string) error {
 	var appName string
 	if len(args) == 1 {
-		fmt.Println("App name as the first argument to this command is DEPRECATED. Please specify with -a or --app.")
 		appName = args[0]
 	} else {
 		if appNameFlag == "" {
@@ -212,12 +212,26 @@ func envList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	data, err := yaml.Marshal(m)
-	if err != nil {
-		return err
+	var output []byte
+	switch listFmtFlag {
+	case "env":
+		for k, v := range m {
+			output = append(output, []byte(fmt.Sprintf("%s = \"%s\"\n", k, v))...)
+		}
+	case "json":
+		output, err = json.Marshal(m)
+		if err != nil {
+			return err
+		}
+	default:
+		output, err = yaml.Marshal(m)
+		if err != nil {
+			return err
+		}
+
 	}
 
-	fmt.Print(string(data))
+	fmt.Print(string(output))
 	return nil
 }
 
@@ -228,23 +242,19 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 	}
 
 	gql := `
-		query($name: String!) {
-			getApp(name: $name) {
-				name
-
-				env {
-					key
-					value
-				}
+		query {
+			getAppEnv(name: "%s") {
+				key
+				value
 			}
 		}
 	`
 
 	var respData struct {
-		GetApp *model.TuberApp
+		GetAppEnv []*model.Tuple
 	}
 
-	err = graphql.Query(context.Background(), gql, &respData, graph.WithVar("name", appName))
+	err = graphql.Query(context.Background(), fmt.Sprintf(gql, appName), &respData)
 
 	if err != nil {
 		return nil, err
@@ -252,7 +262,7 @@ func getAllEnvGraphqlQuery(appName string) (map[string]string, error) {
 
 	m := make(map[string]string)
 
-	for _, tuple := range respData.GetApp.Env {
+	for _, tuple := range respData.GetAppEnv {
 		m[tuple.Key] = tuple.Value
 	}
 
@@ -270,5 +280,6 @@ func init() {
 	envGetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envGetCmd)
 	envListCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
+	envListCmd.Flags().StringVarP(&listFmtFlag, "output", "o", "", "output format to display environment variables")
 	envCmd.AddCommand(envListCmd)
 }
