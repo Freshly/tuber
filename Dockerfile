@@ -1,4 +1,4 @@
-FROM bitnami/kubectl:1.15-ol-7
+FROM bitnami/kubectl:1.19
 
 FROM golang:1.16.5-alpine3.13
 
