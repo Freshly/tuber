@@ -101,7 +101,7 @@ func newOAuthConfig() (*oauth2.Config, error) {
 		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
 		ClientID:     cluster.Auth.TuberDesktopClientID,
 		ClientSecret: cluster.Auth.TuberDesktopClientSecret,
-		Scopes:       []string{"openid", "email"},
+		Scopes:       []string{"openid", "email", "https://www.googleapis.com/auth/cloud-platform"},
 		Endpoint:     google.Endpoint,
 	}, nil
 }
@@ -175,10 +175,17 @@ func CreateRefreshToken() error {
 	return os.WriteFile(path, out, os.ModePerm)
 }
 
-func CreateIDToken(IAPAudience string) (string, error) {
+type OauthTokens struct {
+	IDToken      string
+	RefreshToken string
+	AccessToken  string
+	Raw          *internal.Token
+}
+
+func CreateIDToken(IAPAudience string) (*OauthTokens, error) {
 	rts, err := LoadOrCreateRefreshTokens()
 	if err != nil {
-		return "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
+		return nil, fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
 	}
 
 	var activeToken *audienceToken
@@ -188,12 +195,12 @@ func CreateIDToken(IAPAudience string) (string, error) {
 		}
 	}
 	if activeToken == nil || activeToken.RefreshToken == "" {
-		return "", fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
+		return nil, fmt.Errorf("refresh token blank for this context, please run 'tuber auth'")
 	}
 
 	c, err := newOAuthConfig()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	v := url.Values{
@@ -204,13 +211,13 @@ func CreateIDToken(IAPAudience string) (string, error) {
 
 	token, err := internal.RetrieveToken(context.Background(), c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	vals, ok := token.Raw.(map[string]interface{})
 	if !ok {
-		return "", errors.New("could not assert raw token values")
+		return nil, errors.New("could not assert raw token values")
 	}
 
-	return vals["id_token"].(string), nil
+	return &OauthTokens{IDToken: vals["id_token"].(string), AccessToken: vals["access_token"].(string), RefreshToken: activeToken.RefreshToken, Raw: token}, nil
 }

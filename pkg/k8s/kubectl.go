@@ -203,9 +203,19 @@ func UseCluster(cluster string) error {
 	return err
 }
 
-// CanDeploy determines if the current user can create a deployment
-func CanDeploy(namespace string, args ...string) (bool, error) {
-	canDeploy := []string{"auth", "can-i", "create", "deployments", "-n", namespace}
+// CanI is for authorization checks
+func CanI(namespace string, verb string, objectType string, args ...string) (bool, error) {
+	canDeploy := []string{"auth", "can-i", verb, objectType, "-n", namespace}
+	out, err := kubectl(append(canDeploy, args...)...)
+	if err != nil {
+		return false, err
+	}
+
+	return strings.Trim(string(out), "\r\n") == "yes", nil
+}
+
+func CanIAllNamespaces(verb string, objectType string, args ...string) (bool, error) {
+	canDeploy := []string{"auth", "can-i", verb, objectType, "--all-namespaces"}
 	out, err := kubectl(append(canDeploy, args...)...)
 	if err != nil {
 		return false, err
