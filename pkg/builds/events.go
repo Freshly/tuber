@@ -51,15 +51,15 @@ type Processor struct {
 	slackClient *slack.Client
 }
 
-func (p *Processor) ProcessMessage(message pubsub.Message) {
+func (p *Processor) Process(message pubsub.Message) {
 	event := newEvent(p.logger, message)
 
 	defer sentry.Recover()
 
-	p.Notify(event)
+	p.notify(event)
 }
 
-func (p *Processor) Notify(event *Event) {
+func (p *Processor) notify(event *Event) {
 	if event.Status != "WORKING" && event.Status != "SUCCESS" && event.Status != "FAILED" {
 		event.logger.Debug("build status received; not worth notifying", zap.String("build-status", event.Status))
 		return

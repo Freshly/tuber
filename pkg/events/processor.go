@@ -74,7 +74,7 @@ func NewEvent(logger *zap.Logger, digest string, tag string) *Event {
 }
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers releases for matching apps
-func (p Processor) ProcessMessage(message psub.Message) {
+func (p Processor) Process(message psub.Message) {
 	event := NewEvent(p.logger, message.Digest, message.Tag)
 
 	apps, err := p.db.AppsForTag(event.tag)
