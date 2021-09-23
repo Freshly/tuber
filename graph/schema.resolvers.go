@@ -826,10 +826,6 @@ func (r *tuberAppResolver) CloudBuildStatuses(ctx context.Context, obj *model.Tu
 		return nil, err
 	}
 
-	if obj.TriggerID == "" {
-		return nil, nil
-	}
-
 	builds, err := builds.FindByApp(obj, r.projectName)
 	if err != nil {
 		return nil, err
