@@ -203,7 +203,7 @@ func (s server) devServerAuth(w http.ResponseWriter, r *http.Request) (http.Resp
 			return w, r
 		}
 
-		encodedAccess, err := s.secureCookie.Encode(oauth.RefreshTokenCookieKey(), tokens.AccessToken)
+		encodedAccess, err := s.secureCookie.Encode(oauth.AccessTokenCookieKey(), tokens.AccessToken)
 		if err != nil {
 			fmt.Println(err)
 			return w, r
