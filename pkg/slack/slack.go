@@ -19,32 +19,30 @@ func New(key string, enabled bool, catchAllChannel string) *Client {
 	}
 }
 
-func (c *Client) Message(logger *zap.Logger, message string, channels ...string) {
-	messageLogger := logger.With(zap.String("slackMessage", message), zap.Strings("slackChannels", channels))
+func (c *Client) Message(logger *zap.Logger, message string, channel string) {
+	messageLogger := logger.With(zap.String("slackMessage", message), zap.String("slackChannel", channel))
 	messageLogger.Debug("slack message triggered")
-	var presentChannels []string
-	for _, ch := range channels {
-		if ch != "" {
-			presentChannels = append(presentChannels, ch)
-		}
-	}
-	if c.enabled {
-		if len(presentChannels) == 0 {
-			c.send(messageLogger, c.catchAllChannel, message)
-			return
-		}
-		for _, channel := range presentChannels {
-			c.send(messageLogger, channel, message)
-			return
-		}
+
+	if !c.enabled {
+		messageLogger.Debug("slack message would have sent but slack is not enabled")
+		return
 	}
 
-	messageLogger.Debug("slack message would have sent but slack is not enabled")
+	if channel == "" {
+		c.send(messageLogger, c.catchAllChannel, message)
+		return
+	}
+
+	c.send(messageLogger, channel, message)
 }
 
 func (c *Client) send(logger *zap.Logger, channel string, message string) {
 	channelLogger := logger.With(zap.String("slackChannel", channel))
 	channelLogger.Debug("sending slack message")
+
+	// TODO: Set me
+	// slack.MsgOptionDisableLinkUnfurl()
+
 	_, _, err := c.client.PostMessage(channel, slack.MsgOptionText(message, false))
 	if err != nil {
 		if err.Error() == "channel_not_found" {
