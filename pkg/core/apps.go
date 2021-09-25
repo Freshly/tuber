@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/db"
@@ -85,6 +86,11 @@ func (d *DB) App(appName string) (*model.TuberApp, error) {
 }
 
 func (d *DB) SaveApp(app *model.TuberApp) error {
+	currentTime := time.Now().Format(app.TimestampFormat())
+	if app.CreatedAt == "" {
+		app.CreatedAt = currentTime
+	}
+	app.UpdatedAt = currentTime
 	return d.db.Save(app)
 }
 

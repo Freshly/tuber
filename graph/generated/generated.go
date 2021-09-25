@@ -83,10 +83,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		GetApp         func(childComplexity int, name string) int
-		GetAppEnv      func(childComplexity int, name string) int
-		GetApps        func(childComplexity int) int
-		GetClusterInfo func(childComplexity int) int
+		GetAllReviewApps func(childComplexity int) int
+		GetApp           func(childComplexity int, name string) int
+		GetAppEnv        func(childComplexity int, name string) int
+		GetApps          func(childComplexity int) int
+		GetClusterInfo   func(childComplexity int) int
 	}
 
 	Resource struct {
@@ -109,6 +110,7 @@ type ComplexityRoot struct {
 	TuberApp struct {
 		CloudBuildStatuses func(childComplexity int) int
 		CloudSourceRepo    func(childComplexity int) int
+		CreatedAt          func(childComplexity int) int
 		CurrentTags        func(childComplexity int) int
 		ExcludedResources  func(childComplexity int) int
 		GithubRepo         func(childComplexity int) int
@@ -122,6 +124,7 @@ type ComplexityRoot struct {
 		SourceAppName      func(childComplexity int) int
 		State              func(childComplexity int) int
 		TriggerID          func(childComplexity int) int
+		UpdatedAt          func(childComplexity int) int
 		Vars               func(childComplexity int) int
 	}
 
@@ -160,6 +163,7 @@ type QueryResolver interface {
 	GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error)
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
 	GetApps(ctx context.Context) ([]*model.TuberApp, error)
+	GetAllReviewApps(ctx context.Context) ([]*model.TuberApp, error)
 	GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error)
 }
 type TuberAppResolver interface {
@@ -496,6 +500,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateApp(childComplexity, args["input"].(model.AppInput)), true
 
+	case "Query.getAllReviewApps":
+		if e.complexity.Query.GetAllReviewApps == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAllReviewApps(childComplexity), true
+
 	case "Query.getApp":
 		if e.complexity.Query.GetApp == nil {
 			break
@@ -604,6 +615,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TuberApp.CloudSourceRepo(childComplexity), true
 
+	case "TuberApp.createdAt":
+		if e.complexity.TuberApp.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.CreatedAt(childComplexity), true
+
 	case "TuberApp.currentTags":
 		if e.complexity.TuberApp.CurrentTags == nil {
 			break
@@ -694,6 +712,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TuberApp.TriggerID(childComplexity), true
+
+	case "TuberApp.updatedAt":
+		if e.complexity.TuberApp.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.TuberApp.UpdatedAt(childComplexity), true
 
 	case "TuberApp.vars":
 		if e.complexity.TuberApp.Vars == nil {
@@ -797,6 +822,8 @@ type Build {
 }
 
 type TuberApp {
+  createdAt: String!
+  updatedAt: String!
   cloudSourceRepo: String!
   currentTags: [String!]
   githubRepo: String!
@@ -879,6 +906,7 @@ type Query {
   getAppEnv(name: String!): [Tuple!]!
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
+  getAllReviewApps: [TuberApp!]!
   getClusterInfo: ClusterInfo!
 }
 
@@ -2549,6 +2577,41 @@ func (ec *executionContext) _Query_getApps(ctx context.Context, field graphql.Co
 	return ec.marshalNTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_getAllReviewApps(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAllReviewApps(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TuberApp)
+	fc.Result = res
+	return ec.marshalNTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_getClusterInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2933,6 +2996,76 @@ func (ec *executionContext) _State_Previous(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.Resource)
 	fc.Result = res
 	return ec.marshalNResource2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐResourceᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TuberApp_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TuberApp",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TuberApp_cloudSourceRepo(ctx context.Context, field graphql.CollectedField, obj *model.TuberApp) (ret graphql.Marshaler) {
@@ -5075,6 +5208,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "getAllReviewApps":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAllReviewApps(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "getClusterInfo":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5221,6 +5368,16 @@ func (ec *executionContext) _TuberApp(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("TuberApp")
+		case "createdAt":
+			out.Values[i] = ec._TuberApp_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._TuberApp_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "cloudSourceRepo":
 			out.Values[i] = ec._TuberApp_cloudSourceRepo(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
