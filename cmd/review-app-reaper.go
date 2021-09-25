@@ -30,7 +30,7 @@ var reviewAppReaperCmd = &cobra.Command{
 
 		client := graph.NewClient("http://tuber.tuber:3000", viper.GetString("TUBER_OAUTH_WEB_CLIENT_ID"))
 		client.IntraCluster = true
-		client.IntraClusterToken = strings.Trim(string(out), "\r\n")
+		client.IntraClusterToken = strings.Trim(string(out), "\r\n'")
 
 		var allReviewApps struct {
 			GetAllReviewApps []*model.TuberApp
