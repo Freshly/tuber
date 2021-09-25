@@ -51,6 +51,9 @@ var reviewAppReaperCmd = &cobra.Command{
 			}
 		`
 		err = client.Query(context.Background(), gql, &allReviewApps)
+		if err != nil {
+			return err
+		}
 		for _, app := range allReviewApps.GetAllReviewApps {
 			updatedAt, err := app.ParsedUpdatedAt()
 			if err != nil {
@@ -74,6 +77,9 @@ var reviewAppReaperCmd = &cobra.Command{
 					}
 				`
 				err = client.Mutation(context.Background(), gql, nil, input, &destroyResponse)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		return nil
