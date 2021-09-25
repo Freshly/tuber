@@ -100,7 +100,6 @@ type Query {
   getClusterInfo: ClusterInfo!
 }
 
-
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -124,6 +123,7 @@ type Mutation {
   unsetRacVar(input: SetTupleInput!): TuberApp
   setRacExclusion(input: SetResourceInput!): TuberApp
   unsetRacExclusion(input: SetResourceInput!): TuberApp
+  saveAllApps: Boolean
 }
 
 schema {

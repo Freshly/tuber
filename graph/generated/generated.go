@@ -64,6 +64,7 @@ type ComplexityRoot struct {
 		ManualApply           func(childComplexity int, input model.ManualApplyInput) int
 		RemoveApp             func(childComplexity int, input model.AppInput) int
 		Rollback              func(childComplexity int, input model.AppInput) int
+		SaveAllApps           func(childComplexity int) int
 		SetAppEnv             func(childComplexity int, input model.SetTupleInput) int
 		SetAppVar             func(childComplexity int, input model.SetTupleInput) int
 		SetCloudSourceRepo    func(childComplexity int, input model.AppInput) int
@@ -153,6 +154,7 @@ type MutationResolver interface {
 	UnsetRacVar(ctx context.Context, input model.SetTupleInput) (*model.TuberApp, error)
 	SetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
 	UnsetRacExclusion(ctx context.Context, input model.SetResourceInput) (*model.TuberApp, error)
+	SaveAllApps(ctx context.Context) (*bool, error)
 }
 type QueryResolver interface {
 	GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error)
@@ -306,6 +308,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Rollback(childComplexity, args["input"].(model.AppInput)), true
+
+	case "Mutation.saveAllApps":
+		if e.complexity.Mutation.SaveAllApps == nil {
+			break
+		}
+
+		return e.complexity.Mutation.SaveAllApps(childComplexity), true
 
 	case "Mutation.setAppEnv":
 		if e.complexity.Mutation.SetAppEnv == nil {
@@ -873,7 +882,6 @@ type Query {
   getClusterInfo: ClusterInfo!
 }
 
-
 type Mutation {
   createApp(input: AppInput!): TuberApp
   updateApp(input: AppInput!): TuberApp
@@ -897,6 +905,7 @@ type Mutation {
   unsetRacVar(input: SetTupleInput!): TuberApp
   setRacExclusion(input: SetResourceInput!): TuberApp
   unsetRacExclusion(input: SetResourceInput!): TuberApp
+  saveAllApps: Boolean
 }
 
 schema {
@@ -2390,6 +2399,38 @@ func (ec *executionContext) _Mutation_unsetRacExclusion(ctx context.Context, fie
 	res := resTmp.(*model.TuberApp)
 	fc.Result = res
 	return ec.marshalOTuberApp2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberApp(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_saveAllApps(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SaveAllApps(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_getAppEnv(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4967,6 +5008,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_setRacExclusion(ctx, field)
 		case "unsetRacExclusion":
 			out.Values[i] = ec._Mutation_unsetRacExclusion(ctx, field)
+		case "saveAllApps":
+			out.Values[i] = ec._Mutation_saveAllApps(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

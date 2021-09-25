@@ -755,6 +755,27 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 	return app, nil
 }
 
+func (r *mutationResolver) SaveAllApps(ctx context.Context) (*bool, error) {
+	// just to keep it to super admins and tuber itself
+	err := canCreateApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	apps, err := r.db.Apps()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, app := range apps {
+		err = r.db.SaveApp(app)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
 func (r *queryResolver) GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error) {
 	err := canGetSecret(ctx, name, name+"-env")
 	if err != nil {
