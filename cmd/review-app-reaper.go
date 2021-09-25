@@ -56,7 +56,7 @@ var reviewAppReaperCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("error parsing updated at for app: %s, %v", app.Name, err)
 			}
-			if time.Since(updatedAt).Minutes() > 5 {
+			if time.Since(updatedAt).Hours() > 48 {
 				fmt.Println("destroying " + app.Name)
 				input := &model.AppInput{
 					Name: app.Name,
