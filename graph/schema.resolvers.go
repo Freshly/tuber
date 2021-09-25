@@ -768,6 +768,7 @@ func (r *mutationResolver) SaveAllApps(ctx context.Context) (*bool, error) {
 	}
 
 	for _, app := range apps {
+		fmt.Println("saved " + app.Name)
 		err = r.db.SaveApp(app)
 		if err != nil {
 			return nil, err
