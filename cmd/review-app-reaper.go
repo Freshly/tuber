@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -28,9 +29,14 @@ var reviewAppReaperCmd = &cobra.Command{
 			return err
 		}
 
+		decoded, err := base64.StdEncoding.DecodeString(strings.Trim(string(out), "\r\n'"))
+		if err != nil {
+			return err
+		}
+
 		client := graph.NewClient("http://tuber.tuber:3000", viper.GetString("TUBER_OAUTH_WEB_CLIENT_ID"))
 		client.IntraCluster = true
-		client.IntraClusterToken = strings.Trim(string(out), "\r\n'")
+		client.IntraClusterToken = string(decoded)
 
 		var allReviewApps struct {
 			GetAllReviewApps []*model.TuberApp
