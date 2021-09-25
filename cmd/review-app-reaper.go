@@ -57,23 +57,23 @@ var reviewAppReaperCmd = &cobra.Command{
 				return fmt.Errorf("error parsing updated at for app: %s, %v", app.Name, err)
 			}
 			if time.Since(updatedAt).Minutes() > 5 {
-				fmt.Println("would have deleted " + app.Name)
-				// input := &model.AppInput{
-				// 	Name: app.Name,
-				// }
-				//
-				// var destroyResponse struct {
-				// 	destroyApp *model.TuberApp
-				// }
-				//
-				// gql := `
-				// 	mutation($input: AppInput!) {
-				// 		destroyApp(input: $input) {
-				// 			name
-				// 		}
-				// 	}
-				// `
-				// err = client.Mutation(context.Background(), gql, nil, input, &destroyResponse)
+				fmt.Println("destroying " + app.Name)
+				input := &model.AppInput{
+					Name: app.Name,
+				}
+
+				var destroyResponse struct {
+					destroyApp *model.TuberApp
+				}
+
+				gql := `
+					mutation($input: AppInput!) {
+						destroyApp(input: $input) {
+							name
+						}
+					}
+				`
+				err = client.Mutation(context.Background(), gql, nil, input, &destroyResponse)
 			}
 		}
 		return nil
