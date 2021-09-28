@@ -78,7 +78,7 @@ func (p *Processor) notify(event *Event) {
 
 	for _, app := range apps {
 		message := buildMessage(event, app)
-		p.slackClient.Message(p.logger, message, app.SlackChannel)
+		p.slackClient.Message(p.logger, message, app.SlackChannel, slack.MsgOptionDisableLinkUnfurl())
 	}
 }
 
