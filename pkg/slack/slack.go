@@ -5,6 +5,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var MsgOptionDisableLinkUnfurl = slack.MsgOptionDisableLinkUnfurl
+
 type Client struct {
 	client          *slack.Client
 	enabled         bool
@@ -19,7 +21,7 @@ func New(key string, enabled bool, catchAllChannel string) *Client {
 	}
 }
 
-func (c *Client) Message(logger *zap.Logger, message string, channel string) {
+func (c *Client) Message(logger *zap.Logger, message string, channel string, opts ...slack.MsgOption) {
 	messageLogger := logger.With(zap.String("slackMessage", message), zap.String("slackChannel", channel))
 	messageLogger.Debug("slack message triggered")
 
@@ -29,21 +31,20 @@ func (c *Client) Message(logger *zap.Logger, message string, channel string) {
 	}
 
 	if channel == "" {
-		c.send(messageLogger, c.catchAllChannel, message)
+		c.send(messageLogger, c.catchAllChannel, message, opts...)
 		return
 	}
 
 	c.send(messageLogger, channel, message)
 }
 
-func (c *Client) send(logger *zap.Logger, channel string, message string) {
+func (c *Client) send(logger *zap.Logger, channel string, message string, opts ...slack.MsgOption) {
 	channelLogger := logger.With(zap.String("slackChannel", channel))
 	channelLogger.Debug("sending slack message")
 
-	// TODO: Set me
-	// slack.MsgOptionDisableLinkUnfurl()
+	opts = append(opts, slack.MsgOptionText(message, false))
 
-	_, _, err := c.client.PostMessage(channel, slack.MsgOptionText(message, false))
+	_, _, err := c.client.PostMessage(channel, opts...)
 	if err != nil {
 		if err.Error() == "channel_not_found" {
 			channelLogger.Error("channel not found, check configured channel and ensure tuber is a member", zap.Error(err))
