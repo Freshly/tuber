@@ -35,7 +35,7 @@ func (c *Client) Message(logger *zap.Logger, message string, channel string, opt
 		return
 	}
 
-	c.send(messageLogger, channel, message)
+	c.send(messageLogger, channel, message, opts...)
 }
 
 func (c *Client) send(logger *zap.Logger, channel string, message string, opts ...slack.MsgOption) {
