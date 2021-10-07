@@ -355,7 +355,7 @@ func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
 		return nil
 	}
 
-	spec, ok := d["spec"].(map[interface{}]interface{})
+	spec, ok := d["spec"].(map[string]interface{})
 	if !ok {
 		r.logger.Warn(fmt.Sprintf("error parsing spec from deployment contents for applyCurrentReplicas: %v", err))
 		return nil
