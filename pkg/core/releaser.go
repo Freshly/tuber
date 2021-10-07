@@ -338,7 +338,7 @@ func exclusions(app *model.TuberApp, data map[string]string) (map[string]bool, e
 }
 
 func currentReplicasToGather(resources appResources) map[string]string {
-	var c map[string]string
+	c := make(map[string]string)
 	for _, resource := range resources {
 		if resource.hpaCurrentReplicasDeployment != "" {
 			c[resource.hpaCurrentReplicasDeployment] = resource.name
