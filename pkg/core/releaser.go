@@ -366,7 +366,7 @@ func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
 		r.logger.Debug(fmt.Sprintf("error getting hpa applyCurrentReplicas: %v", err))
 		return nil
 	}
-	stringOut := strings.Trim(string(out), "\n\r ")
+	stringOut := strings.Trim(string(out), "\n\r\" ")
 	count, err := strconv.Atoi(stringOut)
 	if err != nil {
 		r.logger.Debug(fmt.Sprintf("error converting hpa desired replicas (stringout: %s) to int for applyCurrentReplicas: %v", stringOut, err))
