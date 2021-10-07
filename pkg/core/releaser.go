@@ -357,25 +357,25 @@ func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
 	var d deployment
 	err := yaml.Unmarshal(contents, &d)
 	if err != nil {
-		r.logger.Debug(fmt.Sprintf("error unmarshalling for applyCurrentReplicas: %v", err))
+		r.logger.Warn(fmt.Sprintf("error unmarshalling for applyCurrentReplicas: %v", err))
 		return nil
 	}
 
 	out, err := k8s.Get("hpa", hpaName, r.app.Name, `-o=go-template="{{.status.desiredReplicas}}"`)
 	if err != nil {
-		r.logger.Debug(fmt.Sprintf("error getting hpa applyCurrentReplicas: %v", err))
+		r.logger.Warn(fmt.Sprintf("error getting hpa applyCurrentReplicas: %v", err))
 		return nil
 	}
 	stringOut := strings.Trim(string(out), "\n\r\" ")
 	count, err := strconv.Atoi(stringOut)
 	if err != nil {
-		r.logger.Debug(fmt.Sprintf("error converting hpa desired replicas (stringout: %s) to int for applyCurrentReplicas: %v", stringOut, err))
+		r.logger.Warn(fmt.Sprintf("error converting hpa desired replicas (stringout: %s) to int for applyCurrentReplicas: %v", stringOut, err))
 		return nil
 	}
 	d.Spec.Replicas = count
 	out, err = yaml.Marshal(d)
 	if err != nil {
-		r.logger.Debug(fmt.Sprintf("error remarshalling deployment with count: %v, for applyCurrentReplicas: %v", count, err))
+		r.logger.Warn(fmt.Sprintf("error remarshalling deployment with count: %v, for applyCurrentReplicas: %v", count, err))
 		return nil
 	}
 	return out
