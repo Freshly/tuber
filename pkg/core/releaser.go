@@ -348,16 +348,16 @@ func currentReplicasToGather(resources appResources) map[string]string {
 }
 
 func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
-	type spec struct {
-		Replicas int
-	}
-	type deployment struct {
-		Spec spec
-	}
-	var d deployment
+	var d map[interface{}]interface{}
 	err := yaml.Unmarshal(contents, &d)
 	if err != nil {
 		r.logger.Warn(fmt.Sprintf("error unmarshalling for applyCurrentReplicas: %v", err))
+		return nil
+	}
+
+	spec, ok := d["spec"].(map[interface{}]interface{})
+	if !ok {
+		r.logger.Warn(fmt.Sprintf("error parsing spec from deployment contents for applyCurrentReplicas: %v", err))
 		return nil
 	}
 
@@ -372,7 +372,8 @@ func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
 		r.logger.Warn(fmt.Sprintf("error converting hpa desired replicas (stringout: %s) to int for applyCurrentReplicas: %v", stringOut, err))
 		return nil
 	}
-	d.Spec.Replicas = count
+	spec["replicas"] = count
+	d["spec"] = spec
 	out, err = yaml.Marshal(d)
 	if err != nil {
 		r.logger.Warn(fmt.Sprintf("error remarshalling deployment with count: %v, for applyCurrentReplicas: %v", count, err))
