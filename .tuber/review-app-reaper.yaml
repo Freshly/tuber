@@ -1,0 +1,27 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: review-app-reaper
+spec:
+  # 6AM EDT, Tuesday through Saturday.
+  schedule: "0 10 * * 2-6"
+  startingDeadlineSeconds: 20
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          serviceAccountName: tuber
+          restartPolicy: Never
+          containers:
+            - name: review-app-reaper
+              image: "{{ .tuberImage }}"
+              command: [ "tuber", "review-app-reaper" ]
+              envFrom:
+                - secretRef:
+                    name: tuber-env
+              terminationMessagePolicy: FallbackToLogsOnError

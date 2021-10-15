@@ -76,6 +76,8 @@ func getApp(appName string) (*model.TuberApp, error) {
 		query {
 			getApp(name: "%s") {
 				cloudSourceRepo
+				createdAt
+				updatedAt
 				imageTag
 				name
 				paused

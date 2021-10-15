@@ -824,6 +824,15 @@ func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) 
 	return r.Resolver.db.SourceApps()
 }
 
+func (r *queryResolver) GetAllReviewApps(ctx context.Context) ([]*model.TuberApp, error) {
+	err := canViewAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Resolver.db.ReviewApps()
+}
+
 func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
 	return &model.ClusterInfo{
 		Name:              r.Resolver.clusterName,
