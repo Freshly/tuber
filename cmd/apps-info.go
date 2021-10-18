@@ -44,6 +44,7 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 	table.SetRowLine(true)
 	table.SetAutoWrapText(false)
 	table.Append([]string{"Name", app.Name})
+	table.Append([]string{"Timestamps", "CreatedAt: " + app.CreatedAt + "\nUpdatedAt " + app.UpdatedAt})
 	table.Append([]string{"ImageTag", app.ImageTag})
 	table.Append([]string{"Current Tags", strings.Join(app.CurrentTags, "\n")})
 	var vars []string
