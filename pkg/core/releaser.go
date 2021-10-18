@@ -357,7 +357,7 @@ func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
 
 	spec, ok := d["spec"].(map[string]interface{})
 	if !ok {
-		r.logger.Warn(fmt.Sprintf("error asserting deployment contents as map[string]interface{} for applyCurrentReplicas"))
+		r.logger.Warn("error asserting deployment contents as map[string]interface{} for applyCurrentReplicas")
 		return nil
 	}
 
