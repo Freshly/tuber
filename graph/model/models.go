@@ -9,9 +9,10 @@ import (
 
 func (t TuberApp) DBIndexes() (map[string]string, map[string]bool, map[string]int) {
 	return map[string]string{
-			"name":          t.Name,
-			"imageTag":      t.ImageTag,
-			"sourceAppName": t.SourceAppName,
+			"name":            t.Name,
+			"imageTag":        t.ImageTag,
+			"sourceAppName":   t.SourceAppName,
+			"cloudSourceRepo": t.CloudSourceRepo,
 		}, map[string]bool{
 			"reviewApp": t.ReviewApp,
 		}, map[string]int{}
