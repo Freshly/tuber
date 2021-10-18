@@ -249,6 +249,7 @@ type appResource struct {
 	sentryUrls                   []string
 	watchDuration                time.Duration
 	hpaCurrentReplicasDeployment string
+	hpaCurrentReplicasHpa        string
 }
 
 func (a appResource) hasMonitoring() bool {
@@ -341,6 +342,10 @@ func currentReplicasToGather(resources appResources) map[string]string {
 	c := make(map[string]string)
 	for _, resource := range resources {
 		if resource.hpaCurrentReplicasDeployment != "" {
+			if resource.hpaCurrentReplicasHpa != "" {
+				c[resource.hpaCurrentReplicasDeployment] = resource.hpaCurrentReplicasHpa
+				continue
+			}
 			c[resource.hpaCurrentReplicasDeployment] = resource.name
 		}
 	}
@@ -484,9 +489,14 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 		}
 
 		var hpaCurrentReplicasTargetDeployment string
-		if strings.ToLower(parsed.Kind) == "horizontalpodautoscaler" {
+		var hpaCurrentReplicasHpa string
+		lowerKind := strings.ToLower(parsed.Kind)
+		if lowerKind == "horizontalpodautoscaler" || lowerKind == "scaledobject" {
 			if t, ok := parsed.Metadata.Annotations["tuber/currentReplicasDeployment"].(string); ok && t != "" {
 				hpaCurrentReplicasTargetDeployment = t
+			}
+			if t, ok := parsed.Metadata.Annotations["tuber/currentReplicasHpa"].(string); ok && t != "" {
+				hpaCurrentReplicasHpa = t
 			}
 		}
 
@@ -518,6 +528,7 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			sentryUrls:                   sentryUrls,
 			watchDuration:                watchDuration,
 			hpaCurrentReplicasDeployment: hpaCurrentReplicasTargetDeployment,
+			hpaCurrentReplicasHpa:        hpaCurrentReplicasHpa,
 		}
 
 		if resource.canBeManaged() {
