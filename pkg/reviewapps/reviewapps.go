@@ -90,10 +90,14 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	var triggerID string
 	call := service.List(projectName)
-	allTriggers, err := call.Do()
-	for _, trigger := range allTriggers.Triggers {
-		if trigger.Name == reviewAppName {
-			triggerID = trigger.Id
+	allTriggers, listErr := call.Do()
+	if listErr != nil {
+		logger.Error("triggers list failed, skipping exists check")
+	} else {
+		for _, trigger := range allTriggers.Triggers {
+			if trigger.Name == reviewAppName {
+				triggerID = trigger.Id
+			}
 		}
 	}
 
