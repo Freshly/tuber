@@ -40,15 +40,15 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, sourceApp *model.TuberApp, branch string, appName string, credentials []byte, projectName string) (string, error) {
-	reviewAppName := ReviewAppName(appName, branch)
+func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, sourceApp *model.TuberApp, branch string, credentials []byte, projectName string) (string, error) {
+	reviewAppName := ReviewAppName(sourceApp.Name, branch)
 
 	if db.AppExists(reviewAppName) {
 		return "", fmt.Errorf("review app already exists")
 	}
 
 	logger := l.With(
-		zap.String("appName", appName),
+		zap.String("appName", sourceApp.Name),
 		zap.String("reviewAppName", reviewAppName),
 		zap.String("branch", branch),
 	)
@@ -70,7 +70,7 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, sourceApp 
 
 	logger.Info("creating review app resources")
 
-	err = NewReviewAppSetup(appName, reviewAppName)
+	err = NewReviewAppSetup(sourceApp.Name, reviewAppName)
 	if err != nil {
 		return "", err
 	}
