@@ -40,7 +40,7 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
+func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, sourceApp *model.TuberApp, branch string, appName string, credentials []byte, projectName string) (string, error) {
 	reviewAppName := ReviewAppName(appName, branch)
 
 	if db.AppExists(reviewAppName) {
@@ -55,13 +55,12 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	logger.Info("creating review app")
 
-	sourceApp, err := db.App(appName)
-	if err != nil {
-		return "", fmt.Errorf("can't find source app. is %s managed by tuber", appName)
-	}
-
 	if sourceApp.ReviewAppsConfig == nil || !sourceApp.ReviewAppsConfig.Enabled {
 		return "", fmt.Errorf("source app is not enabled for review apps")
+	}
+
+	if sourceApp.CloudSourceRepo == "" {
+		return "", fmt.Errorf("cloudSourceRepo is blank; it's required for review app trigger creation")
 	}
 
 	sourceAppTagGCRRef, err := name.ParseReference(sourceApp.ImageTag)
