@@ -147,7 +147,7 @@ func (r *mutationResolver) CreateReviewApp(ctx context.Context, input model.Crea
 
 	sourceApp, err := r.Resolver.db.App(input.Name)
 	if err != nil {
-		return nil, fmt.Errorf("can't find source app. is %s managed by tuber", sourceApp)
+		return nil, fmt.Errorf("can't find source app. is %s managed by tuber", sourceApp.Name)
 	}
 
 	name, err := reviewapps.CreateReviewApp(ctx, r.Resolver.db, r.Resolver.logger, sourceApp, input.BranchName, input.Name, r.Resolver.credentials, r.Resolver.projectName)
