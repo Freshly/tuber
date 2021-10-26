@@ -105,7 +105,6 @@ type Query {
   getApps: [TuberApp!]!
   getClusterInfo: ClusterInfo!
   getAllReviewApps: [TuberApp!]!
-  getClusterInfo: ClusterInfo!
 }
 
 type Mutation {
