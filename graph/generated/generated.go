@@ -165,8 +165,8 @@ type QueryResolver interface {
 	GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error)
 	GetApp(ctx context.Context, name string) (*model.TuberApp, error)
 	GetApps(ctx context.Context) ([]*model.TuberApp, error)
-	GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error)
 	GetAllReviewApps(ctx context.Context) ([]*model.TuberApp, error)
+	GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error)
 }
 type TuberAppResolver interface {
 	ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error)
@@ -907,6 +907,7 @@ input ManualApplyInput {
 
 input ImportAppInput {
   app: String!
+  sourceAppName: String!
 }
 
 type ClusterInfo {
@@ -924,8 +925,8 @@ type Query {
   getAppEnv(name: String!): [Tuple!]!
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
-  getClusterInfo: ClusterInfo!
   getAllReviewApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
 }
 
 type Mutation {
@@ -2650,41 +2651,6 @@ func (ec *executionContext) _Query_getApps(ctx context.Context, field graphql.Co
 	return ec.marshalNTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_getClusterInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetClusterInfo(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.ClusterInfo)
-	fc.Result = res
-	return ec.marshalNClusterInfo2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐClusterInfo(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_getAllReviewApps(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2718,6 +2684,41 @@ func (ec *executionContext) _Query_getAllReviewApps(ctx context.Context, field g
 	res := resTmp.([]*model.TuberApp)
 	fc.Result = res
 	return ec.marshalNTuberApp2ᚕᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐTuberAppᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_getClusterInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetClusterInfo(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ClusterInfo)
+	fc.Result = res
+	return ec.marshalNClusterInfo2ᚖgithubᚗcomᚋfreshlyᚋtuberᚋgraphᚋmodelᚐClusterInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4959,6 +4960,14 @@ func (ec *executionContext) unmarshalInputImportAppInput(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
+		case "sourceAppName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceAppName"))
+			it.SourceAppName, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5303,20 +5312,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "getClusterInfo":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_getClusterInfo(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "getAllReviewApps":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -5326,6 +5321,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getAllReviewApps(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "getClusterInfo":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getClusterInfo(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

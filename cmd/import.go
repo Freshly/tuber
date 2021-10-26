@@ -19,8 +19,11 @@ var importCmd = &cobra.Command{
 }
 
 func init() {
+	importCmd.Flags().StringVar(importSourceAppNameFlag, "source", "", "copy namespace, rolebindings, and secrets from a source app")
 	rootCmd.AddCommand(importCmd)
 }
+
+var importSourceAppNameFlag *string
 
 func runImportCmd(cmd *cobra.Command, args []string) error {
 	contents, err := os.ReadFile(args[0])
@@ -44,7 +47,8 @@ func runImportCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	input := &model.ImportAppInput{
-		App: string(remarshalled),
+		App:           string(remarshalled),
+		SourceAppName: *importSourceAppNameFlag,
 	}
 
 	var respData struct {

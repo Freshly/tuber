@@ -86,6 +86,7 @@ input ManualApplyInput {
 
 input ImportAppInput {
   app: String!
+  sourceAppName: String!
 }
 
 type ClusterInfo {

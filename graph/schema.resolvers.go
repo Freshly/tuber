@@ -771,6 +771,13 @@ func (r *mutationResolver) ImportApp(ctx context.Context, input model.ImportAppI
 		return nil, fmt.Errorf("app " + app.Name + " already exists. `apps remove` and recreate with this if your intention is to edit.")
 	}
 
+	if input.SourceAppName != "" {
+		err = reviewapps.NewReviewAppSetup(input.SourceAppName, app.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error duplicating namespace, rolebindings, or secrets: %v", err)
+		}
+	}
+
 	err = r.db.SaveApp(app)
 	if err != nil {
 		return nil, err
@@ -847,6 +854,15 @@ func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) 
 	return r.Resolver.db.SourceApps()
 }
 
+func (r *queryResolver) GetAllReviewApps(ctx context.Context) ([]*model.TuberApp, error) {
+	err := canViewAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Resolver.db.ReviewApps()
+}
+
 func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
 	err := canViewAllApps(ctx)
 	if err != nil {
@@ -858,15 +874,6 @@ func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo,
 		Region:            r.Resolver.clusterRegion,
 		ReviewAppsEnabled: r.Resolver.reviewAppsEnabled,
 	}, nil
-}
-
-func (r *queryResolver) GetAllReviewApps(ctx context.Context) ([]*model.TuberApp, error) {
-	err := canViewAllApps(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.Resolver.db.ReviewApps()
 }
 
 func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {

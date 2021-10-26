@@ -30,7 +30,8 @@ type CreateReviewAppInput struct {
 }
 
 type ImportAppInput struct {
-	App string `json:"app"`
+	App           string `json:"app"`
+	SourceAppName string `json:"sourceAppName"`
 }
 
 type ManualApplyInput struct {
