@@ -1,10 +1,8 @@
-FROM bitnami/kubectl:1.15-ol-7
-
-FROM golang:1.16.5-alpine3.13
+FROM bitnami/kubectl:1.19
+FROM golang:1.16-buster
 
 COPY --from=0 /opt/bitnami/kubectl/bin/kubectl /usr/bin/kubectl
 
-RUN mkdir /app
 WORKDIR /app
 
 COPY go.mod   ./go.mod
@@ -18,6 +16,6 @@ COPY data     ./data
 COPY graph    ./graph
 COPY .tuber   /.tuber
 
-RUN go build
+RUN go install
 
-CMD ["/app/tuber", "start", "-y"]
+CMD ["tuber", "start", "-y"]

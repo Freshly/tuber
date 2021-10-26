@@ -778,6 +778,28 @@ func (r *mutationResolver) ImportApp(ctx context.Context, input model.ImportAppI
 	return app, nil
 }
 
+func (r *mutationResolver) SaveAllApps(ctx context.Context) (*bool, error) {
+	// just to keep it to super admins and tuber itself
+	err := canCreateApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	apps, err := r.db.Apps()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, app := range apps {
+		fmt.Println("saved " + app.Name)
+		err = r.db.SaveApp(app)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
 func (r *queryResolver) GetAppEnv(ctx context.Context, name string) ([]*model.Tuple, error) {
 	err := canGetSecret(ctx, name, name+"-env")
 	if err != nil {
@@ -805,6 +827,54 @@ func (r *queryResolver) GetAppEnv(ctx context.Context, name string) ([]*model.Tu
 	}
 
 	return list, nil
+}
+
+func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {
+	err := canGetDeployments(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Resolver.db.App(name)
+}
+
+func (r *queryResolver) GetApps(ctx context.Context) ([]*model.TuberApp, error) {
+	err := canViewAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Resolver.db.SourceApps()
+}
+
+func (r *queryResolver) GetAllReviewApps(ctx context.Context) ([]*model.TuberApp, error) {
+	err := canViewAllApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Resolver.db.ReviewApps()
+}
+
+func (r *queryResolver) GetClusterInfo(ctx context.Context) (*model.ClusterInfo, error) {
+	return &model.ClusterInfo{
+		Name:              r.Resolver.clusterName,
+		Region:            r.Resolver.clusterRegion,
+		ReviewAppsEnabled: r.Resolver.reviewAppsEnabled,
+	}, nil
+}
+
+func (r *tuberAppResolver) ReviewApps(ctx context.Context, obj *model.TuberApp) ([]*model.TuberApp, error) {
+	err := canGetDeployments(ctx, obj.Name)
+
+	mapName := fmt.Sprintf("%s-env", name)
+	var config *k8s.ConfigResource
+	config, err = k8s.GetConfigResource(mapName, name, "Secret")
+	if err != nil {
+		return nil, err
+	}
+
+	return r.db.ReviewAppsFor(obj)
 }
 
 func (r *queryResolver) GetApp(ctx context.Context, name string) (*model.TuberApp, error) {

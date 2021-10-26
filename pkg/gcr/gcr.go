@@ -51,6 +51,8 @@ func SwapTags(imageTag string, tag string) (string, error) {
 	return newTag, nil
 }
 
+// Tag = Docker Tag = branchName
+// Ref = Full refernence to image = gcr.io/freshly-docker/appName:branchName
 func TagFromRef(imageTag string) (string, error) {
 	ref, err := name.ParseReference(imageTag)
 	if err != nil {

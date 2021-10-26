@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/freshly/tuber/pkg/core"
-	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/report"
 
 	"cloud.google.com/go/pubsub"
@@ -23,12 +22,16 @@ type Listener struct {
 	subscriptionName string
 	credentials      []byte
 	clusterData      *core.ClusterData
-	processor        *events.Processor
+	processor        MessageProcessor
+}
+
+type MessageProcessor interface {
+	Process(Message)
 }
 
 // NewListener is a constructor for Listener with field validation
 func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, subscriptionName string,
-	credentials []byte, clusterData *core.ClusterData, processor *events.Processor) (*Listener, error) {
+	credentials []byte, clusterData *core.ClusterData, processor MessageProcessor) (*Listener, error) {
 	if logger == nil {
 		return nil, errors.New("zap logger is required")
 	}
@@ -50,19 +53,24 @@ func NewListener(ctx context.Context, logger *zap.Logger, pubsubProject string, 
 	}, nil
 }
 
-// Message json deserialization target for pubsub messages
+// Message is the JSON deserialization target for pubsub messages
 type Message struct {
+	// GCR Pubsub message attributes
 	Digest string `json:"digest"`
 	Tag    string `json:"tag"`
+
+	// Cloud Build Pubsub message attributes
+	Status        string `json:"status"`
+	LogURL        string `json:"logUrl"`
+	Substitutions struct {
+		BranchName string `json:"BRANCH_NAME"`
+		RepoName   string `json:"REPO_NAME"`
+	} `json:"substitutions"`
 }
 
 // Start starts up the pubsub server and pipes incoming messages to the Listener's events.Processor
 func (l *Listener) Start() error {
-	var client *pubsub.Client
-	var err error
-
-	client, err = pubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
-
+	client, err := pubsub.NewClient(l.ctx, l.pubsubProject, option.WithCredentialsJSON(l.credentials))
 	if err != nil {
 		client, err = pubsub.NewClient(l.ctx, l.pubsubProject)
 	}
@@ -81,16 +89,19 @@ func (l *Listener) Start() error {
 
 	err = subscription.Receive(l.ctx, func(ctx context.Context, pubsubMessage *pubsub.Message) {
 		pubsubMessage.Ack()
+		// GCR pubsubMessage.Data
 		// {"action":"INSERT","digest":"gcr.io/freshly-docker/freshly@sha256:17f4431497a07da98bc16e599ef9d38afb9817049b6e98b71b7e321b946a24d4",
 		// "tag":"gcr.io/freshly-docker/freshly:PIG-267-refactor-email-service"}
+
 		var message Message
-		err := json.Unmarshal(pubsubMessage.Data, &message)
+		err = json.Unmarshal(pubsubMessage.Data, &message)
 		if err != nil {
 			listenLogger.Warn("failed to unmarshal pubsub message", zap.Error(err))
 			report.Error(err, report.Scope{"context": "messageProcessing"})
 			return
 		}
-		l.processor.ProcessMessage(events.NewEvent(l.logger, message.Digest, message.Tag))
+
+		l.processor.Process(message)
 	})
 
 	if err != nil {

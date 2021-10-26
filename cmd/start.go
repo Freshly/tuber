@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/freshly/tuber/pkg/builds"
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
@@ -99,6 +100,24 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	go startAdminServer(ctx, db, processor, logger, creds)
+
+	buildEventProcessor := builds.NewProcessor(ctx, logger, db, slackClient)
+	buildListener, err := pubsub.NewListener(
+		ctx,
+		logger,
+		viper.GetString("TUBER_PUBSUB_PROJECT"),
+		viper.GetString("TUBER_PUBSUB_CLOUDBUILD_SUBSCRIPTION_NAME"),
+		creds,
+		data,
+		buildEventProcessor,
+	)
+	if err != nil {
+		startupLogger.Error("failed to start cloud build listener", zap.Error(err))
+		report.Error(err, scope.WithContext("initialize cloud build listener"))
+		panic(err)
+	}
+
+	go buildListener.Start()
 
 	err = listener.Start()
 	if err != nil {

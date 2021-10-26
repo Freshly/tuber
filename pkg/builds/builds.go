@@ -22,6 +22,10 @@ func FindByApp(app *model.TuberApp, triggersProjectName string) ([]*model.Build,
 		return nil, err
 	}
 
+	if app.TriggerID == "" {
+		return make([]*model.Build, 0), nil
+	}
+
 	buildsResponse, err := cloudbuild.NewProjectsBuildsService(client).List(triggersProjectName).PageSize(3).Filter(fmt.Sprintf(`trigger_id="%s"`, app.TriggerID)).Do()
 	if err != nil {
 		return nil, err

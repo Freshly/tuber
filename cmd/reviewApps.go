@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var reviewAppsJsonFlag bool
+
 var reviewAppsCmd = &cobra.Command{
 	Use:   "review-apps [command]",
 	Short: "A root command for review app configurating",
@@ -43,7 +45,7 @@ var reviewAppsDeleteCmd = &cobra.Command{
 var reviewAppsListCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "list [source app name]",
-	Short:        "Delete a review app",
+	Short:        "List current review apps for a particular source app",
 	Args:         cobra.ExactArgs(1),
 	RunE:         listReviewApps,
 	PreRunE:      displayCurrentContext,
@@ -81,7 +83,7 @@ func listReviewApps(cmd *cobra.Command, args []string) (err error) {
 
 	sort.Slice(apps, func(i, j int) bool { return apps[i].Name < apps[j].Name })
 
-	if jsonOutput {
+	if reviewAppsJsonFlag {
 		out, err := json.Marshal(apps)
 
 		if err != nil {
@@ -159,5 +161,7 @@ func init() {
 	rootCmd.AddCommand(reviewAppsCmd)
 	reviewAppsCmd.AddCommand(reviewAppsCreateCmd)
 	reviewAppsCmd.AddCommand(reviewAppsDeleteCmd)
+
+	reviewAppsListCmd.Flags().BoolVar(&reviewAppsJsonFlag, "json", false, "output as json")
 	reviewAppsCmd.AddCommand(reviewAppsListCmd)
 }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/db"
@@ -75,6 +76,22 @@ func (d *DB) AppsForTag(tag string) ([]*model.TuberApp, error) {
 	return assertAll(r)
 }
 
+func (d *DB) AppsByName(name string) ([]*model.TuberApp, error) {
+	r, err := d.db.Get(model.TuberApp{}, db.Q().String("name", name))
+	if err != nil {
+		return nil, err
+	}
+	return assertAll(r)
+}
+
+func (d *DB) AppsByCloudSourceRepo(cloudSourceRepo string) ([]*model.TuberApp, error) {
+	r, err := d.db.Get(model.TuberApp{}, db.Q().String("cloudSourceRepo", cloudSourceRepo))
+	if err != nil {
+		return nil, err
+	}
+	return assertAll(r)
+}
+
 func (d *DB) App(appName string) (*model.TuberApp, error) {
 	r, err := d.db.Find(model.TuberApp{}, appName)
 	if err != nil {
@@ -85,6 +102,11 @@ func (d *DB) App(appName string) (*model.TuberApp, error) {
 }
 
 func (d *DB) SaveApp(app *model.TuberApp) error {
+	currentTime := time.Now().Format(app.TimestampFormat())
+	if app.CreatedAt == "" {
+		app.CreatedAt = currentTime
+	}
+	app.UpdatedAt = currentTime
 	return d.db.Save(app)
 }
 

@@ -73,6 +73,8 @@ type State struct {
 }
 
 type TuberApp struct {
+	CreatedAt          string            `json:"createdAt"`
+	UpdatedAt          string            `json:"updatedAt"`
 	CloudSourceRepo    string            `json:"cloudSourceRepo"`
 	CurrentTags        []string          `json:"currentTags"`
 	GithubRepo         string            `json:"githubRepo"`

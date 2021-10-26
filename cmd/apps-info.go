@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,6 +10,8 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
+
+var appsInfoJsonFlag bool
 
 var appsInfoCmd = &cobra.Command{
 	SilenceUsage:  true,
@@ -27,10 +30,21 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if appsInfoJsonFlag {
+		out, err := json.Marshal(app)
+		if err != nil {
+			return err
+		}
+
+		os.Stdout.Write(out)
+		return nil
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetRowLine(true)
 	table.SetAutoWrapText(false)
 	table.Append([]string{"Name", app.Name})
+	table.Append([]string{"Timestamps", "CreatedAt: " + app.CreatedAt + "\nUpdatedAt " + app.UpdatedAt})
 	table.Append([]string{"ImageTag", app.ImageTag})
 	table.Append([]string{"Current Tags", strings.Join(app.CurrentTags, "\n")})
 	var vars []string
@@ -91,5 +105,6 @@ func runAppsInfoCmd(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
+	appsInfoCmd.Flags().BoolVar(&appsInfoJsonFlag, "json", false, "output as json")
 	appsCmd.AddCommand(appsInfoCmd)
 }

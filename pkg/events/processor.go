@@ -12,6 +12,7 @@ import (
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/gcr"
+	psub "github.com/freshly/tuber/pkg/pubsub"
 	"github.com/freshly/tuber/pkg/report"
 	"github.com/freshly/tuber/pkg/slack"
 	"github.com/getsentry/sentry-go"
@@ -73,7 +74,9 @@ func NewEvent(logger *zap.Logger, digest string, tag string) *Event {
 }
 
 // ProcessMessage receives a pubsub message, filters it against TuberApps, and triggers releases for matching apps
-func (p Processor) ProcessMessage(event *Event) {
+func (p Processor) Process(message psub.Message) {
+	event := NewEvent(p.logger, message.Digest, message.Tag)
+
 	apps, err := p.db.AppsForTag(event.tag)
 	if err != nil {
 		event.logger.Error("failed to look up tuber apps", zap.Error(err))

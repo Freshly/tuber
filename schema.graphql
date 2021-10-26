@@ -15,6 +15,8 @@ type Build {
 }
 
 type TuberApp {
+  createdAt: String!
+  updatedAt: String!
   cloudSourceRepo: String!
   currentTags: [String!]
   githubRepo: String!
@@ -102,8 +104,9 @@ type Query {
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
   getClusterInfo: ClusterInfo!
+  getAllReviewApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
 }
-
 
 type Mutation {
   createApp(input: AppInput!): TuberApp
@@ -129,6 +132,7 @@ type Mutation {
   setRacExclusion(input: SetResourceInput!): TuberApp
   unsetRacExclusion(input: SetResourceInput!): TuberApp
   importApp(input: ImportAppInput!): TuberApp
+  saveAllApps: Boolean
 }
 
 schema {
