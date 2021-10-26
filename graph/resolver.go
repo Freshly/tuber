@@ -70,7 +70,7 @@ func canCreateApps(ctx context.Context) error {
 }
 
 func canViewAllApps(ctx context.Context) error {
-	return authCheckAllNamespaces(ctx, "view", "deployments")
+	return authCheckAllNamespaces(ctx, "get", "deployments")
 }
 
 func authCheckAllNamespaces(ctx context.Context, verb string, subject string) error {
