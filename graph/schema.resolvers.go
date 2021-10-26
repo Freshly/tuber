@@ -757,11 +757,12 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 }
 
 func (r *mutationResolver) ImportApp(ctx context.Context, input model.ImportAppInput) (*model.TuberApp, error) {
-	var app *model.TuberApp
-	err := json.Unmarshal([]byte(input.App), app)
+	var newApp model.TuberApp
+	err := json.Unmarshal([]byte(input.App), &newApp)
 	if err != nil {
 		return nil, err
 	}
+	var app = &newApp
 
 	if app.Name == "" {
 		return nil, fmt.Errorf("app name missing from json")
