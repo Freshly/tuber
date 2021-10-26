@@ -103,8 +103,8 @@ type Query {
   getAppEnv(name: String!): [Tuple!]!
   getApp(name: String!): TuberApp
   getApps: [TuberApp!]!
-  getClusterInfo: ClusterInfo!
   getAllReviewApps: [TuberApp!]!
+  getClusterInfo: ClusterInfo!
 }
 
 type Mutation {
