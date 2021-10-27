@@ -62,6 +62,7 @@ func runReviewAppReaper(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("error parsing updated at for app: %s, %v", app.Name, err)
 		}
+		fmt.Println(app.Name + " updated at " + updatedAt.String())
 		if time.Since(updatedAt).Hours() > 48 {
 			fmt.Println("destroying " + app.Name)
 			input := &model.AppInput{
@@ -83,6 +84,7 @@ func runReviewAppReaper(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
+			fmt.Println("destroyed " + app.Name)
 		}
 	}
 	return nil

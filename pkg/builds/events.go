@@ -60,7 +60,7 @@ func (p *Processor) Process(message pubsub.Message) {
 }
 
 func (p *Processor) notify(event *Event) {
-	if event.Status != "WORKING" && event.Status != "SUCCESS" && event.Status != "FAILED" {
+	if event.Status != "WORKING" && event.Status != "SUCCESS" && event.Status != "FAILURE" {
 		event.logger.Debug("build status received; not worth notifying", zap.String("build-status", event.Status))
 		return
 	}
@@ -120,7 +120,7 @@ func buildMessage(event *Event, app *model.TuberApp) string {
 		msg = fmt.Sprintf(":package: Build started for *%s*:%s - <%s|Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
 	case "SUCCESS":
 		msg = fmt.Sprintf(":white_check_mark: Build succeeded for *%s*:%s - <%s|Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
-	case "FAILED":
+	case "FAILURE":
 		msg = fmt.Sprintf(":bomb: Build failed for *%s*:%s - <%s|Logs>", app.Name, event.Substitutions.BranchName, event.LogURL)
 	}
 
