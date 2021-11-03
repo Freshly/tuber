@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -109,10 +110,13 @@ func (r releaser) release() error {
 		return r.releaseError(err)
 	}
 
+	// magnificent
+	crtg := currentReplicasToGather(append(rr.Prerelease, append(rr.Workloads, append(rr.Configs, rr.Postrelease...)...)...))
+
 	if len(rr.Prerelease) > 0 {
 		r.logger.Debug("prerelease starting")
 
-		err = RunPrerelease(r.logger, rr.Prerelease, r.app)
+		err = RunPrerelease(r.logger, r.applyCurrentReplicasToCollection(rr.Prerelease, crtg), r.app)
 		if err != nil {
 			return ErrorContext{context: "prerelease", err: err}
 		}
@@ -127,7 +131,7 @@ func (r releaser) release() error {
 		return err
 	}
 
-	appliedWorkloads, err := r.apply(rr.Workloads)
+	appliedWorkloads, err := r.apply(r.applyCurrentReplicasToCollection(rr.Workloads, crtg))
 	if err != nil {
 		_ = r.releaseError(err)
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
@@ -174,7 +178,7 @@ func (r releaser) release() error {
 		r.slackClient.Message(r.logger, ":bird: *"+r.app.Name+"*: deployed to canary"+r.diffText, r.app.SlackChannel)
 	}
 
-	appliedPostreleaseResources, err := r.apply(rr.Postrelease)
+	appliedPostreleaseResources, err := r.apply(r.applyCurrentReplicasToCollection(rr.Postrelease, crtg))
 	if err != nil {
 		_ = r.releaseError(err)
 		_, configRollbackErrors := r.rollback(appliedConfigs, decodedStateBeforeApply)
@@ -237,13 +241,15 @@ func (r releaser) release() error {
 }
 
 type appResource struct {
-	contents        []byte
-	kind            string
-	name            string
-	timeout         time.Duration
-	rollbackTimeout time.Duration
-	sentryUrls      []string
-	watchDuration   time.Duration
+	contents                     []byte
+	kind                         string
+	name                         string
+	timeout                      time.Duration
+	rollbackTimeout              time.Duration
+	sentryUrls                   []string
+	watchDuration                time.Duration
+	hpaCurrentReplicasDeployment string
+	hpaCurrentReplicasHpa        string
 }
 
 func (a appResource) hasMonitoring() bool {
@@ -330,6 +336,69 @@ func exclusions(app *model.TuberApp, data map[string]string) (map[string]bool, e
 		exc[exclusionKey(resource.Kind, string(name))] = true
 	}
 	return exc, nil
+}
+
+func currentReplicasToGather(resources appResources) map[string]string {
+	c := make(map[string]string)
+	for _, resource := range resources {
+		if resource.hpaCurrentReplicasDeployment != "" {
+			if resource.hpaCurrentReplicasHpa != "" {
+				c[resource.hpaCurrentReplicasDeployment] = resource.hpaCurrentReplicasHpa
+				continue
+			}
+			c[resource.hpaCurrentReplicasDeployment] = resource.name
+		}
+	}
+	return c
+}
+
+func (r releaser) applyCurrentReplicas(contents []byte, hpaName string) []byte {
+	var d map[interface{}]interface{}
+	err := yaml.Unmarshal(contents, &d)
+	if err != nil {
+		r.logger.Warn(fmt.Sprintf("error unmarshalling for applyCurrentReplicas: %v", err))
+		return nil
+	}
+
+	spec, ok := d["spec"].(map[string]interface{})
+	if !ok {
+		r.logger.Warn("error asserting deployment contents as map[string]interface{} for applyCurrentReplicas")
+		return nil
+	}
+
+	out, err := k8s.Get("hpa", hpaName, r.app.Name, `-o=go-template="{{.status.desiredReplicas}}"`)
+	if err != nil {
+		r.logger.Warn(fmt.Sprintf("error getting hpa applyCurrentReplicas: %v", err))
+		return nil
+	}
+	stringOut := strings.Trim(string(out), "\n\r\" ")
+	count, err := strconv.Atoi(stringOut)
+	if err != nil {
+		r.logger.Warn(fmt.Sprintf("error converting hpa desired replicas (stringout: %s) to int for applyCurrentReplicas: %v", stringOut, err))
+		return nil
+	}
+	spec["replicas"] = count
+	d["spec"] = spec
+	out, err = yaml.Marshal(d)
+	if err != nil {
+		r.logger.Warn(fmt.Sprintf("error remarshalling deployment with count: %v, for applyCurrentReplicas: %v", count, err))
+		return nil
+	}
+	return out
+}
+
+func (r releaser) applyCurrentReplicasToCollection(resources appResources, currentReplicasToGather map[string]string) appResources {
+	var updated appResources
+	for _, resource := range resources {
+		if resource.kind == "Deployment" && currentReplicasToGather[resource.name] != "" {
+			updatedContents := r.applyCurrentReplicas(resource.contents, currentReplicasToGather[resource.name])
+			if updatedContents != nil {
+				resource.contents = updatedContents
+			}
+		}
+		updated = append(updated, resource)
+	}
+	return updated
 }
 
 func (r releaser) resourcesToApply() (*ResourceCollection, error) {
@@ -419,6 +488,18 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 			rollbackTimeout = duration
 		}
 
+		var hpaCurrentReplicasTargetDeployment string
+		var hpaCurrentReplicasHpa string
+		lowerKind := strings.ToLower(parsed.Kind)
+		if lowerKind == "horizontalpodautoscaler" || lowerKind == "scaledobject" {
+			if t, ok := parsed.Metadata.Annotations["tuber/currentReplicasDeployment"].(string); ok && t != "" {
+				hpaCurrentReplicasTargetDeployment = t
+			}
+			if t, ok := parsed.Metadata.Annotations["tuber/currentReplicasHpa"].(string); ok && t != "" {
+				hpaCurrentReplicasHpa = t
+			}
+		}
+
 		var sentryUrls []string
 		for k, v := range parsed.Metadata.Annotations {
 			if strings.HasPrefix(k, "tuber/sentryUrl") {
@@ -439,13 +520,15 @@ func (r releaser) yamlToAppResource(yamls []string, data map[string]string) (app
 		}
 
 		resource := appResource{
-			kind:            parsed.Kind,
-			name:            parsed.Metadata.Name,
-			contents:        resourceYaml,
-			timeout:         timeout,
-			rollbackTimeout: rollbackTimeout,
-			sentryUrls:      sentryUrls,
-			watchDuration:   watchDuration,
+			kind:                         parsed.Kind,
+			name:                         parsed.Metadata.Name,
+			contents:                     resourceYaml,
+			timeout:                      timeout,
+			rollbackTimeout:              rollbackTimeout,
+			sentryUrls:                   sentryUrls,
+			watchDuration:                watchDuration,
+			hpaCurrentReplicasDeployment: hpaCurrentReplicasTargetDeployment,
+			hpaCurrentReplicasHpa:        hpaCurrentReplicasHpa,
 		}
 
 		if resource.canBeManaged() {
