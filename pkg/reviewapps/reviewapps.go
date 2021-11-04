@@ -13,6 +13,8 @@ import (
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/google/go-containerregistry/pkg/name"
+	"google.golang.org/api/cloudbuild/v1"
+	"google.golang.org/api/option"
 
 	"go.uber.org/zap"
 )
@@ -38,28 +40,27 @@ func NewReviewAppSetup(sourceApp string, reviewApp string) error {
 	return nil
 }
 
-func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch string, appName string, credentials []byte, projectName string) (string, error) {
-	reviewAppName := ReviewAppName(appName, branch)
+func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, sourceApp *model.TuberApp, branch string, credentials []byte, projectName string) (string, error) {
+	reviewAppName := ReviewAppName(sourceApp.Name, branch)
 
 	if db.AppExists(reviewAppName) {
 		return "", fmt.Errorf("review app already exists")
 	}
 
 	logger := l.With(
-		zap.String("appName", appName),
+		zap.String("appName", sourceApp.Name),
 		zap.String("reviewAppName", reviewAppName),
 		zap.String("branch", branch),
 	)
 
 	logger.Info("creating review app")
 
-	sourceApp, err := db.App(appName)
-	if err != nil {
-		return "", fmt.Errorf("can't find source app. is %s managed by tuber", appName)
-	}
-
 	if sourceApp.ReviewAppsConfig == nil || !sourceApp.ReviewAppsConfig.Enabled {
 		return "", fmt.Errorf("source app is not enabled for review apps")
+	}
+
+	if sourceApp.CloudSourceRepo == "" {
+		return "", fmt.Errorf("cloudSourceRepo is blank; it's required for review app trigger creation")
 	}
 
 	sourceAppTagGCRRef, err := name.ParseReference(sourceApp.ImageTag)
@@ -69,16 +70,52 @@ func CreateReviewApp(ctx context.Context, db *core.DB, l *zap.Logger, branch str
 
 	logger.Info("creating review app resources")
 
-	err = NewReviewAppSetup(appName, reviewAppName)
+	err = NewReviewAppSetup(sourceApp.Name, reviewAppName)
 	if err != nil {
 		return "", err
 	}
 
 	logger.Info("creating and running review app trigger")
-
-	triggerID, err := CreateAndRunTrigger(ctx, logger, credentials, projectName, branch, sourceApp.CloudSourceRepo, reviewAppName)
+	cloudbuildService, err := cloudbuild.NewService(ctx, option.WithCredentialsJSON(credentials))
 	if err != nil {
-		logger.Error("failed to create or run review app", zap.Error(err))
+		return "", fmt.Errorf("cloudbuild service: %w", err)
+	}
+	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
+	repoSource := cloudbuild.RepoSource{
+		BranchName: branch,
+		ProjectId:  projectName,
+		RepoName:   sourceApp.CloudSourceRepo,
+	}
+
+	var triggerID string
+	call := service.List(projectName)
+	allTriggers, listErr := call.Do()
+	if listErr != nil {
+		logger.Error("triggers list failed, skipping exists check")
+	} else {
+		for _, trigger := range allTriggers.Triggers {
+			if trigger.Name == reviewAppName {
+				triggerID = trigger.Id
+			}
+		}
+	}
+
+	if triggerID == "" {
+		triggerID, err = CreateTrigger(service, repoSource, projectName, reviewAppName)
+		if err != nil {
+			logger.Error("failed to create trigger", zap.Error(err))
+			return "", err
+		}
+	}
+
+	if triggerID == "" {
+		logger.Error("triggerID blank after exists check and create block")
+		return "", fmt.Errorf("triggerID blank after exists check and create block")
+	}
+
+	logger = logger.With(zap.String("triggerId", triggerID))
+	err = RunTrigger(service, repoSource, triggerID, projectName)
+	if err != nil {
 		triggerCleanupErr := deleteReviewAppTrigger(ctx, credentials, projectName, triggerID)
 		if triggerCleanupErr != nil {
 			logger.Error("error removing trigger", zap.Error(triggerCleanupErr))
