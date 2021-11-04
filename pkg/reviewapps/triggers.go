@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"google.golang.org/api/cloudbuild/v1"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
@@ -42,7 +43,13 @@ func deleteReviewAppTrigger(ctx context.Context, creds []byte, project string, t
 
 	service := cloudbuild.NewProjectsTriggersService(cloudbuildService)
 
-	if _, err := service.Delete(project, triggerID).Do(); err != nil {
+	_, err = service.Delete(project, triggerID).Do()
+	if err != nil {
+		googErr, ok := err.(*googleapi.Error)
+		if ok && len(googErr.Errors) == 1 && googErr.Errors[0].Reason == "notFound" {
+			return nil
+		}
+
 		return fmt.Errorf("failed to delete on cloudbuild api: %v", err)
 	}
 
