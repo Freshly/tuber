@@ -745,7 +745,7 @@ func (r *mutationResolver) UnsetRacExclusion(ctx context.Context, input model.Se
 
 	var updatedExclusions []*model.Resource
 	for _, t := range exclusions {
-		if !strings.EqualFold(t.Name, input.Name) && !strings.EqualFold(t.Kind, input.Kind) {
+		if !strings.EqualFold(t.Name, input.Name) || !strings.EqualFold(t.Kind, input.Kind) {
 			updatedExclusions = append(updatedExclusions, t)
 		}
 	}
