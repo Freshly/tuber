@@ -659,7 +659,7 @@ func (r *mutationResolver) UnsetRacVar(ctx context.Context, input model.SetTuple
 	var updatedVars []*model.Tuple
 	for _, t := range vars {
 		if t.Key != input.Key {
-			updatedVars = append(vars, t)
+			updatedVars = append(updatedVars, t)
 		}
 	}
 	rac.Vars = updatedVars

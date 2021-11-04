@@ -74,6 +74,7 @@ func runDevGqlServer(cmd *cobra.Command, args []string) error {
 	viper.SetDefault("TUBER_CLUSTER_REGION", "us-central1")
 	viper.SetDefault("TUBER_CLUSTER_NAME", cc.Shorthand)
 	viper.SetDefault("TUBER_DEBUG", true)
+	viper.SetDefault("TUBER_REVIEWAPPS_ENABLED", true)
 	processor := events.NewProcessor(ctx, logger, db, creds, data, true, slackClient, "", "", "")
 	startAdminServer(ctx, db, processor, logger, creds)
 
