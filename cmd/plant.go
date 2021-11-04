@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/k8s"
 
 	"github.com/spf13/cobra"
@@ -27,28 +26,77 @@ func plant(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("tuber already planted")
 	}
 
+	var clusterRole = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tuber-admin
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+`
+
+	var clusterRoleBinding = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tuber-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tuber-admin
+subjects:
+- kind: ServiceAccount
+  name: tuber
+  namespace: tuber
+`
+
+	var serviceAccount = `apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tuber
+  namespace: tuber
+`
+
+	var namespace = `apiVersion: v1
+kind: Namespace
+metadata:
+  name: tuber
+  labels:
+    istio-injection: false
+`
+
+	err = k8s.Apply([]byte(namespace), "tuber")
+	if err != nil {
+		return err
+	}
+
+	err = k8s.Apply([]byte(serviceAccount), "tuber")
+	if err != nil {
+		return err
+	}
+
+	err = k8s.Apply([]byte(clusterRole), "tuber")
+	if err != nil {
+		return err
+	}
+
+	err = k8s.Apply([]byte(clusterRoleBinding), "tuber")
+	if err != nil {
+		return err
+	}
+
+	err = k8s.CreateEnv("tuber")
+
 	credentialsPath := args[0]
-	err = core.NewAppSetup("tuber", false)
+	err = k8s.CreateTuberCredentials(credentialsPath, "tuber")
 	if err != nil {
 		return err
 	}
 
-	err = k8s.Create("tuber", "configmap", "tuber-apps")
-	if err != nil {
-		return err
-	}
-
-	err = k8s.Create("tuber", "configmap", "tuber-repos")
-	if err != nil {
-		return err
-	}
-
-	err = k8s.Create("tuber", "configmap", "tuber-review-triggers")
-	if err != nil {
-		return err
-	}
-
-	return k8s.CreateTuberCredentials(credentialsPath, "tuber")
+	return nil
 }
 
 func init() {

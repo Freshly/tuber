@@ -21,8 +21,7 @@ func DestroyTuberApp(db *DB, app *model.TuberApp) error {
 	return nil
 }
 
-// NewAppSetup adds a new tuber app configuration, including namespace,
-// role, rolebinding, and a listing in tuber-apps
+// NewAppSetup adds a new tuber app configuration, including namespace, role, and rolebinding
 func NewAppSetup(appName string, istio bool) error {
 	var err error
 	var istioEnabled string
