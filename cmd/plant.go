@@ -13,6 +13,7 @@ var plantCmd = &cobra.Command{
 	Use:          "plant [service account credentials path]",
 	Short:        "install tuber to a cluster",
 	Args:         cobra.ExactArgs(1),
+	PreRunE:      promptCurrentContext,
 	RunE:         plant,
 }
 
@@ -65,7 +66,7 @@ kind: Namespace
 metadata:
   name: tuber
   labels:
-    istio-injection: false
+    istio-injection: "disabled"
 `
 
 	err = k8s.Apply([]byte(namespace), "tuber")

@@ -191,7 +191,7 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 
 	logger.Debug("completed event taginfo", zap.String("branch", ti.branch), zap.String("newsha", ti.newSHA))
-	if ti.hasEventData() {
+	if ti.hasEventData() && p.tuberEventsProject != "" && p.tuberEventsTopic != "" {
 		logger.Info("posting completed event")
 		err = p.postCompleted(app, ti)
 		if err != nil {
