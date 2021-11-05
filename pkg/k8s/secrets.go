@@ -78,7 +78,7 @@ func CreateEnvFromFile(name string, path string) (err error) {
 		return
 	}
 
-	var data map[string]interface{}
+	var data map[string]string
 	err = yaml.Unmarshal(out, &data)
 	if err != nil {
 		return

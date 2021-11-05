@@ -219,7 +219,7 @@ func envList(cmd *cobra.Command, args []string) error {
 			output = append(output, []byte(fmt.Sprintf("%s = \"%s\"\n", k, v))...)
 		}
 	case "json":
-		output, err = json.Marshal(m)
+		output, err = json.MarshalIndent(m, "", " ")
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,6 @@ func envList(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-
 	}
 
 	fmt.Print(string(output))
