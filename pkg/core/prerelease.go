@@ -1,8 +1,8 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/freshly/tuber/graph/model"
@@ -23,9 +23,10 @@ func RunPrerelease(logger *zap.Logger, resources []appResource, app *model.Tuber
 			return err
 		}
 
-		err = WaitForPhase(resource.name, "pod", app, resource.timeout)
+		kc := k8s.NewKubectl()
+		err = WaitForPhase(kc, resource.name, "pod", app, resource.timeout, 2*time.Second)
 		if err != nil {
-			logger.Error("prerelease faled", zap.Error(err))
+			logger.Error("prerelease failed", zap.Error(err))
 			contextErr := fmt.Errorf("prerelease phase failed for pod: %s", resource.name)
 			deleteErr := k8s.Delete("pod", resource.name, app.Name)
 			if deleteErr != nil {
@@ -43,19 +44,27 @@ func RunPrerelease(logger *zap.Logger, resources []appResource, app *model.Tuber
 	return nil
 }
 
-func WaitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout time.Duration) error {
-	containerStatusesTemplate := fmt.Sprintf(
-		`go-template="%s"`,
-		"{{range .status.containerStatuses}}{{if .state.terminated.reason}}{{.state.terminated.reason}}{{end}}{{end}}",
-	)
+type Terminated struct {
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+}
+type PhaseData struct {
+	Phase             string       `json:"phase"`
+	ContainerStatuses []Terminated `json:"container-statuses,omitempty"`
+}
 
-	phaseTemplate := fmt.Sprintf(`go-template="%s"`, "{{.status.phase}}")
+const phaseTmpl string = `{"phase":"{{.status.phase}}"{{if .status.containerStatuses}},"container-statuses":[{{range $i, $status := .status.containerStatuses}}{{if $status.state.terminated.reason}}{{if $i}},{"reason":"{{$status.state.terminated.reason}}"{{if ne $status.state.terminated.reason "Completed"}},"message":"{{$status.state.terminated.message}}"{{end}}}{{else}}{"reason":"{{$status.state.terminated.reason}}"{{if and ($status.state.terminated.reason) (ne $status.state.terminated.reason "Completed")}},"message":"{{$status.state.terminated.message}}"{{end}}}{{end}}{{end}}{{end}}]{{end}}}`
 
-	failureTemplate := fmt.Sprintf(
-		`go-template="%s"`,
-		"{{range .status.containerStatuses}}{{.state.terminated.message}}{{end}}",
-	)
-	timeout := time.Now().Add(time.Minute * 10)
+// WaitForPhase calls to kubectl to retrieve the status of the prerelease pod and its container,
+// waiting for it to Complete, Succeed, or Fail.
+// TODO: Function doesn't need the entire app object so should be refactored to only take the name.
+// The app name is what's used as the namespace value so the naming could also use being made a bit
+// more communicative
+// For ease of use and dependency injection, all functions in this file could probably use being
+// turned into a method on a "prereleaser" struct. (being able to adjust the overall timeout would)
+// be helpful.
+func WaitForPhase(kbc *k8s.Kubectl, name string, kind string, app *model.TuberApp, resourceTimeout, checkDelay time.Duration) error {
+	timeout := time.Now().Add(10 * time.Minute)
 	if resourceTimeout > 0 {
 		timeout = time.Now().Add(resourceTimeout)
 	}
@@ -64,36 +73,30 @@ func WaitForPhase(name string, kind string, app *model.TuberApp, resourceTimeout
 		if time.Now().After(timeout) {
 			return fmt.Errorf("timeout")
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(checkDelay)
 
-		statuses, err := k8s.Get(kind, name, app.Name, "-o", containerStatusesTemplate)
+		out, err := kbc.Get(kind, app.Name, name, "-o", "go-template="+phaseTmpl)
 		if err != nil {
 			return err
 		}
 
-		completedContainerFound := strings.Contains(strings.Trim(string(statuses), `"`), "Completed")
-		if completedContainerFound {
-			break
-		}
-
-		status, err := k8s.Get(kind, name, app.Name, "-o", phaseTemplate)
-		if err != nil {
+		var phaseData PhaseData
+		if err := json.Unmarshal(out, &phaseData); err != nil {
 			return err
 		}
 
-		switch stringStatus := strings.Trim(string(status), `"`); stringStatus {
-		case "Succeeded":
-			return nil
-		case "Failed":
-			message, failedRetrieval := k8s.Get(kind, name, app.Name, "-o", failureTemplate)
-			if err != nil {
-				return failedRetrieval
+		for _, cs := range phaseData.ContainerStatuses {
+			if cs.Reason == "Completed" {
+				break
 			}
-			return fmt.Errorf(string(message))
-		default:
-			continue
+		}
+
+		if phaseData.Phase == "Succeeded" {
+			return nil
+		}
+
+		if phaseData.Phase == "Failed" {
+			return fmt.Errorf("%v", phaseData.ContainerStatuses)
 		}
 	}
-
-	return nil
 }

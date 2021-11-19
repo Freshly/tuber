@@ -76,7 +76,7 @@ func runAppsSetup(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = core.WaitForPhase(podName, "pod", app, 5*time.Minute)
+	err = core.WaitForPhase(nil, podName, "pod", app, 5*time.Minute, 2*time.Second)
 	if err != nil {
 		return err
 	}

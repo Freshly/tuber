@@ -1,7 +1,9 @@
 package k8s
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -10,6 +12,65 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
+
+const (
+	kubectlRoot string = "kubectl"
+)
+
+type Kubectl struct {
+	Runner Runner
+}
+
+func NewKubectl() *Kubectl {
+	return &Kubectl{Runner: &Run{}}
+}
+
+func (k *Kubectl) Get(kind string, namespace string, args ...string) ([]byte, error) {
+	getArgs := []string{"get", kind, "-n", namespace}
+	getArgs = append(getArgs, args...)
+
+	cmd := exec.Command(kubectlRoot, getArgs...)
+	out, err := k.Runner.Do(cmd)
+
+	return []byte(strings.TrimSpace(string(out))), err
+}
+
+// Runner contains behavior around running commands directly
+type Runner interface {
+	Do(*exec.Cmd) ([]byte, error)
+}
+
+// Run utilizes the os/exec package to run commands
+type Run struct{}
+
+// Do attempts to run the command passed in, returning the data received back
+// to the caller
+func (r *Run) Do(cmd *exec.Cmd) ([]byte, error) {
+	if cmd == nil {
+		return nil, fmt.Errorf("received nil command")
+	}
+
+	return do(cmd)
+}
+
+func do(cmd *exec.Cmd) ([]byte, error) {
+	var stdout, stderr bytes.Buffer
+
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		reason := trimNewLine(stderr.String())
+		return nil, fmt.Errorf("command execution failed with %s: %s", err, reason)
+	}
+
+	return stdout.Bytes(), nil
+}
+
+func trimNewLine(str string) string {
+	return strings.TrimRight(str, "\n")
+}
 
 func runKubectl(cmd *exec.Cmd) ([]byte, error) {
 	if viper.GetBool("TUBER_DEBUG") {
