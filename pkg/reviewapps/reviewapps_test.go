@@ -66,7 +66,7 @@ var testCases = []struct {
 	{
 		name:     "only hyphens",
 		input:    "----",
-		expected: fmt.Sprintf("%d-review-apps", time.Now().Unix()),
+		expected: fmt.Sprintf("%d-review-app", time.Now().Unix()),
 	},
 	{
 		// this case will fail if we extend the character limit, but that is desired.
