@@ -67,13 +67,12 @@ var fileCmd = &cobra.Command{
 			filePath = args[0]
 		}
 
-		switch replaceFlag {
-		case true:
+		if replaceFlag {
 			err := k8s.CreateEnvFromFile(appName, filePath)
 			if err != nil {
 				return err
 			}
-		default:
+		} else {
 			err := k8s.SetEnvFromFile("deployments", appName, filePath)
 			if err != nil {
 				return err
@@ -284,7 +283,7 @@ func init() {
 	envUnsetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envUnsetCmd)
 	fileCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
-	fileCmd.Flags().BoolVarP(&replaceFlag, "replace", "r", false, "replace all env variables")
+	fileCmd.Flags().BoolVarP(&replaceFlag, "replace", "r", false, "replace all env variables with contents of file")
 	envCmd.AddCommand(fileCmd)
 	envGetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envGetCmd)
