@@ -118,6 +118,7 @@ func PatchSecret(mapName string, namespace string, key string, value string) (er
 	return config.Save(namespace)
 }
 
+// BatchPatchSecret gets, and save multiple secrets
 func BatchPatchSecret(mapName string, namespace string, data map[string]string) (err error) {
 	config, err := GetConfigResource(mapName, namespace, "Secret")
 
@@ -156,6 +157,7 @@ func CreateEnv(appName string) error {
 	return Create(appName, "secret", "generic", appName+"-env")
 }
 
+// SetEnvFromFile update the env configuration with the contents of file
 func SetEnvFromFile(resource string, appName string, path string) (err error) {
 	var out []byte
 
