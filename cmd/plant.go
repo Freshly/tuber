@@ -235,8 +235,6 @@ func plant(cmd *cobra.Command, args []string) error {
 	}
 }
 
-var plantDeployFlag bool
-
 func init() {
 	plantCmd.Flags().Bool("deploy", false, "deploy tuber the first time (run without this flag first)")
 	plantCmd.Flags().String("host", "", "for the virtualservice")

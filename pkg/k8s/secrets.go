@@ -118,6 +118,27 @@ func PatchSecret(mapName string, namespace string, key string, value string) (er
 	return config.Save(namespace)
 }
 
+// BatchPatchSecret gets, and save multiple secrets
+func BatchPatchSecret(mapName string, namespace string, data map[string]string) (err error) {
+	config, err := GetConfigResource(mapName, namespace, "Secret")
+
+	if err != nil {
+		return
+	}
+
+	for key, value := range data {
+		value = base64.StdEncoding.EncodeToString([]byte(value))
+
+		if config.Data == nil {
+			config.Data = map[string]string{key: value}
+		} else {
+			config.Data[key] = value
+		}
+	}
+
+	return config.Save(namespace)
+}
+
 // RemoveSecretEntry removes an entry, from a secret
 func RemoveSecretEntry(mapName string, namespace string, key string) (err error) {
 	config, err := GetConfigResource(mapName, namespace, "Secret")
@@ -134,4 +155,25 @@ func RemoveSecretEntry(mapName string, namespace string, key string) (err error)
 // CreateEnv creates a Secret for a new TuberApp, to store env vars
 func CreateEnv(appName string) error {
 	return Create(appName, "secret", "generic", appName+"-env")
+}
+
+// SetEnvFromFile update the env configuration with the contents of file
+func SetEnvFromFile(resource string, appName string, path string) (err error) {
+	var out []byte
+
+	out, err = ioutil.ReadFile(path)
+
+	if err != nil {
+		return
+	}
+
+	var data map[string]string
+	err = yaml.Unmarshal([]byte(out), &data)
+	if err != nil {
+		return
+	}
+
+	mapName := fmt.Sprintf("%s-env", appName)
+
+	return BatchPatchSecret(mapName, appName, data)
 }

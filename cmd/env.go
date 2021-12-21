@@ -44,11 +44,12 @@ var envGetCmd = &cobra.Command{
 	PreRunE:      displayCurrentContext,
 }
 
+var replaceFlag bool
 var fileCmd = &cobra.Command{
 	SilenceUsage: true,
 	Use:          "file [appName (deprecated, use --app or -a)] [local filepath]",
 	Short:        "batch set environment variables based on the contents of a yaml file",
-	Args:         cobra.RangeArgs(1, 2),
+	Args:         cobra.RangeArgs(1, 3),
 	PreRunE:      promptCurrentContext,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var appName string
@@ -65,10 +66,17 @@ var fileCmd = &cobra.Command{
 			appName = appNameFlag
 			filePath = args[0]
 		}
-		err := k8s.CreateEnvFromFile(appName, filePath)
 
-		if err != nil {
-			return err
+		if replaceFlag {
+			err := k8s.CreateEnvFromFile(appName, filePath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := k8s.SetEnvFromFile("deployments", appName, filePath)
+			if err != nil {
+				return err
+			}
 		}
 
 		return k8s.Restart("deployments", appName)
@@ -275,6 +283,7 @@ func init() {
 	envUnsetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envUnsetCmd)
 	fileCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
+	fileCmd.Flags().BoolVarP(&replaceFlag, "replace", "r", false, "replace all env variables with contents of file")
 	envCmd.AddCommand(fileCmd)
 	envGetCmd.Flags().StringVarP(&appNameFlag, "app", "a", "", "app name")
 	envCmd.AddCommand(envGetCmd)
