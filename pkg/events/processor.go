@@ -17,6 +17,7 @@ import (
 	"github.com/freshly/tuber/pkg/slack"
 	"github.com/getsentry/sentry-go"
 	"google.golang.org/api/option"
+	"github.com/freshly/tuber/pkg/jira"
 
 	"go.uber.org/zap"
 )
@@ -188,6 +189,8 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 	}
 
 	p.slackClient.Message(logger, ":checkered_flag: *"+app.Name+"*: release complete"+ti.diffText, app.SlackChannel)
+	jira.PushJiraDeployment("https://api.github.com/repos/Freshly/create-review-app/actions/runs/1", []string{})
+
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 
 	logger.Debug("completed event taginfo", zap.String("branch", ti.branch), zap.String("newsha", ti.newSHA))
