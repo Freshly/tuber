@@ -8,6 +8,7 @@ import (
   "fmt"
   "time"
   "math/rand"
+  "strconv"
 )
 
 type AuthTokenResponse struct {
@@ -82,7 +83,10 @@ func PushJiraDeployment(deploymentUrl string, IssueKeys []string) {
     DisplayName: "staging",
     Type: "development",
   }
-  deploymentSequenceNumber := string(rand.Intn(1000)) // will be replaced
+
+  rand.Seed(time.Now().UnixNano())
+  deploymentSequenceNumber := strconv.FormatInt(int64(rand.Intn(1000)), 10) // will be replaced
+  fmt.Println("response Status:", deploymentSequenceNumber)
 
   deployment := jiraDeploymentBody{
     SchemaVersion: "1.0",
