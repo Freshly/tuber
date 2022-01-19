@@ -5,10 +5,10 @@ import (
   "io/ioutil"
   "net/http"
   "encoding/json"
-  "fmt"
   "time"
   "math/rand"
   "strconv"
+  "regexp"
 )
 
 type AuthTokenResponse struct {
@@ -47,6 +47,18 @@ type jiraDeploymentEnvironment struct {
   Type string `json:"type"`
 }
 
+type GithubCommits struct {
+	Commits []CommitInfo `json:"commits"`
+ }
+
+type CommitInfo struct {
+ 	Commit Commit `json:"commit"`
+}
+
+type Commit struct {
+	Message string `json:"message"`
+}
+
 func GetAuthToken() string {
   var tokenBodyData = []byte(`{
     "audience": "api.atlassian.com",
@@ -70,6 +82,37 @@ func GetAuthToken() string {
   return parsedResponse.AccessToken
 }
 
+func GetGithubCommitMessages(githubRepo string, oldSha string, newSha string) []string {
+	githubAuthToken := "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"
+	requestUrl := "https://api.github.com/repos" + githubRepo + "/compare/" + oldSha + "..." + newSha
+
+	request, error := http.NewRequest("GET", requestUrl, nil)
+  request.Header.Set("Authorization", "token " + githubAuthToken)
+  client := &http.Client{}
+  response, error := client.Do(request)
+
+  if error != nil { panic(error) }
+  defer response.Body.Close()
+
+  var parsedResponse GithubCommits
+  body, _ := ioutil.ReadAll(response.Body)
+
+  json.Unmarshal([]byte(body), &parsedResponse)
+
+	output := make([]string, len(parsedResponse.Commits))
+	r, _ := regexp.Compile("[A-Z]+\\-\\d+")
+
+	for _, a := range parsedResponse.Commits {
+		storyName := r.FindString(a.Commit.Message)
+
+		if storyName != "" {
+			output = append(output, storyName)
+		}
+	}
+
+  return output
+}
+
 func PushJiraDeployment(deploymentUrl string, IssueKeys []string) {
   var cloudId = "a647dcbc-2075-4f2b-bb98-98995953e33f"
 
@@ -86,7 +129,6 @@ func PushJiraDeployment(deploymentUrl string, IssueKeys []string) {
 
   rand.Seed(time.Now().UnixNano())
   deploymentSequenceNumber := strconv.FormatInt(int64(rand.Intn(1000)), 10) // will be replaced
-  fmt.Println("response Status:", deploymentSequenceNumber)
 
   deployment := jiraDeploymentBody{
     SchemaVersion: "1.0",
@@ -116,9 +158,4 @@ func PushJiraDeployment(deploymentUrl string, IssueKeys []string) {
 
   if error != nil { panic(error) }
   defer response.Body.Close()
-
-  respBody, _ := ioutil.ReadAll(response.Body)
-  fmt.Println("response Status:", response.Status)
-  fmt.Println("response Headers:", response.Header)
-  fmt.Println("response Body:", string(respBody))
 }

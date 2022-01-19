@@ -189,7 +189,11 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 	}
 
 	p.slackClient.Message(logger, ":checkered_flag: *"+app.Name+"*: release complete"+ti.diffText, app.SlackChannel)
-	jira.PushJiraDeployment("https://api.github.com/repos/Freshly/create-review-app/actions/runs/1", []string{})
+
+	deployedStories := affectedJiraTickets(ti, app)
+	fmt.Println("Deployed Stories:", deployedStories)
+
+	jira.PushJiraDeployment("https://api.github.com/repos/Freshly/create-review-app/actions/runs/1", deployedStories)
 
 	logger.Info("release complete", zap.Duration("duration", time.Since(startTime)))
 
@@ -206,12 +210,21 @@ func (p Processor) StartRelease(event *Event, app *model.TuberApp) {
 
 type tagInfo struct {
 	branch   string
+	oldSHA string
 	newSHA   string
 	diffText string
 }
 
 func (t tagInfo) hasEventData() bool {
 	return t.branch != "" && t.newSHA != ""
+}
+
+func affectedJiraTickets(ti tagInfo, app *model.TuberApp) []string {
+	if ti.hasEventData() {
+		return jira.GetGithubCommitMessages(app.GithubRepo, ti.oldSHA, ti.newSHA)
+	}
+
+	return []string{}
 }
 
 func getTagInfo(app *model.TuberApp, yamls *gcr.AppYamls) (tagInfo, error) {
@@ -248,6 +261,7 @@ func getTagInfo(app *model.TuberApp, yamls *gcr.AppYamls) (tagInfo, error) {
 
 	return tagInfo{
 		branch:   branch,
+		oldSHA:   oldSHA,
 		newSHA:   newSHA,
 		diffText: diffText,
 	}, nil
