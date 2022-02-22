@@ -396,6 +396,17 @@ func (r *mutationResolver) Rollback(ctx context.Context, input model.AppInput) (
 		return nil, fmt.Errorf(strings.TrimSuffix(combined, ", "))
 	}
 
+	// flip current/previous application state to mirror `kubectl rollout undo` behaviour
+	// when not explicitly defining a revision to rollback to
+	// https://betterprogramming.pub/how-to-roll-back-undo-a-deployment-in-kubernetes-with-kubectl-cc20b485adda
+	current := app.State.Current
+	app.State.Current = app.State.Previous
+	app.State.Previous = current
+	err = r.Resolver.db.SaveApp(app)
+	if err != nil {
+		return nil, fmt.Errorf("could not save changes: %v", err)
+	}
+
 	return app, nil
 }
 
