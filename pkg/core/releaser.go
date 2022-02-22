@@ -402,7 +402,7 @@ func (r releaser) applyCurrentReplicasToCollection(resources appResources, curre
 }
 
 func (r releaser) resourcesToApply() (*ResourceCollection, error) {
-	d := releaseData(r.digest, r.app, r.data)
+	d := releaseData(r.app.ImageTag, r.app, r.data)
 
 	prereleaseResources, err := r.yamlToAppResource(r.prereleaseYamls, d)
 	if err != nil {
