@@ -23,7 +23,7 @@ func ApplyTemplate(namespace string, templateString string, data map[string]stri
 // BypassReleaser is for when you're feeling frisky and want to cowboy code
 func BypassReleaser(app *model.TuberApp, imageTagWithDigest string, yamls []string, data *ClusterData) error {
 	var interpolated [][]byte
-	interplationData := releaseData(app.ImageTag, app, data)
+	interplationData := releaseData(imageTagWithDigest, app, data)
 	for _, y := range yamls {
 		i, err := interpolate(y, interplationData)
 		if err != nil {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/events"
+	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/slack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -108,7 +109,12 @@ func localDeploy(appName string, flagTag string) error {
 		tag = app.ImageTag
 	}
 
-	processor.StartRelease(events.NewEvent(logger, tag, tag), app)
+	digest, err := gcr.DigestFromTag(tag, creds)
+	if err != nil {
+		return err
+	}
+
+	processor.StartRelease(events.NewEvent(logger, digest, tag), app)
 	return nil
 }
 

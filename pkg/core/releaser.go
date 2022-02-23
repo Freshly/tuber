@@ -402,7 +402,7 @@ func (r releaser) applyCurrentReplicasToCollection(resources appResources, curre
 }
 
 func (r releaser) resourcesToApply() (*ResourceCollection, error) {
-	d := releaseData(r.app.ImageTag, r.app, r.data)
+	d := releaseData(r.digest, r.app, r.data)
 
 	prereleaseResources, err := r.yamlToAppResource(r.prereleaseYamls, d)
 	if err != nil {
@@ -704,13 +704,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 }
 
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
-	var err error
-	if applied.supportsRollback() {
-		err = k8s.Apply(cached.contents, r.app.Name)
-	} else {
-		err = k8s.Apply(cached.contents, r.app.Name)
-	}
-
+	err := k8s.Apply(cached.contents, r.app.Name)
 	if err != nil {
 		return err
 	}
