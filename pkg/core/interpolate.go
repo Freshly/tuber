@@ -107,7 +107,8 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 
 	err = yaml2.Unmarshal(interpolated, &m)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Printf("Unmarshal error: %v\n", err)
+		return interpolated, nil
 	}
 
 	fmt.Println("estf01")
