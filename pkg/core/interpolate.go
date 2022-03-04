@@ -113,11 +113,11 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 	fmt.Println("estf01")
 	if m["kind"] == "Deployment" {
 		fmt.Println("estf02")
-		spec := m["spec"].(map[string]interface{})
+		spec := m["spec"].(map[interface{}]interface{})
 		fmt.Printf("estf03: %v\n", spec)
-		template := spec["template"].(map[string]interface{})
+		template := spec["template"].(map[interface{}]interface{})
 		fmt.Printf("estf04: %v\n", template)
-		templateSpec := template["spec"].(map[string]interface{})
+		templateSpec := template["spec"].(map[interface{}]interface{})
 		fmt.Printf("estf05: %v\n", templateSpec)
 		templateSpec["imagePullPolicy"] = "Always"
 	}
