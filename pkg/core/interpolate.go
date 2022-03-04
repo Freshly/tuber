@@ -110,10 +110,15 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 		log.Fatalf("error: %v", err)
 	}
 
+	fmt.Println("estf01")
 	if m["kind"] == "Deployment" {
+		fmt.Println("estf02")
 		spec := m["spec"].(map[string]interface{})
+		fmt.Printf("estf03: %v\n", spec)
 		template := spec["template"].(map[string]interface{})
+		fmt.Printf("estf04: %v\n", template)
 		templateSpec := template["spec"].(map[string]interface{})
+		fmt.Printf("estf05: %v\n", templateSpec)
 		templateSpec["imagePullPolicy"] = "Always"
 	}
 
