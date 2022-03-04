@@ -115,7 +115,7 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
-	return d
+	return d, err
 }
 
 // ClusterData is configurable, cluster-wide data available for yaml interpolation
