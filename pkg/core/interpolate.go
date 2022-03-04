@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"gopkg.in/yaml.v2"
+	yaml2 "gopkg.in/yaml.v2"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
@@ -105,13 +105,13 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 	interpolated = buf.Bytes()
 	m := make(map[interface{}]interface{})
 
-	err = yaml.Unmarshal(interpolated, &m)
+	err = yaml2.Unmarshal(interpolated, &m)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	fmt.Printf("--- m:\n%v\n\n", m)
 
-	d, err := yaml.Marshal(&m)
+	d, err := yaml2.Marshal(&m)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
