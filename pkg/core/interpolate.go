@@ -111,24 +111,16 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 		return interpolated, nil
 	}
 
-	fmt.Println("estf01")
 	if m["kind"] == "Deployment" {
-		fmt.Println("estf02")
 		spec := m["spec"].(map[interface{}]interface{})
-		fmt.Printf("estf03: %v\n", spec)
 		template := spec["template"].(map[interface{}]interface{})
-		fmt.Printf("estf04: %v\n", template)
 		templateSpec := template["spec"].(map[interface{}]interface{})
-		fmt.Printf("estf05: %v\n", templateSpec)
 		containers := templateSpec["containers"].([]interface{})
 		for _, container := range containers {
 			c := container.(map[interface{}]interface{})
-			fmt.Printf("estf00: %v\n", c)
 			c["imagePullPolicy"] = "Always"
 		}
 	}
-
-	fmt.Printf("--- m:\n%v\n\n", m)
 
 	d, err := yaml2.Marshal(&m)
 	if err != nil {
