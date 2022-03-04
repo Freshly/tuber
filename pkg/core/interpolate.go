@@ -119,7 +119,12 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 		fmt.Printf("estf04: %v\n", template)
 		templateSpec := template["spec"].(map[interface{}]interface{})
 		fmt.Printf("estf05: %v\n", templateSpec)
-		templateSpec["imagePullPolicy"] = "Always"
+		containers := templateSpec["containers"].([]interface{})
+		for _, container := range containers {
+			c := container.(map[interface{}]interface{})
+			fmt.Printf("estf00: %v\n", c)
+			c["imagePullPolicy"] = "Always"
+		}
 	}
 
 	fmt.Printf("--- m:\n%v\n\n", m)
