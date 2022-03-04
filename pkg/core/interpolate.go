@@ -109,6 +109,14 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
+
+	if m["kind"] == "Deployment" {
+		spec := m["spec"].(map[string]interface{})
+		template := spec["template"].(map[string]interface{})
+		templateSpec := template["spec"].(map[string]interface{})
+		templateSpec["imagePullPolicy"] = "Always"
+	}
+
 	fmt.Printf("--- m:\n%v\n\n", m)
 
 	d, err := yaml2.Marshal(&m)
