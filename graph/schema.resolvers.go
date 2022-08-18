@@ -19,7 +19,6 @@ import (
 	"github.com/freshly/tuber/pkg/events"
 	"github.com/freshly/tuber/pkg/gcr"
 	"github.com/freshly/tuber/pkg/k8s"
-	"github.com/freshly/tuber/pkg/oauth"
 	"github.com/freshly/tuber/pkg/reviewapps"
 	"go.uber.org/zap"
 )
@@ -487,12 +486,7 @@ func (r *mutationResolver) SetSlackChannel(ctx context.Context, input model.AppI
 }
 
 func (r *mutationResolver) ManualApply(ctx context.Context, input model.ManualApplyInput) (*model.TuberApp, error) {
-	token, err := oauth.GetAccessToken(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving authorization params")
-	}
-
-	authed, err := k8s.CanI(input.Name, "'*'", "'*'", "--token="+token)
+	authed, err := k8s.CanI(input.Name, "'*'", "'*'")
 	if err != nil {
 		return nil, err
 	}

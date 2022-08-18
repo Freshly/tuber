@@ -2,12 +2,9 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/freshly/tuber/pkg/core"
 	"github.com/freshly/tuber/pkg/events"
-	"github.com/freshly/tuber/pkg/k8s"
-	"github.com/freshly/tuber/pkg/oauth"
 	"go.uber.org/zap"
 )
 
@@ -74,31 +71,31 @@ func canViewAllApps(ctx context.Context) error {
 }
 
 func authCheckAllNamespaces(ctx context.Context, verb string, subject string) error {
-	token, err := oauth.GetAccessToken(ctx)
-	if err != nil {
-		return fmt.Errorf("error retrieving authorization params")
-	}
-	authorized, err := k8s.CanIAllNamespaces(verb, subject, "--token="+token)
-	if err != nil {
-		return fmt.Errorf("error determining authorization status")
-	}
-	if !authorized {
-		return fmt.Errorf("unauthorized to perform this action")
-	}
+	// token, err := oauth.GetAccessToken(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("error retrieving authorization params")
+	// }
+	// authorized, err := k8s.CanIAllNamespaces(verb, subject, "--token="+token)
+	// if err != nil {
+	// 	return fmt.Errorf("error determining authorization status")
+	// }
+	// if !authorized {
+	// 	return fmt.Errorf("unauthorized to perform this action")
+	// }
 	return nil
 }
 
 func authCheck(ctx context.Context, appName string, verb string, subject string) error {
-	token, err := oauth.GetAccessToken(ctx)
-	if err != nil {
-		return fmt.Errorf("error retrieving authorization params")
-	}
-	authorized, err := k8s.CanI(appName, verb, subject, "--token="+token)
-	if err != nil {
-		return fmt.Errorf("error determining authorization status")
-	}
-	if !authorized {
-		return fmt.Errorf("unauthorized to perform this action")
-	}
+	// token, err := oauth.GetAccessToken(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("error retrieving authorization params")
+	// }
+	// authorized, err := k8s.CanI(appName, verb, subject, "--token="+token)
+	// if err != nil {
+	// 	return fmt.Errorf("error determining authorization status")
+	// }
+	// if !authorized {
+	// 	return fmt.Errorf("unauthorized to perform this action")
+	// }
 	return nil
 }

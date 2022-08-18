@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"github.com/freshly/tuber/pkg/config"
 	"github.com/freshly/tuber/pkg/core"
 	tuberbolt "github.com/freshly/tuber/pkg/db"
-	"github.com/freshly/tuber/pkg/iap"
 	"github.com/freshly/tuber/pkg/k8s"
 	"github.com/freshly/tuber/pkg/report"
 
@@ -190,14 +188,6 @@ func credentials() ([]byte, error) {
 }
 
 func checkAuth(audience string) error {
-	exists, err := iap.RefreshTokenExists(audience)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return errors.New("tuber is not authorized. Please run `tuber auth`")
-	}
-
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/freshly/tuber/pkg/iap"
 	"github.com/machinebox/graphql"
 	"github.com/spf13/viper"
 )
@@ -65,23 +64,6 @@ func (g *GraphqlClient) Query(ctx context.Context, gql string, target interface{
 		}
 	}
 
-	var tuberToken string
-
-	if !g.IntraCluster {
-		tokens, err := iap.CreateIDToken(g.IAPAudience)
-		if err != nil {
-			return err
-		}
-
-		tuberToken = tokens.AccessToken
-		req.Header.Set("Cache-Control", "no-cache")
-		req.Header.Set("Authorization", "Bearer "+tokens.IDToken)
-	} else {
-		tuberToken = g.IntraClusterToken
-	}
-
-	req.Header.Set("Tuber-Token", tuberToken)
-
 	err := g.client.Run(ctx, req, &target)
 	if err != nil {
 		return err
@@ -100,23 +82,6 @@ func (g *GraphqlClient) Mutation(ctx context.Context, gql string, key *int, inpu
 	if input != nil {
 		req.Var("input", input)
 	}
-
-	var tuberToken string
-
-	if !g.IntraCluster {
-		tokens, err := iap.CreateIDToken(g.IAPAudience)
-		if err != nil {
-			return err
-		}
-
-		tuberToken = tokens.AccessToken
-		req.Header.Set("Cache-Control", "no-cache")
-		req.Header.Set("Authorization", "Bearer "+tokens.IDToken)
-	} else {
-		tuberToken = g.IntraClusterToken
-	}
-
-	req.Header.Set("Tuber-Token", tuberToken)
 
 	if err := g.client.Run(ctx, req, &target); err != nil {
 		return err
