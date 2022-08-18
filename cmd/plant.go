@@ -141,13 +141,6 @@ spec:
         - image: "gcr.io/freshly-docker/tuber:main"
           name: tuber
           command: [ "tuber", "start" ]
-          resources:
-            requests:
-              memory: "1Gi"
-              cpu: "1"
-            limits:
-              memory: "1Gi"
-              cpu: "1"
           volumeMounts:
             - name: tuber-credentials
               readOnly: true
