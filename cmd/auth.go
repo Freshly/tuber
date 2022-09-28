@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/freshly/tuber/pkg/iap"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +10,7 @@ var authCmd = &cobra.Command{
 	Short:        "authorize cli",
 	Args:         cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return iap.CreateRefreshToken()
+		return nil
 	},
 }
 

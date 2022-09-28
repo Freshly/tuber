@@ -1,0 +1,6 @@
+steps:
+  - name: 'gcr.io/kaniko-project/executor:v1.6.0'
+    args:
+      - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/freshly/tuber:$BRANCH_NAME
+      - --destination=us-central1-docker.pkg.dev/$PROJECT_ID/freshly/tuber:$COMMIT_SHA
+      - --cache=true
