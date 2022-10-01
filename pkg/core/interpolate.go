@@ -3,8 +3,11 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strings"
 	"text/template"
+
+	yaml2 "gopkg.in/yaml.v2"
 
 	"github.com/freshly/tuber/graph/model"
 	"github.com/freshly/tuber/pkg/k8s"
@@ -100,7 +103,30 @@ func interpolate(templateString string, data map[string]string) (interpolated []
 	}
 
 	interpolated = buf.Bytes()
-	return
+	m := make(map[interface{}]interface{})
+
+	err = yaml2.Unmarshal(interpolated, &m)
+	if err != nil {
+		log.Printf("Unmarshal error: %v\n", err)
+		return interpolated, nil
+	}
+
+	if m["kind"] == "Deployment" {
+		spec := m["spec"].(map[interface{}]interface{})
+		template := spec["template"].(map[interface{}]interface{})
+		templateSpec := template["spec"].(map[interface{}]interface{})
+		containers := templateSpec["containers"].([]interface{})
+		for _, container := range containers {
+			c := container.(map[interface{}]interface{})
+			c["imagePullPolicy"] = "Always"
+		}
+	}
+
+	d, err := yaml2.Marshal(&m)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	return d, err
 }
 
 // ClusterData is configurable, cluster-wide data available for yaml interpolation
