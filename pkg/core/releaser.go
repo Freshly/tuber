@@ -704,13 +704,7 @@ func (r releaser) rollback(appliedResources []appResource, cachedResources []app
 }
 
 func (r releaser) rollbackResource(applied appResource, cached appResource) error {
-	var err error
-	if applied.supportsRollback() {
-		err = k8s.RolloutUndo(applied.kind, applied.name, r.app.Name)
-	} else {
-		err = k8s.Apply(cached.contents, r.app.Name)
-	}
-
+	err := k8s.Apply(cached.contents, r.app.Name)
 	if err != nil {
 		return err
 	}
